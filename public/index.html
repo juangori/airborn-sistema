@@ -3033,19 +3033,37 @@
             </div>
         </div> <!-- /stock-box-light -->
 
-        <!-- BOX PEQUEÑO: actualización masiva por CSV -->
+        <!-- BOX PEQUEÑO: importar/actualizar productos por CSV -->
         <div class="stock-box-csv">
-            <h3>Actualización masiva por CSV</h3>
+            <h3>📦 Importar Productos CSV</h3>
             <p class="stock-csv-text">
-                Usa esta opción solo cuando necesites actualizar muchos artículos a la vez.
-                Formato esperado: <code>codigo,cantidad</code>
+                <strong>Primera vez:</strong> Cargá tu archivo con todos los productos.<br>
+                Formato: <code>codigo,descripcion,categoria,precioPublico,costo,stock</code>
+            </p>
+
+            <div class="upload-area" onclick="document.getElementById('csvProductos').click()">
+                <div class="icon">📁</div>
+                <p><strong>Click para importar productos</strong></p>
+                <p style="font-size: 0.9em; color: #999; margin-top: 10px;">
+                    Crea productos nuevos o actualiza existentes
+                </p>
+                <input type="file" id="csvProductos" accept=".csv" onchange="importarProductosCSV()" style="display:none;">
+            </div>
+            <div id="alertaProductos" class="alert"></div>
+
+            <hr style="margin: 20px 0; border: none; border-top: 1px dashed #ddd;">
+
+            <h3>🔄 Actualizar Solo Stock</h3>
+            <p class="stock-csv-text">
+                Usa esta opción para actualizar cantidades de productos existentes.
+                Formato: <code>codigo,cantidad</code>
             </p>
 
             <div class="upload-area" onclick="document.getElementById('csvFile').click()">
-                <div class="icon">📁</div>
-                <p><strong>Haz click o arrastra un archivo CSV</strong></p>
+                <div class="icon">📊</div>
+                <p><strong>Click para actualizar stock</strong></p>
                 <p style="font-size: 0.9em; color: #999; margin-top: 10px;">
-                    El archivo debe tener dos columnas: código y cantidad
+                    Solo actualiza cantidades, no crea productos nuevos
                 </p>
                 <input type="file" id="csvFile" accept=".csv" onchange="uploadCSV()">
             </div>
@@ -4566,6 +4584,35 @@ function cargarVentasDelDia(fecha) {
             document.getElementById('csvFile').value = '';
         } catch (error) {
             showAlert('alertaStock', `❌ ${error.message}`, 'danger');
+        }
+    }
+
+    // ==================== IMPORTAR PRODUCTOS COMPLETOS ====================
+    async function importarProductosCSV() {
+        const file = document.getElementById('csvProductos').files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/productos/importar', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.ok) {
+                showAlert('alertaProductos', `✅ ${result.importados} productos importados` + (result.omitidos > 0 ? ` (${result.omitidos} omitidos)` : ''), 'success');
+                cargarStockCompleto(); // Recargar la tabla
+            } else {
+                showAlert('alertaProductos', `❌ ${result.error}`, 'danger');
+            }
+
+            document.getElementById('csvProductos').value = '';
+        } catch (error) {
+            showAlert('alertaProductos', `❌ ${error.message}`, 'danger');
         }
     }
 

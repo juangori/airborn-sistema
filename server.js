@@ -596,6 +596,92 @@ app.post('/api/stock/upload', requireAuth, upload.single('file'), (req, res) => 
     });
 });
 
+// 6b. IMPORTAR PRODUCTOS CSV (crear/actualizar productos)
+app.post('/api/productos/importar', requireAuth, upload.single('file'), (req, res) => {
+  const db = req.db;
+  const usuario = req.session.usuario;
+
+  if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
+
+  const contenido = req.file.buffer.toString('utf-8');
+  const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
+
+  if (lineas.length < 2) {
+    return res.status(400).json({ error: 'Archivo vacío o sin datos' });
+  }
+
+  // Detectar headers
+  const headerLine = lineas[0].toLowerCase();
+  const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, ''));
+  
+  let importados = 0;
+  let omitidos = 0;
+  const filas = lineas.slice(1);
+
+  filas.forEach(linea => {
+    // Parser CSV básico
+    const valores = [];
+    let dentroComillas = false;
+    let valorActual = '';
+
+    for (let i = 0; i < linea.length; i++) {
+      const char = linea[i];
+      if (char === '"') {
+        dentroComillas = !dentroComillas;
+      } else if (char === ',' && !dentroComillas) {
+        valores.push(valorActual.trim().replace(/^"|"$/g, ''));
+        valorActual = '';
+      } else {
+        valorActual += char;
+      }
+    }
+    valores.push(valorActual.trim().replace(/^"|"$/g, ''));
+
+    if (valores.length < 2) {
+      omitidos++;
+      return;
+    }
+
+    // Mapear por headers o por posición
+    let codigo, descripcion, categoria, precioPublico, costo, stock;
+
+    if (headers.includes('codigo') || headers.includes('código')) {
+      // Usar headers
+      const idx = (name) => headers.findIndex(h => h === name || h === name.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+      codigo = valores[idx('codigo')] || valores[idx('código')] || valores[0];
+      descripcion = valores[idx('descripcion')] || valores[idx('descripción')] || valores[1] || '';
+      categoria = valores[idx('categoria')] || valores[idx('categoría')] || valores[2] || '';
+      precioPublico = valores[idx('preciopublico')] || valores[idx('precio')] || valores[3] || '0';
+      costo = valores[idx('costo')] || valores[4] || '0';
+      stock = valores[idx('stock')] || valores[idx('cantidad')] || valores[5] || '0';
+    } else {
+      // Asumir orden: codigo, descripcion, categoria, precioPublico, costo, stock
+      [codigo, descripcion, categoria, precioPublico, costo, stock] = valores;
+    }
+
+    if (!codigo) {
+      omitidos++;
+      return;
+    }
+
+    // Limpiar valores numéricos
+    const precioNum = parseFloat((precioPublico || '0').toString().replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+    const costoNum = parseFloat((costo || '0').toString().replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+    const stockNum = parseInt((stock || '0').toString().replace(/[^\d-]/g, '')) || 0;
+
+    db.run(`
+      INSERT OR REPLACE INTO productos (codigo, descripcion, categoria, precioPublico, costo, stock)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [codigo.toString().trim(), descripcion || '', categoria || '', precioNum, costoNum, stockNum]);
+
+    importados++;
+  });
+
+  crearBackup(usuario, 'Productos importados', `${importados} productos, ${omitidos} omitidos`);
+  console.log(`📦 Productos importados: ${importados}, omitidos: ${omitidos}`);
+  res.json({ ok: true, importados, omitidos });
+});
+
 // 7. OBTENER STOCK DE UN PRODUCTO
 app.get('/api/productos/stock/:codigo', requireAuth, (req, res) => {
   const db = req.db;
