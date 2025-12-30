@@ -1,0 +1,16 @@
+[
+  {
+    "archivo": "2025-12-30_09-10-31_Importación_CSV.db",
+    "fecha": "2025-12-30_09-10-31",
+    "accion": "Importación CSV",
+    "detalle": "403 ventas importadas, 2 omitidas",
+    "timestampMs": 1767096631536
+  },
+  {
+    "archivo": "2025-12-30_09-10-00_Stock_CSV.db",
+    "fecha": "2025-12-30_09-10-00",
+    "accion": "Stock CSV",
+    "detalle": "Filas: 838, OK: 838",
+    "timestampMs": 1767096600130
+  }
+]
