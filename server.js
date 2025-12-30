@@ -153,6 +153,13 @@ function inicializarBdCliente(db) {
         comentarios TEXT
       )
     `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS cajasIniciales (
+        fecha DATE PRIMARY KEY,
+        monto REAL DEFAULT 0
+      )
+    `);
   });
 }
 
@@ -356,15 +363,34 @@ app.post('/api/usuarios', (req, res) => {
 // 1. BÚSQUEDA DE PRODUCTOS
 app.get('/api/productos/buscar', requireAuth, (req, res) => {
   const db = req.db;
-  const { codigo } = req.query;
+  const { codigo, q } = req.query;
+  const busqueda = q || codigo || '';
 
-  db.get(
-    'SELECT * FROM productos WHERE codigo LIKE ? LIMIT 1',
-    [`%${codigo}%`],
-    (err, row) => {
+  if (!busqueda || busqueda.length < 2) {
+    return res.status(400).json({ error: 'Búsqueda muy corta' });
+  }
+
+  // Buscar por código O descripción
+  db.all(
+    `SELECT * FROM productos 
+     WHERE codigo LIKE ? OR descripcion LIKE ? 
+     ORDER BY 
+       CASE WHEN codigo LIKE ? THEN 0 ELSE 1 END,
+       descripcion
+     LIMIT 20`,
+    [`%${busqueda}%`, `%${busqueda}%`, `${busqueda}%`],
+    (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
-      if (!row) return res.status(404).json({ error: 'Producto no encontrado' });
-      res.json(row);
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ error: 'Producto no encontrado' });
+      }
+      // Si buscan por código exacto o hay un solo resultado, devolver objeto
+      // Si hay múltiples, devolver array
+      if (rows.length === 1) {
+        res.json(rows[0]);
+      } else {
+        res.json({ multiple: true, productos: rows });
+      }
     }
   );
 });
@@ -664,9 +690,21 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), (req, re
       return;
     }
 
-    // Limpiar valores numéricos
-    const precioNum = parseFloat((precioPublico || '0').toString().replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-    const costoNum = parseFloat((costo || '0').toString().replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+    // Limpiar valores numéricos (formato argentino: $199.990,00)
+    // 1. Quitar $ y espacios
+    // 2. Quitar puntos de miles
+    // 3. Reemplazar coma decimal por punto
+    const parsearPrecioARG = (valor) => {
+      if (!valor || valor === '##########') return 0;
+      const limpio = valor.toString()
+        .replace(/[$\s]/g, '')     // Quitar $ y espacios
+        .replace(/\./g, '')         // Quitar puntos de miles
+        .replace(',', '.');         // Coma decimal -> punto
+      return parseFloat(limpio) || 0;
+    };
+
+    const precioNum = parsearPrecioARG(precioPublico);
+    const costoNum = parsearPrecioARG(costo);
     const stockNum = parseInt((stock || '0').toString().replace(/[^\d-]/g, '')) || 0;
 
     db.run(`
@@ -809,12 +847,14 @@ app.get('/api/ventas/historico', requireAuth, (req, res) => {
   const placeholders = mesesArray.map(() => '?').join(',');
   const params = [anio, ...mesesArray];
 
+  // JOIN con productos para traer la descripción
   const sql = `
-    SELECT *
-    FROM ventas
-    WHERE strftime('%Y', fecha) = ?
-      AND CAST(strftime('%m', fecha) AS INTEGER) IN (${placeholders})
-    ORDER BY fecha DESC, id DESC
+    SELECT v.*, p.descripcion
+    FROM ventas v
+    LEFT JOIN productos p ON v.codigoArticulo = p.codigo
+    WHERE strftime('%Y', v.fecha) = ?
+      AND CAST(strftime('%m', v.fecha) AS INTEGER) IN (${placeholders})
+    ORDER BY v.fecha DESC, v.id DESC
   `;
 
   db.all(sql, params, (err, rows) => {
@@ -1061,6 +1101,131 @@ app.post('/api/backups/restaurar', requireAuth, (req, res) => {
   } catch (error) {
     console.error('Error preparando restauración:', error);
     res.status(500).json({ error: 'Error al preparar restauración' });
+  }
+});
+
+// ==================== SERVIDOR ====================
+// ==================== CAJA INICIAL DEL DÍA ====================
+
+// Asegurar que la tabla existe
+function asegurarTablaCajasIniciales(db, callback) {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS cajasIniciales (
+      fecha DATE PRIMARY KEY,
+      monto REAL DEFAULT 0
+    )
+  `, callback);
+}
+
+// Obtener caja inicial de un día
+app.get('/api/caja-inicial/:fecha', requireAuth, (req, res) => {
+  const db = req.db;
+  const { fecha } = req.params;
+
+  asegurarTablaCajasIniciales(db, (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    
+    db.get('SELECT monto FROM cajasIniciales WHERE fecha = ?', [fecha], (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ fecha, monto: row ? row.monto : 0 });
+    });
+  });
+});
+
+// Guardar/actualizar caja inicial de un día
+app.post('/api/caja-inicial', requireAuth, (req, res) => {
+  const db = req.db;
+  const { fecha, monto } = req.body;
+
+  console.log('POST caja-inicial - fecha:', fecha, 'monto:', monto);
+
+  if (!fecha) return res.status(400).json({ error: 'Fecha requerida' });
+
+  asegurarTablaCajasIniciales(db, (err) => {
+    if (err) {
+      console.log('Error creando tabla:', err);
+      return res.status(500).json({ error: err.message });
+    }
+    
+    db.run(`
+      INSERT OR REPLACE INTO cajasIniciales (fecha, monto) VALUES (?, ?)
+    `, [fecha, monto || 0], function(err) {
+      if (err) {
+        console.log('Error insertando:', err);
+        return res.status(500).json({ error: err.message });
+      }
+      console.log('Guardado OK - changes:', this.changes);
+      res.json({ ok: true, fecha, monto });
+    });
+  });
+});
+
+// ==================== ADMINISTRACIÓN DE DATOS ====================
+
+// Limpiar ventas de un mes específico
+app.post('/api/ventas/limpiar-mes', requireAuth, (req, res) => {
+  const db = req.db;
+  const usuario = req.session.usuario;
+  const { mes, anio } = req.body;
+
+  console.log('Limpiar ventas - mes:', mes, 'anio:', anio);
+
+  if (!mes || !anio) {
+    return res.status(400).json({ error: 'Mes y año requeridos' });
+  }
+
+  const mesStr = mes.toString().padStart(2, '0');
+  const inicioMes = `${anio}-${mesStr}-01`;
+  const finMes = `${anio}-${mesStr}-31`;
+
+  console.log('Buscando ventas entre:', inicioMes, 'y', finMes);
+
+  db.run(
+    `DELETE FROM ventas WHERE fecha >= ? AND fecha <= ?`,
+    [inicioMes, finMes],
+    function(err) {
+      if (err) {
+        console.error('Error limpiando ventas:', err);
+        return res.status(500).json({ error: err.message });
+      }
+      console.log('Ventas eliminadas:', this.changes);
+      crearBackup(usuario, 'Limpieza ventas', `${this.changes} ventas eliminadas (${mesStr}/${anio})`);
+      res.json({ ok: true, eliminadas: this.changes });
+    }
+  );
+});
+
+// Limpiar tabla completa
+app.post('/api/admin/limpiar/:tabla', requireAuth, (req, res) => {
+  const db = req.db;
+  const usuario = req.session.usuario;
+  const { tabla } = req.params;
+
+  const tablasPermitidas = ['ventas', 'cambios', 'cuentas'];
+  if (!tablasPermitidas.includes(tabla)) {
+    return res.status(400).json({ error: 'Tabla no permitida' });
+  }
+
+  // Crear backup antes de borrar
+  crearBackup(usuario, `Pre-limpieza ${tabla}`, `Antes de borrar todos los registros`);
+
+  if (tabla === 'cuentas') {
+    // Borrar también los movimientos
+    db.run('DELETE FROM movimientosCuentas', function(err) {
+      if (err) console.error('Error borrando movimientos:', err);
+      
+      db.run('DELETE FROM cuentasCorrientes', function(err2) {
+        if (err2) return res.status(500).json({ error: err2.message });
+        crearBackup(usuario, 'Limpieza cuentas', `Todas las cuentas corrientes eliminadas`);
+        res.json({ ok: true, mensaje: 'Todas las cuentas corrientes eliminadas' });
+      });
+    });
+  } else {
+    db.run(`DELETE FROM ${tabla}`, function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      crearBackup(usuario, `Limpieza ${tabla}`, `${this.changes} registros eliminados`);
+      res.json({ ok: true, mensaje: `${this.changes} registros de ${tabla} eliminados` });
+    });
   }
 });
 

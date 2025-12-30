@@ -1,16 +1,114 @@
 [
   {
-    "archivo": "2025-12-30_09-10-31_Importación_CSV.db",
-    "fecha": "2025-12-30_09-10-31",
-    "accion": "Importación CSV",
-    "detalle": "403 ventas importadas, 2 omitidas",
-    "timestampMs": 1767096631536
+    "archivo": "2025-12-30_11-23-04_Limpieza_ventas.db",
+    "fecha": "2025-12-30_11-23-04",
+    "accion": "Limpieza ventas",
+    "detalle": "150 ventas eliminadas (11/2025)",
+    "timestampMs": 1767104584518
   },
   {
-    "archivo": "2025-12-30_09-10-00_Stock_CSV.db",
-    "fecha": "2025-12-30_09-10-00",
-    "accion": "Stock CSV",
-    "detalle": "Filas: 838, OK: 838",
-    "timestampMs": 1767096600130
+    "archivo": "2025-12-30_11-21-51_Importación_CSV.db",
+    "fecha": "2025-12-30_11-21-51",
+    "accion": "Importación CSV",
+    "detalle": "4979 ventas importadas, 1022 omitidas",
+    "timestampMs": 1767104511169
+  },
+  {
+    "archivo": "2025-12-30_11-21-32_Limpieza_ventas.db",
+    "fecha": "2025-12-30_11-21-32",
+    "accion": "Limpieza ventas",
+    "detalle": "4106 registros eliminados",
+    "timestampMs": 1767104492140
+  },
+  {
+    "archivo": "2025-12-30_11-21-32_Pre-limpieza_ventas.db",
+    "fecha": "2025-12-30_11-21-32",
+    "accion": "Pre-limpieza ventas",
+    "detalle": "Antes de borrar todos los registros",
+    "timestampMs": 1767104492117
+  },
+  {
+    "archivo": "2025-12-30_11-05-21_Venta_registrada.db",
+    "fecha": "2025-12-30_11-05-21",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675838, Cant: 1, $95990",
+    "timestampMs": 1767103521975
+  },
+  {
+    "archivo": "2025-12-30_10-59-07_Importación_CSV.db",
+    "fecha": "2025-12-30_10-59-07",
+    "accion": "Importación CSV",
+    "detalle": "4979 ventas importadas, 1022 omitidas",
+    "timestampMs": 1767103147750
+  },
+  {
+    "archivo": "2025-12-30_10-58-26_Limpieza_ventas.db",
+    "fecha": "2025-12-30_10-58-26",
+    "accion": "Limpieza ventas",
+    "detalle": "404 registros eliminados",
+    "timestampMs": 1767103106916
+  },
+  {
+    "archivo": "2025-12-30_10-58-26_Pre-limpieza_ventas.db",
+    "fecha": "2025-12-30_10-58-26",
+    "accion": "Pre-limpieza ventas",
+    "detalle": "Antes de borrar todos los registros",
+    "timestampMs": 1767103106893
+  },
+  {
+    "archivo": "2025-12-30_10-51-05_Venta_registrada.db",
+    "fecha": "2025-12-30_10-51-05",
+    "accion": "Venta registrada",
+    "detalle": "Art: 625114, Cant: 1, $43990",
+    "timestampMs": 1767102665937
+  },
+  {
+    "archivo": "2025-12-30_10-13-22_Importación_CSV.db",
+    "fecha": "2025-12-30_10-13-22",
+    "accion": "Importación CSV",
+    "detalle": "403 ventas importadas, 2 omitidas",
+    "timestampMs": 1767100402880
+  },
+  {
+    "archivo": "2025-12-30_10-08-13_Producto_modificado.db",
+    "fecha": "2025-12-30_10-08-13",
+    "accion": "Producto modificado",
+    "detalle": "Código: 905603, Stock: 1, Precio: $159990",
+    "timestampMs": 1767100093184
+  },
+  {
+    "archivo": "2025-12-30_10-07-47_Producto_modificado.db",
+    "fecha": "2025-12-30_10-07-47",
+    "accion": "Producto modificado",
+    "detalle": "Código: 905603, Stock: 2, Precio: $159990",
+    "timestampMs": 1767100067203
+  },
+  {
+    "archivo": "2025-12-30_10-06-24_Limpieza_ventas.db",
+    "fecha": "2025-12-30_10-06-24",
+    "accion": "Limpieza ventas",
+    "detalle": "404 ventas eliminadas (12/2025)",
+    "timestampMs": 1767099984115
+  },
+  {
+    "archivo": "2025-12-30_10-01-19_Venta_registrada.db",
+    "fecha": "2025-12-30_10-01-19",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675004, Cant: 1, $139990",
+    "timestampMs": 1767099679080
+  },
+  {
+    "archivo": "2025-12-30_10-00-51_Importación_CSV.db",
+    "fecha": "2025-12-30_10-00-51",
+    "accion": "Importación CSV",
+    "detalle": "403 ventas importadas, 2 omitidas",
+    "timestampMs": 1767099651908
+  },
+  {
+    "archivo": "2025-12-30_09-52-59_Productos_importados.db",
+    "fecha": "2025-12-30_09-52-59",
+    "accion": "Productos importados",
+    "detalle": "838 productos, 0 omitidos",
+    "timestampMs": 1767099179345
   }
 ]
