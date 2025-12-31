@@ -1,5 +1,138 @@
 [
   {
+    "archivo": "2025-12-31_11-47-38_Importación_CSV_Histórico.db",
+    "fecha": "2025-12-31_11-47-38",
+    "accion": "Importación CSV Histórico",
+    "detalle": "4982 importadas",
+    "timestampMs": 1767192458909
+  },
+  {
+    "archivo": "2025-12-31_11-47-15_Limpieza_ventas.db",
+    "fecha": "2025-12-31_11-47-15",
+    "accion": "Limpieza ventas",
+    "detalle": "4982 registros eliminados",
+    "timestampMs": 1767192435712
+  },
+  {
+    "archivo": "2025-12-31_11-47-15_Pre-limpieza_ventas.db",
+    "fecha": "2025-12-31_11-47-15",
+    "accion": "Pre-limpieza ventas",
+    "detalle": "Antes de borrar todos los registros",
+    "timestampMs": 1767192435669
+  },
+  {
+    "archivo": "2025-12-31_11-34-14_Limpieza_ventas.db",
+    "fecha": "2025-12-31_11-34-14",
+    "accion": "Limpieza ventas",
+    "detalle": "3123 registros eliminados",
+    "timestampMs": 1767191654061
+  },
+  {
+    "archivo": "2025-12-31_11-34-14_Pre-limpieza_ventas.db",
+    "fecha": "2025-12-31_11-34-14",
+    "accion": "Pre-limpieza ventas",
+    "detalle": "Antes de borrar todos los registros",
+    "timestampMs": 1767191654012
+  },
+  {
+    "archivo": "2025-12-31_11-22-32_Importación_CSV.db",
+    "fecha": "2025-12-31_11-22-32",
+    "accion": "Importación CSV",
+    "detalle": "4996 ventas importadas, 1005 omitidas",
+    "timestampMs": 1767190952585
+  },
+  {
+    "archivo": "2025-12-31_11-17-56_Limpieza_ventas.db",
+    "fecha": "2025-12-31_11-17-56",
+    "accion": "Limpieza ventas",
+    "detalle": "3246 registros eliminados",
+    "timestampMs": 1767190676682
+  },
+  {
+    "archivo": "2025-12-31_11-17-56_Pre-limpieza_ventas.db",
+    "fecha": "2025-12-31_11-17-56",
+    "accion": "Pre-limpieza ventas",
+    "detalle": "Antes de borrar todos los registros",
+    "timestampMs": 1767190676637
+  },
+  {
+    "archivo": "2025-12-31_11-14-13_Importación_CSV.db",
+    "fecha": "2025-12-31_11-14-13",
+    "accion": "Importación CSV",
+    "detalle": "4979 ventas importadas, 1022 omitidas",
+    "timestampMs": 1767190453523
+  },
+  {
+    "archivo": "2025-12-31_10-58-19_Limpieza_ventas.db",
+    "fecha": "2025-12-31_10-58-19",
+    "accion": "Limpieza ventas",
+    "detalle": "4172 registros eliminados",
+    "timestampMs": 1767189499918
+  },
+  {
+    "archivo": "2025-12-31_10-58-19_Pre-limpieza_ventas.db",
+    "fecha": "2025-12-31_10-58-19",
+    "accion": "Pre-limpieza ventas",
+    "detalle": "Antes de borrar todos los registros",
+    "timestampMs": 1767189499875
+  },
+  {
+    "archivo": "2025-12-31_10-58-13_Limpieza_ventas.db",
+    "fecha": "2025-12-31_10-58-13",
+    "accion": "Limpieza ventas",
+    "detalle": "0 ventas eliminadas (12/2025)",
+    "timestampMs": 1767189493473
+  },
+  {
+    "archivo": "2025-12-31_10-51-10_Importación_CSV.db",
+    "fecha": "2025-12-31_10-51-10",
+    "accion": "Importación CSV",
+    "detalle": "4979 ventas importadas, 1022 omitidas",
+    "timestampMs": 1767189070784
+  },
+  {
+    "archivo": "2025-12-31_10-50-21_Cuenta_corriente_eliminada.db",
+    "fecha": "2025-12-31_10-50-21",
+    "accion": "Cuenta corriente eliminada",
+    "detalle": "Cliente: guille",
+    "timestampMs": 1767189021700
+  },
+  {
+    "archivo": "2025-12-31_10-28-19_Limpieza_ventas.db",
+    "fecha": "2025-12-31_10-28-19",
+    "accion": "Limpieza ventas",
+    "detalle": "9348 registros eliminados",
+    "timestampMs": 1767187699416
+  },
+  {
+    "archivo": "2025-12-31_10-28-19_Pre-limpieza_ventas.db",
+    "fecha": "2025-12-31_10-28-19",
+    "accion": "Pre-limpieza ventas",
+    "detalle": "Antes de borrar todos los registros",
+    "timestampMs": 1767187699375
+  },
+  {
+    "archivo": "2025-12-31_10-19-26_Cuenta_corriente_creada.db",
+    "fecha": "2025-12-31_10-19-26",
+    "accion": "Cuenta corriente creada",
+    "detalle": "Cliente: guille",
+    "timestampMs": 1767187166007
+  },
+  {
+    "archivo": "2025-12-31_10-13-50_Importación_CSV.db",
+    "fecha": "2025-12-31_10-13-50",
+    "accion": "Importación CSV",
+    "detalle": "4979 ventas importadas, 1022 omitidas",
+    "timestampMs": 1767186830930
+  },
+  {
+    "archivo": "2025-12-31_10-13-08_Limpieza_ventas.db",
+    "fecha": "2025-12-31_10-13-08",
+    "accion": "Limpieza ventas",
+    "detalle": "460 ventas eliminadas (12/2025)",
+    "timestampMs": 1767186788605
+  },
+  {
     "archivo": "2025-12-30_11-23-04_Limpieza_ventas.db",
     "fecha": "2025-12-30_11-23-04",
     "accion": "Limpieza ventas",

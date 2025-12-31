@@ -863,89 +863,134 @@ app.get('/api/ventas/historico', requireAuth, (req, res) => {
   });
 });
 
-// 15. IMPORTAR VENTAS DESDE CSV
-app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), (req, res) => {
+// =======================================================
+// 15. IMPORTAR VENTAS DESDE CSV (CORREGIDO Y ROBUSTO)
+// =======================================================
+app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
 
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
 
-  const contenido = req.file.buffer.toString('utf-8');
-  const lineas = contenido.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  // Función auxiliar para usar Promesas con sqlite3 (para poder usar await)
+  const dbRun = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+      db.run(sql, params, function (err) {
+        if (err) reject(err);
+        else resolve(this);
+      });
+    });
+  };
 
-  if (lineas.length < 2) return res.status(400).json({ error: 'El archivo está vacío o no tiene datos' });
-
-  const filas = lineas.slice(1);
+  const errores = [];
   let importadas = 0;
-  let omitidas = 0;
+  let procesadas = 0;
 
-  const insertStmt = db.prepare(`
-    INSERT INTO ventas (fecha, codigoArticulo, cantidad, precio, descuento, categoria, factura, tipoPago, detalles, caja)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  try {
+    // 1. Iniciamos la transacción
+    await dbRun("BEGIN TRANSACTION");
 
-  filas.forEach((linea, index) => {
-    const valores = [];
-    let dentroComillas = false;
-    let valorActual = '';
+    // 2. Preparamos el stream
+    const stream = Readable.from(req.file.buffer.toString('utf8'))
+      .pipe(csv({
+        mapHeaders: ({ header }) => header.trim().toLowerCase(),
+        separator: ','
+      }));
 
-    for (let i = 0; i < linea.length; i++) {
-      const char = linea[i];
-      if (char === '"') {
-        dentroComillas = !dentroComillas;
-      } else if (char === ',' && !dentroComillas) {
-        valores.push(valorActual.trim().replace(/^"|"$/g, ''));
-        valorActual = '';
-      } else {
-        valorActual += char;
+    // 3. Procesamos FILA POR FILA (esperando que cada una termine)
+    for await (const row of stream) {
+      procesadas++;
+
+      // Mapeo flexible de columnas
+      const fechaRaw = row.fecha || row.date;
+      const articulo = row.articulo || row.codigo || row.article;
+      const cantidadRaw = row.cantidad || row.cant || row.qty;
+      const precioRaw = row.precio || row.price || row.monto;
+      const categoria = row.categoria || row.category || '';
+      const factura = row.factura || row.invoice || '';
+      const tipoPago = row['tipo pago'] || row.tipopago || row.pago || '';
+
+      // Validaciones
+      if (!fechaRaw || !articulo || !cantidadRaw || !precioRaw) {
+        errores.push(`Fila ${procesadas}: Datos incompletos`);
+        continue;
+      }
+      if (fechaRaw.includes('#N/A')) continue;
+
+      // Parseo Fecha
+      let fechaISO = '';
+      if (fechaRaw.includes('/')) {
+        const partes = fechaRaw.split('/');
+        if (partes.length === 3) fechaISO = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+      } else if (fechaRaw.includes('-')) {
+        fechaISO = fechaRaw;
+      }
+
+      if (fechaISO.length !== 10) {
+        errores.push(`Fila ${procesadas}: Fecha inválida (${fechaRaw})`);
+        continue;
+      }
+
+      // Parseo Números
+      const cleanPrecio = precioRaw.toString().replace(/[$\s.]/g, '').replace(',', '.');
+      const precioTotal = parseFloat(cleanPrecio);
+      const cleanCantidad = cantidadRaw.toString().replace(/[.]/g, '');
+      const cantidad = parseInt(cleanCantidad);
+
+      if (isNaN(precioTotal)) {
+        errores.push(`Fila ${procesadas}: Precio inválido (${precioRaw})`);
+        continue;
+      }
+      if (isNaN(cantidad) || cantidad === 0) {
+        // Ignoramos cantidad 0
+        continue;
+      }
+
+      const precioUnitario = precioTotal / cantidad; // Si es 0 division, da Infinity, ojo.
+      const precioFinal = isFinite(precioUnitario) ? precioUnitario : 0;
+
+      // Insertamos esperando a que la DB responda antes de seguir
+      try {
+        await dbRun(`
+          INSERT INTO ventas (fecha, codigoArticulo, cantidad, precio, descuento, categoria, factura, tipoPago, detalles, caja)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          fechaISO,
+          articulo.trim(),
+          cantidad,
+          precioFinal,
+          0,
+          categoria.trim(),
+          factura.trim(),
+          tipoPago.trim(),
+          '',
+          'Historico'
+        ]);
+        importadas++;
+      } catch (err) {
+        // Si falla UN insert, guardamos el error pero NO rompemos todo el proceso
+        errores.push(`Fila ${procesadas}: Error BD - ${err.message}`);
       }
     }
-    valores.push(valorActual.trim().replace(/^"|"$/g, ''));
 
-    if (valores.length < 7) { omitidas++; return; }
+    // 4. Si llegamos acá, todo fluyó bien. Confirmamos cambios.
+    await dbRun("COMMIT");
+    
+    crearBackup(usuario, 'Importación CSV Histórico', `${importadas} importadas`);
+    
+    res.json({
+      ok: true,
+      totalProcesadas: procesadas,
+      importadas: importadas,
+      errores: errores.slice(0, 100)
+    });
 
-    let [fecha, codigoArticulo, cantidad, precio, categoria, factura, tipoPago] = valores;
-
-    if (!fecha || !codigoArticulo || !cantidad || fecha.includes('#N/A')) { omitidas++; return; }
-
-    const partesFecha = fecha.split('/');
-    if (partesFecha.length !== 3) { omitidas++; return; }
-    const [dia, mes, anio] = partesFecha;
-    const fechaISO = `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
-
-    precio = precio.replace(/[\$\.]/g, '').replace(',', '.').trim();
-    const precioTotal = parseFloat(precio);
-    if (isNaN(precioTotal)) { omitidas++; return; }
-
-    const cantidadNum = parseInt(cantidad);
-    if (isNaN(cantidadNum) || cantidadNum === 0) { omitidas++; return; }
-
-    const precioUnitario = precioTotal / cantidadNum;
-    codigoArticulo = String(codigoArticulo).trim();
-
-    try {
-      insertStmt.run(
-        fechaISO,
-        codigoArticulo,
-        cantidadNum,
-        precioUnitario,
-        0,
-        categoria || '',
-        factura || '',
-        tipoPago || '',
-        '',
-        'Principal'
-      );
-      importadas++;
-    } catch (err) {
-      console.error(`Error insertando venta en fila ${index + 1}:`, err.message);
-      omitidas++;
-    }
-  });
-
-  insertStmt.finalize();
-  crearBackup(usuario, 'Importación CSV', `${importadas} ventas importadas, ${omitidas} omitidas`);
-  res.json({ importadas, omitidas });
+  } catch (errorGeneral) {
+    // Si algo explota mal (ej: error de disco), deshacemos todo
+    console.error("Error fatal importando:", errorGeneral);
+    try { await dbRun("ROLLBACK"); } catch (_) {}
+    res.status(500).json({ error: 'Error procesando archivo: ' + errorGeneral.message });
+  }
 });
 
 // 16. OBTENER DESCRIPCIONES

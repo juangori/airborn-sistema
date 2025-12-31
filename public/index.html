@@ -265,7 +265,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 id="ventasDiaTitulo" style="margin: 0;">Ventas del día</h3>
             <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 8px;">
-                <label style="color: #000000; font-size: 0.9em; margin: 0;">Caja inicial:</label>
+                <label style="color: #ecf0f1; font-size: 0.9em; margin: 0;">Caja inicial:</label>
                 <input type="text" id="cajaInicial" placeholder="$0" 
                     style="width: 120px; padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; text-align: right; font-weight: bold;"
                     onblur="guardarCajaInicial()" 
@@ -1533,31 +1533,10 @@ async function crearCCdesdeCambio(cambioId, monto, fecha, artDevuelto, artNuevo)
 
             const data = await response.json();
             
-            // Si hay múltiples resultados
+            // Siempre mostrar el primer resultado directamente
             if (data.multiple) {
-                resultado.innerHTML = `
-                    <div style="margin-bottom: 10px; color: #666;">
-                        Se encontraron ${data.productos.length} productos:
-                    </div>
-                    <div class="resultados-lista">
-                        ${data.productos.map(p => `
-                            <div class="resultado-item" onclick="mostrarProducto(${JSON.stringify(p).replace(/"/g, '&quot;')})">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <strong>${p.codigo}</strong> - ${p.descripcion}
-                                        <div style="font-size: 0.85em; color: #666;">${p.categoria || 'Sin categoría'}</div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-weight: bold; color: var(--primary);">${formatMoney(p.precioPublico || 0)}</div>
-                                        <div style="font-size: 0.85em; color: ${(p.stock || 0) <= 0 ? '#d9534f' : '#5cb85c'}">Stock: ${p.stock || 0}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
+                mostrarProductoDetalle(data.productos[0], resultado);
             } else {
-                // Un solo resultado
                 mostrarProductoDetalle(data, resultado);
             }
         } catch (error) {
@@ -2963,11 +2942,15 @@ async function cargarHistorico() {
         ventasFiltradas = [];
         renderHistorico(anio, meses);
         
-        // Abrir gráficos automáticamente
+        // Actualizar gráficos
         if (historicoVentas.length > 0) {
             const seccion = document.getElementById('seccionGraficos');
             if (seccion && seccion.style.display === 'none') {
+                // Si está cerrado, abrirlo (esto ya llama a generarGraficos)
                 toggleSeccionGraficos();
+            } else if (seccion && seccion.style.display === 'block') {
+                // Si ya está abierto, regenerar los gráficos
+                generarGraficos();
             }
         }
     } catch (err) {
