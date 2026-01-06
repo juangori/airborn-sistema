@@ -1,5 +1,12 @@
 [
   {
+    "archivo": "2026-01-05_12-17-58_Importación_CSV_Histórico.db",
+    "fecha": "2026-01-05_12-17-58",
+    "accion": "Importación CSV Histórico",
+    "detalle": "52 importadas",
+    "timestampMs": 1767626278207
+  },
+  {
     "archivo": "2025-12-31_11-47-38_Importación_CSV_Histórico.db",
     "fecha": "2025-12-31_11-47-38",
     "accion": "Importación CSV Histórico",

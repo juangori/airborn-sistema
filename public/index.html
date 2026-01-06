@@ -97,6 +97,9 @@
                     <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffc107;">
                         <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Zona de peligro</h4>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button onclick="resetearStockCero()" style="background: #f39c12; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+        📉 Poner todo el Stock en 0
+    </button>
                             <button onclick="limpiarTabla('ventas')" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
                                 Borrar TODAS las ventas
                             </button>
@@ -138,6 +141,7 @@
             <button class="tab-btn" onclick="switchTab('cuentas', event)">💰 Cuentas Corrientes</button>
             <button class="tab-btn" onclick="switchTab('cambios', event)">🔄 Cambios</button>
             <button class="tab-btn" onclick="switchTab('historico', event)">Histórico de Ventas</button>
+            <button class="tab-btn" onclick="switchTab('comparativa', event)">📅 Comparativa Anual</button>
         </div>
 
         <!-- ==================== TAB 1: BÚSQUEDA ====================-->
@@ -526,17 +530,27 @@
 
             <h3>🔄 Actualizar Solo Stock</h3>
             <p class="stock-csv-text">
-                Usa esta opción para actualizar cantidades de productos existentes.
-                Formato: <code>codigo,cantidad</code>
+                Usa esta opción para actualizar cantidades. Formato: <code>codigo,cantidad</code>
             </p>
+
+            <div style="margin-bottom: 15px; background: #fff; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+                <label style="font-weight: bold; margin-bottom: 5px; display: block;">¿Qué debe hacer el sistema?</label>
+                <div style="display: flex; gap: 15px;">
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="radio" name="modoStock" value="replace" checked> 
+                        📝 Corregir (Reemplazar stock)
+                    </label>
+                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <input type="radio" name="modoStock" value="add"> 
+                        ➕ Sumar (Agregar al actual)
+                    </label>
+                </div>
+            </div>
 
             <div class="upload-area" onclick="document.getElementById('csvFile').click()">
                 <div class="icon">📊</div>
-                <p><strong>Click para actualizar stock</strong></p>
-                <p style="font-size: 0.9em; color: #999; margin-top: 10px;">
-                    Solo actualiza cantidades, no crea productos nuevos
-                </p>
-                <input type="file" id="csvFile" accept=".csv" onchange="uploadCSV()">
+                <p><strong>Click para subir CSV</strong></p>
+                <input type="file" id="csvFile" accept=".csv" onchange="uploadCSV()" style="display:none;">
             </div>
 
             <div id="alertaStock" class="alert"></div>
@@ -781,6 +795,99 @@
     </div> <!-- /card -->
 </div> <!-- /historico -->
 
+<div id="comparativa" class="tab-content">
+    <div class="card">
+        <h2>Comparativa Año vs Año</h2>
+
+        <div class="comparativa-controles">
+            <div class="select-group">
+                <label>Año Base (Anterior)</label>
+                <select id="compAnio1" class="form-control-lg"></select>
+            </div>
+            <div class="vs-badge">VS</div>
+            <div class="select-group">
+                <label>Año Objetivo (Actual)</label>
+                <select id="compAnio2" class="form-control-lg"></select>
+            </div>
+            <button onclick="cargarDataComparativa()" class="btn-comparar">
+                📊 Comparar Rendimiento
+            </button>
+        </div>
+
+        <div id="resumenComparativa" class="comp-dashboard" style="display: none;">
+            <div class="comp-card">
+                <h4>Facturación Total</h4>
+                <div class="comp-grid">
+                    <div class="dato-anio anterior">
+                        <span id="lblAnio1_fact">-</span>
+                        <div id="valAnio1_fact" class="valor">$0</div>
+                    </div>
+                    <div class="dato-anio actual">
+                        <span id="lblAnio2_fact">-</span>
+                        <div id="valAnio2_fact" class="valor">$0</div>
+                    </div>
+                </div>
+                <div class="comp-footer">
+                    Variación: <span id="var_fact" class="badge-var neutral">0%</span>
+                </div>
+            </div>
+
+            <div class="comp-card">
+                <h4>Prendas Vendidas</h4>
+                <div class="comp-grid">
+                    <div class="dato-anio anterior">
+                        <span id="lblAnio1_unid">-</span>
+                        <div id="valAnio1_unid" class="valor">0</div>
+                    </div>
+                    <div class="dato-anio actual">
+                        <span id="lblAnio2_unid">-</span>
+                        <div id="valAnio2_unid" class="valor">0</div>
+                    </div>
+                </div>
+                <div class="comp-footer">
+                    Variación: <span id="var_unid" class="badge-var neutral">0%</span>
+                </div>
+            </div>
+
+            <div class="comp-card">
+                <h4>Ticket Promedio</h4>
+                <div class="comp-grid">
+                    <div class="dato-anio anterior">
+                        <span id="lblAnio1_ticket">-</span>
+                        <div id="valAnio1_ticket" class="valor">$0</div>
+                    </div>
+                    <div class="dato-anio actual">
+                        <span id="lblAnio2_ticket">-</span>
+                        <div id="valAnio2_ticket" class="valor">$0</div>
+                    </div>
+                </div>
+                <div class="comp-footer">
+                    Variación: <span id="var_ticket" class="badge-var neutral">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="tablaComparativaContainer" style="display: none; margin-top: 30px;">
+            <h3>Desglose Mensual</h3>
+            <div class="table-responsive">
+                <table class="comp-table">
+                    <thead>
+                        <tr>
+                            <th>Mes</th>
+                            <th class="text-right border-left">Facturación <span id="thAnio1"></span></th>
+                            <th class="text-right">Facturación <span id="thAnio2"></span></th>
+                            <th class="text-center">Variación $</th>
+                            <th class="text-right border-left">Unidades <span id="thAnio1_u"></span></th>
+                            <th class="text-right">Unidades <span id="thAnio2_u"></span></th>
+                            <th class="text-center">Variación Unid.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyComparativa"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
 
     <script>
@@ -2183,11 +2290,21 @@ function formatMonedaInput(monto) {
 
     // ==================== 3. UPLOAD CSV ====================
     async function uploadCSV() {
-        const file = document.getElementById('csvFile').files[0];
+        const fileInput = document.getElementById('csvFile');
+        const file = fileInput.files[0];
         if (!file) return;
+
+        // Obtener el modo seleccionado (replace o add)
+        const modo = document.querySelector('input[name="modoStock"]:checked').value;
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('modo', modo); // Enviamos la elección al servidor
+
+        // Feedback visual inmediato
+        const uploadArea = fileInput.parentElement;
+        const textoOriginal = uploadArea.innerHTML;
+        uploadArea.innerHTML = '<div class="icon">⏳</div><p>Procesando...</p>';
 
         try {
             const response = await fetch('/api/stock/upload', {
@@ -2197,7 +2314,7 @@ function formatMonedaInput(monto) {
 
             const result = await response.json();
 
-            let mensaje = `✅ ${result.procesados} productos actualizados`;
+            let mensaje = `✅ ${result.procesados} productos actualizados (${modo === 'add' ? 'Sumados' : 'Reemplazados'})`;
             if (result.errores && result.errores.length > 0) {
                 mensaje += ` (${result.errores.length} errores)`;
             }
@@ -2207,11 +2324,19 @@ function formatMonedaInput(monto) {
             if (result.errores && result.errores.length > 0) {
                 const errorHTML = result.errores.map(e => `${e.codigo}: ${e.error}`).join('<br>');
                 document.getElementById('resultadoStock').innerHTML = `<div class="alert alert-warning show"><strong>Errores:</strong><br>${errorHTML}</div>`;
+            } else {
+                document.getElementById('resultadoStock').innerHTML = '';
             }
 
-            document.getElementById('csvFile').value = '';
+            // Recargar la tabla para ver los cambios
+            cargarStockCompleto();
+
         } catch (error) {
             showAlert('alertaStock', `❌ ${error.message}`, 'danger');
+        } finally {
+            // Restaurar el input y el área de carga
+            fileInput.value = '';
+            uploadArea.innerHTML = textoOriginal;
         }
     }
 
@@ -2822,11 +2947,11 @@ async function eliminarCuenta(cliente) {
 
 
     // ==================== INICIALIZACIÓN ====================
-    // ==================== INICIALIZACIÓN ====================
 window.addEventListener('load', () => {
     cargarVentasDelMes();
     cargarStockCompleto();
     initHistorico();
+    initComparativa();
 });
 
 
@@ -3536,26 +3661,21 @@ async function limpiarVentasDiciembre() {
 
 async function cargarEstadisticasDatos() {
     try {
-        const [ventasResp, productosResp, cuentasResp, cambiosResp] = await Promise.all([
-            fetch('/api/ventas'),
+        const [productosResp, cuentasResp, cambiosResp] = await Promise.all([
             fetch('/api/productos'),
             fetch('/api/cuentas'),
             fetch('/api/cambios')
         ]);
         
-        const ventas = await ventasResp.json();
         const productos = await productosResp.json();
         const cuentas = await cuentasResp.json();
         const cambios = await cambiosResp.json();
         
+        // CAJA DE VENTAS ELIMINADA COMO PEDISTE
         document.getElementById('datosStats').innerHTML = `
             <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center;">
                 <div style="font-size: 2em; font-weight: bold; color: #1976d2;">${productos.length || 0}</div>
                 <div style="color: #666; font-size: 0.9em;">Productos</div>
-            </div>
-            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; text-align: center;">
-                <div style="font-size: 2em; font-weight: bold; color: #388e3c;">${ventas.length || 0}</div>
-                <div style="color: #666; font-size: 0.9em;">Ventas</div>
             </div>
             <div style="background: #fff3e0; padding: 15px; border-radius: 8px; text-align: center;">
                 <div style="font-size: 2em; font-weight: bold; color: #f57c00;">${cuentas.length || 0}</div>
@@ -3790,6 +3910,181 @@ function descargarArchivo(blob, nombreArchivo) {
     URL.revokeObjectURL(url);
 }
 
+// ==================== LÓGICA COMPARATIVA ANUAL ====================
+
+// 1. Inicializar Selectores de Años
+function initComparativa() {
+    const anioActual = new Date().getFullYear();
+    const select1 = document.getElementById('compAnio1');
+    const select2 = document.getElementById('compAnio2');
+    
+    // Limpiar opciones previas si las hubiera
+    select1.innerHTML = '';
+    select2.innerHTML = '';
+
+    // Rellenar desde 2023 hasta año actual + 1
+    for(let y = anioActual + 1; y >= 2023; y--) {
+        const opt1 = new Option(y, y);
+        const opt2 = new Option(y, y);
+        select1.add(opt1);
+        select2.add(opt2);
+    }
+
+    // Por defecto: Año pasado vs Año actual
+    select1.value = anioActual - 1; 
+    select2.value = anioActual;
+}
+
+// Llamar al cargar la página (agregalo dentro del window.onload existente)
+// OJO: Asegurate de agregar initComparativa() en tu listener 'load' principal.
+
+// 2. Cargar Datos del Backend
+async function cargarDataComparativa() {
+    const anio1 = document.getElementById('compAnio1').value;
+    const anio2 = document.getElementById('compAnio2').value;
+
+    if(anio1 === anio2) {
+        showToast('⚠️ Seleccioná años distintos para comparar', 'error');
+        return;
+    }
+
+    // Mostrar estado de carga
+    document.getElementById('resumenComparativa').style.opacity = '0.5';
+    
+    try {
+        const resp = await fetch(`/api/ventas/comparativa?anio1=${anio1}&anio2=${anio2}`);
+        const data = await resp.json();
+
+        if(data.ok) {
+            renderResumenComparativo(data, anio1, anio2);
+            renderTablaComparativa(data.comparativa, anio1, anio2);
+            
+            // Mostrar secciones
+            document.getElementById('resumenComparativa').style.display = 'grid';
+            document.getElementById('tablaComparativaContainer').style.display = 'block';
+            document.getElementById('resumenComparativa').style.opacity = '1';
+        } else {
+            showToast('❌ Error al cargar datos: ' + data.error, 'error');
+        }
+
+    } catch(err) {
+        console.error(err);
+        showToast('❌ Error de conexión', 'error');
+        document.getElementById('resumenComparativa').style.opacity = '1';
+    }
+}
+
+// 3. Renderizar Tarjetas Superiores (KPIs)
+function renderResumenComparativo(data, a1, a2) {
+    const t1 = data.totales[a1];
+    const t2 = data.totales[a2];
+
+    // Actualizar etiquetas de años
+    document.getElementById('lblAnio1_fact').textContent = a1;
+    document.getElementById('lblAnio2_fact').textContent = a2;
+    document.getElementById('lblAnio1_unid').textContent = a1;
+    document.getElementById('lblAnio2_unid').textContent = a2;
+    document.getElementById('lblAnio1_ticket').textContent = a1;
+    document.getElementById('lblAnio2_ticket').textContent = a2;
+
+    // Facturación
+    document.getElementById('valAnio1_fact').textContent = formatMoney(t1.facturacion);
+    document.getElementById('valAnio2_fact').textContent = formatMoney(t2.facturacion);
+    renderVariacion('var_fact', t1.facturacion, t2.facturacion, true);
+
+    // Unidades
+    document.getElementById('valAnio1_unid').textContent = t1.unidades;
+    document.getElementById('valAnio2_unid').textContent = t2.unidades;
+    renderVariacion('var_unid', t1.unidades, t2.unidades, false);
+
+    // Ticket Promedio (evitar división por cero)
+    const ticket1 = t1.tickets > 0 ? t1.facturacion / t1.tickets : 0;
+    const ticket2 = t2.tickets > 0 ? t2.facturacion / t2.tickets : 0;
+    
+    document.getElementById('valAnio1_ticket').textContent = formatMoney(ticket1);
+    document.getElementById('valAnio2_ticket').textContent = formatMoney(ticket2);
+    renderVariacion('var_ticket', ticket1, ticket2, true);
+}
+
+// Helper para calcular y pintar % de variación
+function renderVariacion(elementId, v1, v2, esDinero) {
+    const el = document.getElementById(elementId);
+    let diff = 0;
+    
+    if (v1 > 0) {
+        diff = ((v2 - v1) / v1) * 100;
+    } else if (v2 > 0) {
+        diff = 100; // Si antes era 0 y ahora hay ventas, creciste 100%
+    }
+
+    const diffStr = (diff > 0 ? '+' : '') + diff.toFixed(1) + '%';
+    
+    // Asignar clase de color
+    el.className = 'badge-var ' + (diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral');
+    el.textContent = diffStr;
+}
+
+// 4. Renderizar Tabla Mes a Mes
+function renderTablaComparativa(filas, a1, a2) {
+    // Actualizar headers de la tabla
+    document.getElementById('thAnio1').textContent = `(${a1})`;
+    document.getElementById('thAnio2').textContent = `(${a2})`;
+    document.getElementById('thAnio1_u').textContent = `(${a1})`;
+    document.getElementById('thAnio2_u').textContent = `(${a2})`;
+
+    const tbody = document.getElementById('bodyComparativa');
+    tbody.innerHTML = filas.map(fila => {
+        const varDinero = fila.variacion.facturacion;
+        const varUnid = fila.variacion.unidades;
+        
+        // Colores para las variaciones en tabla
+        const colorDinero = varDinero > 0 ? 'green' : varDinero < 0 ? 'red' : '#999';
+        const colorUnid = varUnid > 0 ? 'green' : varUnid < 0 ? 'red' : '#999';
+
+        return `
+            <tr>
+                <td style="font-weight:600;">${fila.nombreMes}</td>
+                
+                <td class="text-right border-left text-muted">${formatMoney(fila.anio1.facturacion)}</td>
+                <td class="text-right" style="font-weight:600;">${formatMoney(fila.anio2.facturacion)}</td>
+                <td class="text-center" style="color: ${colorDinero}; font-size: 0.9em; font-weight: bold;">
+                    ${varDinero > 0 ? '▲' : varDinero < 0 ? '▼' : ''} ${Math.abs(varDinero)}%
+                </td>
+
+                <td class="text-right border-left text-muted">${fila.anio1.unidades}</td>
+                <td class="text-right" style="font-weight:600;">${fila.anio2.unidades}</td>
+                <td class="text-center" style="color: ${colorUnid}; font-size: 0.9em; font-weight: bold;">
+                    ${varUnid > 0 ? '▲' : varUnid < 0 ? '▼' : ''} ${Math.abs(varUnid)}%
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function resetearStockCero() {
+    if (!confirm('⚠️ ¿Estás SEGURO de que querés poner el stock de TODOS los productos en 0?\n\nLos precios y descripciones se mantienen, solo se reinicia la cantidad.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/admin/stock/zero', {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showToast('✅ ' + result.mensaje, 'success');
+            // Recargamos estadísticas si hace falta
+            cargarEstadisticasDatos();
+        } else {
+            showToast('❌ Error: ' + result.error, 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showToast('❌ Error de conexión', 'error');
+    }
+}
 
 </script>
 

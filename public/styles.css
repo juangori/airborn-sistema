@@ -281,21 +281,44 @@ header p {
     padding-bottom: 0;
 }
 
+/* ==================== NAVEGACIÓN TABS MEJORADA ==================== */
+.tabs {
+    display: flex;
+    gap: 5px; /* Reducimos el espacio entre botones (antes era 10px) */
+    margin-bottom: 30px;
+    flex-wrap: nowrap; /* CLAVE: Esto obliga a que no bajen de línea */
+    overflow-x: auto; /* Si la pantalla es diminuta, permite scrollear horizontalmente en vez de romper */
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0;
+    
+    /* Opcional: Ocultar la barra de scroll para que quede más limpio */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+}
+
+/* Ocultar barra de scroll en Chrome/Safari/Opera */
+.tabs::-webkit-scrollbar {
+    display: none;
+}
+
 .tab-btn {
-    padding: 12px 24px;
+    padding: 12px 15px; /* Reducimos el padding lateral (antes era 24px) */
     border: none;
     background: transparent;
     color: var(--text);
     cursor: pointer;
-    font-size: 1em;
+    font-size: 0.95em; /* Un pelín más chico para ganar espacio */
     font-weight: 600;
     border-bottom: 3px solid transparent;
     transition: all 0.3s ease;
     margin-bottom: -2px;
+    white-space: nowrap; /* Asegura que el texto del botón no se parta en dos líneas */
+    flex-shrink: 0; /* Asegura que los botones mantengan su tamaño ideal */
 }
 
 .tab-btn:hover {
     color: var(--primary);
+    background-color: rgba(0,0,0,0.02); /* Un efecto sutil al pasar el mouse */
 }
 
 .tab-btn.active {
@@ -2617,4 +2640,155 @@ flex-direction: column;
     .total-section .monto {
         font-size: 2em;
     }
+}
+
+/* ==================== ESTILOS COMPARATIVA ==================== */
+.comparativa-controles {
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    margin-bottom: 30px;
+}
+
+.select-group {
+    flex: 1;
+}
+
+.form-control-lg {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1em;
+    border-radius: 8px;
+    border: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.vs-badge {
+    background: #e9ecef;
+    color: #6c757d;
+    font-weight: 800;
+    padding: 10px;
+    border-radius: 50%;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.btn-comparar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 14px 30px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-comparar:hover {
+    transform: translateY(-2px);
+}
+
+.comp-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.comp-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.comp-card h4 {
+    color: #666;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.comp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.dato-anio .valor {
+    font-size: 1.4em;
+    font-weight: 800;
+    color: #2c3e50;
+}
+
+.dato-anio span {
+    font-size: 0.8em;
+    color: #999;
+}
+
+.dato-anio.actual .valor {
+    color: var(--primary);
+}
+
+.comp-footer {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed #eee;
+    text-align: center;
+    font-size: 0.95em;
+    color: #555;
+}
+
+.badge-var {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.9em;
+}
+
+.badge-var.positive { background: #d4edda; color: #155724; }
+.badge-var.negative { background: #f8d7da; color: #721c24; }
+.badge-var.neutral { background: #e2e3e5; color: #383d41; }
+
+.comp-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.comp-table th {
+    background: #f8f9fa;
+    padding: 12px;
+    font-size: 0.9em;
+    color: #444;
+    border-bottom: 2px solid #ddd;
+}
+
+.comp-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.border-left {
+    border-left: 2px solid #f0f0f0;
+}
+
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+/* Responsive para la comparativa */
+@media (max-width: 768px) {
+    .comparativa-controles {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .vs-badge { display: none; }
 }

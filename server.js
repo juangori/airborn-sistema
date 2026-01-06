@@ -13,6 +13,26 @@ const { Readable } = require('stream');
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// ==================== PROMESAS SQL (Helpers) ====================
+// Estas funciones nos permiten usar await con sqlite3
+const dbRun = (db, sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) reject(err);
+      else resolve(this);
+    });
+  });
+};
+
+const dbGet = (db, sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+};
+
 // ==================== CONFIGURACIÓN ====================
 const DATOS_DIR = './datos';          // acá se guardan las BD por cliente: datos/<usuario>.db
 const BACKUPS_DIR = './backups';      // backups por cliente: backups/<usuario>/
@@ -404,64 +424,50 @@ app.get('/api/productos', requireAuth, (req, res) => {
   });
 });
 
-// 3. REGISTRAR VENTA
-app.post('/api/ventas', requireAuth, (req, res) => {
+// 3. REGISTRAR VENTA (CON TRANSACCIÓN)
+app.post('/api/ventas', requireAuth, async (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
 
   const {
-    fecha,
-    articulo,
-    cantidad,
-    precio,
-    descuento = 0,
-    categoria,
-    factura,
-    tipoPago,
-    comentarios
+    fecha, articulo, cantidad, precio, descuento = 0,
+    categoria, factura, tipoPago, comentarios
   } = req.body;
 
   if (!fecha || !articulo || !cantidad || !precio) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
 
-  const stmt = db.prepare(`
-    INSERT INTO ventas
-    (fecha, codigoArticulo, cantidad, precio, descuento, categoria, factura, tipoPago, detalles, caja)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  try {
+    // 1. Arrancamos la transacción (Todo o nada)
+    await dbRun(db, "BEGIN TRANSACTION");
 
-  stmt.run(
-    fecha,
-    articulo,
-    cantidad,
-    precio,
-    descuento,
-    categoria || '',
-    factura || 'A',
-    tipoPago || '',
-    comentarios || '',
-    'A',
-    function (err) {
-      if (err) {
-        console.error('Error insertando venta:', err);
-        return res.status(500).json({ error: 'Error al registrar venta' });
-      }
+    // 2. Insertamos la venta
+    await dbRun(db, `
+      INSERT INTO ventas
+      (fecha, codigoArticulo, cantidad, precio, descuento, categoria, factura, tipoPago, detalles, caja)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      fecha, articulo, cantidad, precio, descuento,
+      categoria || '', factura || 'A', tipoPago || '',
+      comentarios || '', 'A'
+    ]);
 
-      db.run(
-        'UPDATE productos SET stock = stock - ? WHERE codigo = ?',
-        [cantidad, articulo],
-        (err2) => {
-          if (err2) {
-            console.error('Error actualizando stock:', err2);
-            return res.status(500).json({ error: 'Venta registrada, pero error al actualizar stock' });
-          }
-          crearBackup(usuario, 'Venta registrada', `Art: ${articulo}, Cant: ${cantidad}, $${precio}`);
-          res.json({ ok: true, id: this.lastID });
-        }
-      );
-    }
-  );
+    // 3. Descontamos stock
+    await dbRun(db, 'UPDATE productos SET stock = stock - ? WHERE codigo = ?', [cantidad, articulo]);
+
+    // 4. Si todo salió bien, guardamos cambios permanentemente
+    await dbRun(db, "COMMIT");
+
+    crearBackup(usuario, 'Venta registrada', `Art: ${articulo}, Cant: ${cantidad}, $${precio}`);
+    res.json({ ok: true, mensaje: 'Venta registrada y stock actualizado' });
+
+  } catch (error) {
+    // 5. Si algo falló, deshacemos TODO (como si nunca hubiera pasado)
+    console.error("Error en transacción venta:", error);
+    await dbRun(db, "ROLLBACK");
+    res.status(500).json({ error: 'Error registrando venta: ' + error.message });
+  }
 });
 
 // 4. OBTENER VENTAS
@@ -490,39 +496,39 @@ app.get('/api/ventas', requireAuth, (req, res) => {
   });
 });
 
-// 4b. ELIMINAR VENTA
-app.delete('/api/ventas/:id', requireAuth, (req, res) => {
+// 4b. ELIMINAR VENTA (CON TRANSACCIÓN)
+app.delete('/api/ventas/:id', requireAuth, async (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
   const { id } = req.params;
 
-  db.get('SELECT codigoArticulo, cantidad, precio FROM ventas WHERE id = ?', [id], (err, venta) => {
-    if (err) {
-      console.error('Error buscando venta:', err);
-      return res.status(500).json({ error: 'Error al buscar la venta' });
+  try {
+    await dbRun(db, "BEGIN TRANSACTION");
+
+    // 1. Buscar datos de la venta para saber cuánto stock devolver
+    const venta = await dbGet(db, 'SELECT codigoArticulo, cantidad, precio FROM ventas WHERE id = ?', [id]);
+    
+    if (!venta) {
+      await dbRun(db, "ROLLBACK"); // Cancelamos por las dudas
+      return res.status(404).json({ error: 'Venta no encontrada' });
     }
-    if (!venta) return res.status(404).json({ error: 'Venta no encontrada' });
 
-    db.run('DELETE FROM ventas WHERE id = ?', [id], function (err2) {
-      if (err2) {
-        console.error('Error eliminando venta:', err2);
-        return res.status(500).json({ error: 'Error al eliminar la venta' });
-      }
+    // 2. Eliminar la venta
+    await dbRun(db, 'DELETE FROM ventas WHERE id = ?', [id]);
 
-      db.run(
-        'UPDATE productos SET stock = stock + ? WHERE codigo = ?',
-        [venta.cantidad, venta.codigoArticulo],
-        (err3) => {
-          if (err3) {
-            console.error('Error devolviendo stock:', err3);
-            return res.json({ ok: true, warning: 'Venta eliminada pero hubo error al devolver stock' });
-          }
-          crearBackup(usuario, 'Venta eliminada', `Art: ${venta.codigoArticulo}, Cant: ${venta.cantidad}, $${venta.precio}`);
-          res.json({ ok: true, mensaje: `Venta eliminada y ${venta.cantidad} unidades devueltas al stock` });
-        }
-      );
-    });
-  });
+    // 3. Devolver el stock
+    await dbRun(db, 'UPDATE productos SET stock = stock + ? WHERE codigo = ?', [venta.cantidad, venta.codigoArticulo]);
+
+    await dbRun(db, "COMMIT");
+
+    crearBackup(usuario, 'Venta eliminada', `Art: ${venta.codigoArticulo}, Cant: ${venta.cantidad}, $${venta.precio}`);
+    res.json({ ok: true, mensaje: `Venta eliminada y ${venta.cantidad} unidades devueltas al stock` });
+
+  } catch (error) {
+    console.error("Error eliminando venta:", error);
+    await dbRun(db, "ROLLBACK");
+    res.status(500).json({ error: 'Error al eliminar la venta' });
+  }
 });
 
 // 5. OBTENER VENTAS DEL DÍA
@@ -564,13 +570,13 @@ app.put('/api/productos/:codigo', requireAuth, (req, res) => {
 app.post('/api/stock/upload', requireAuth, upload.single('file'), (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
+  const modo = req.body.modo || 'replace'; // 'replace' (corregir) o 'add' (sumar)
 
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   const results = [];
   const stream = Readable.from(req.file.buffer.toString('utf8'));
 
-  // Detectar headers comunes: codigo, cantidad/stock
   stream
     .pipe(csv())
     .on('data', (row) => results.push(row))
@@ -580,42 +586,52 @@ app.post('/api/stock/upload', requireAuth, upload.single('file'), (req, res) => 
       let processed = 0;
       const errors = [];
 
+      // Definir la consulta SQL según el modo elegido
+      const sqlQuery = modo === 'add' 
+        ? 'UPDATE productos SET stock = stock + ? WHERE codigo = ?'  // Suma
+        : 'UPDATE productos SET stock = ? WHERE codigo = ?';         // Reemplaza
+
       results.forEach((row) => {
+        // Normalizar nombres de columnas
         const codigo = (row.codigo || row.CODIGO || row.Codigo || row['Código'] || row['CODIGO'] || '').toString().trim();
         const cantidadRaw = row.cantidad ?? row.stock ?? row.Stock ?? row.CANTIDAD ?? row['Cantidad'] ?? row['STOCK'];
 
         if (!codigo) {
           processed++;
-          errors.push({ codigo: '', error: 'Fila sin codigo' });
-          if (processed === results.length) return res.json({ message: 'Stock actualizado', procesados: results.length - errors.length, errores: errors });
+          if (processed === results.length) finalizar();
           return;
         }
 
         const cantidad = parseInt((cantidadRaw ?? '0').toString().replace(/[^\d-]/g, ''), 10);
+        
         if (Number.isNaN(cantidad)) {
           processed++;
           errors.push({ codigo, error: 'Cantidad inválida' });
-          if (processed === results.length) return res.json({ message: 'Stock actualizado', procesados: results.length - errors.length, errores: errors });
+          if (processed === results.length) finalizar();
           return;
         }
 
-        db.run(
-          'UPDATE productos SET stock = ? WHERE codigo = ?',
-          [cantidad, codigo],
-          function (err) {
+        db.run(sqlQuery, [cantidad, codigo], function (err) {
             processed++;
             if (err) errors.push({ codigo, error: err.message });
-            if (processed === results.length) {
-              crearBackup(usuario, 'Stock CSV', `Filas: ${results.length}, OK: ${results.length - errors.length}`);
-              res.json({
-                message: 'Stock actualizado',
-                procesados: results.length - errors.length,
-                errores: errors
-              });
-            }
-          }
-        );
+            
+            // Si el producto no existía (no actualizó nada), podrías reportarlo como error u omitirlo
+            if (this.changes === 0) errors.push({ codigo, error: 'Producto no encontrado' });
+
+            if (processed === results.length) finalizar();
+        });
       });
+
+      function finalizar() {
+        const accionTexto = modo === 'add' ? 'Stock sumado por CSV' : 'Stock corregido por CSV';
+        crearBackup(usuario, accionTexto, `Filas: ${results.length}, OK: ${results.length - errors.length}`);
+        
+        res.json({
+          message: 'Proceso finalizado',
+          procesados: results.length - errors.length,
+          errores: errors
+        });
+      }
     })
     .on('error', (err) => {
       res.status(500).json({ error: err.message });
@@ -765,11 +781,10 @@ app.post('/api/cuentas', requireAuth, (req, res) => {
   );
 });
 
-// 11. AGREGAR MOVIMIENTO A CUENTA
-app.post('/api/cuentas/:cliente/movimiento', requireAuth, (req, res) => {
+// 11. AGREGAR MOVIMIENTO A CUENTA (CON TRANSACCIÓN)
+app.post('/api/cuentas/:cliente/movimiento', requireAuth, async (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
-
   const { cliente } = req.params;
   const { tipo, monto, fecha, comentario } = req.body;
 
@@ -779,25 +794,33 @@ app.post('/api/cuentas/:cliente/movimiento', requireAuth, (req, res) => {
 
   const campo = tipo === 'deuda' ? 'deuda' : 'pagos';
 
-  db.run(
-    'INSERT INTO movimientosCuentas (cliente, tipo, monto, fecha, comentario) VALUES (?, ?, ?, ?, ?)',
-    [cliente, tipo, parseFloat(monto), fecha, comentario || ''],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
+  try {
+    await dbRun(db, "BEGIN TRANSACTION");
 
-      db.run(
-        `UPDATE cuentasCorrientes SET ${campo} = ${campo} + ? WHERE cliente = ?`,
-        [parseFloat(monto), cliente],
-        function (err2) {
-          if (err2) return res.status(500).json({ error: err2.message });
-          if (this.changes === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+    // 1. Registrar el movimiento en el historial
+    await dbRun(db, 
+      'INSERT INTO movimientosCuentas (cliente, tipo, monto, fecha, comentario) VALUES (?, ?, ?, ?, ?)',
+      [cliente, tipo, parseFloat(monto), fecha, comentario || '']
+    );
 
-          crearBackup(usuario, 'Movimiento CC', `${cliente}: ${tipo} $${monto}`);
-          res.json({ ok: true });
-        }
-      );
-    }
-  );
+    // 2. Actualizar el saldo total del cliente
+    // OJO: Usamos `this.changes` verificando el resultado de la promesa si quisieramos validar cliente, 
+    // pero con dbRun simple confiamos en el update.
+    await dbRun(db, 
+      `UPDATE cuentasCorrientes SET ${campo} = ${campo} + ? WHERE cliente = ?`,
+      [parseFloat(monto), cliente]
+    );
+
+    await dbRun(db, "COMMIT");
+
+    crearBackup(usuario, 'Movimiento CC', `${cliente}: ${tipo} $${monto}`);
+    res.json({ ok: true });
+
+  } catch (error) {
+    console.error("Error movimiento CC:", error);
+    await dbRun(db, "ROLLBACK");
+    res.status(500).json({ error: 'Error registrando movimiento' });
+  }
 });
 
 // 12. OBTENER MOVIMIENTOS
@@ -1010,6 +1033,103 @@ app.get('/api/productos/descripciones', requireAuth, (req, res) => {
     (rows || []).forEach(row => { descripciones[row.codigo] = row.descripcion; });
     res.json(descripciones);
   });
+});
+
+// =======================================================
+// 17. COMPARATIVA ANUAL (NUEVO)
+// =======================================================
+app.get('/api/ventas/comparativa', requireAuth, async (req, res) => {
+  const db = req.db;
+  const { anio1, anio2 } = req.query;
+
+  if (!anio1 || !anio2) {
+    return res.status(400).json({ error: 'Se requieren dos años para comparar (anio1 y anio2)' });
+  }
+
+  try {
+    // Función interna para obtener datos de un año agrupados por mes
+    const obtenerDatosAnio = async (anio) => {
+      // OJO: SQLite strftime %m devuelve '01', '02', etc.
+      const sql = `
+        SELECT 
+          strftime('%m', fecha) as mes,
+          SUM(precio * cantidad) as facturacion,
+          SUM(cantidad) as unidades,
+          COUNT(*) as tickets
+        FROM ventas 
+        WHERE strftime('%Y', fecha) = ?
+        GROUP BY mes
+        ORDER BY mes ASC
+      `;
+      return await dbAll(db, sql, [anio]);
+    };
+
+    // Helper para db.all con promesa (si no lo tenías agregado arriba, agregalo junto con dbRun)
+    const dbAll = (database, query, params) => {
+      return new Promise((resolve, reject) => {
+        database.all(query, params, (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    };
+
+    // Ejecutamos las dos consultas en paralelo
+    const [datosAnio1, datosAnio2] = await Promise.all([
+      obtenerDatosAnio(anio1),
+      obtenerDatosAnio(anio2)
+    ]);
+
+    // Estructuramos la respuesta para que sea fácil de usar en gráficos
+    // Creamos un array del 1 al 12 para asegurar que estén todos los meses, aunque no haya ventas
+    const reporte = Array.from({ length: 12 }, (_, i) => {
+      const mesStr = (i + 1).toString().padStart(2, '0'); // '01', '02'...
+      
+      const dato1 = datosAnio1.find(d => d.mes === mesStr) || { facturacion: 0, unidades: 0, tickets: 0 };
+      const dato2 = datosAnio2.find(d => d.mes === mesStr) || { facturacion: 0, unidades: 0, tickets: 0 };
+
+      // Calcular variación porcentual (Cuidado con división por cero)
+      const variacionFacturacion = dato1.facturacion === 0 ? 100 : ((dato2.facturacion - dato1.facturacion) / dato1.facturacion) * 100;
+      const variacionUnidades = dato1.unidades === 0 ? 100 : ((dato2.unidades - dato1.unidades) / dato1.unidades) * 100;
+
+      return {
+        mes: mesStr,
+        nombreMes: new Date(2000, i, 1).toLocaleString('es-AR', { month: 'long' }), // Enero, Febrero...
+        anio1: {
+          anio: anio1,
+          ...dato1
+        },
+        anio2: {
+          anio: anio2,
+          ...dato2
+        },
+        variacion: {
+          facturacion: parseFloat(variacionFacturacion.toFixed(1)),
+          unidades: parseFloat(variacionUnidades.toFixed(1))
+        }
+      };
+    });
+
+    // Totales anuales
+    const totalizar = (datos) => datos.reduce((acc, curr) => ({
+      facturacion: acc.facturacion + (curr.facturacion || 0),
+      unidades: acc.unidades + (curr.unidades || 0),
+      tickets: acc.tickets + (curr.tickets || 0)
+    }), { facturacion: 0, unidades: 0, tickets: 0 });
+
+    res.json({
+      ok: true,
+      comparativa: reporte,
+      totales: {
+        [anio1]: totalizar(datosAnio1),
+        [anio2]: totalizar(datosAnio2)
+      }
+    });
+
+  } catch (error) {
+    console.error("Error en comparativa:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ==================== CAMBIOS ====================
@@ -1271,6 +1391,29 @@ app.post('/api/admin/limpiar/:tabla', requireAuth, (req, res) => {
       crearBackup(usuario, `Limpieza ${tabla}`, `${this.changes} registros eliminados`);
       res.json({ ok: true, mensaje: `${this.changes} registros de ${tabla} eliminados` });
     });
+  }
+});
+
+// Poner todo el stock en 0 (sin borrar productos)
+app.post('/api/admin/stock/zero', requireAuth, async (req, res) => {
+  const db = req.db;
+  const usuario = req.session.usuario;
+
+  try {
+    // Hacemos backup antes por las dudas
+    crearBackup(usuario, 'Stock a Cero', 'Se reseteó el stock de todos los productos a 0');
+
+    await dbRun(db, "BEGIN TRANSACTION");
+    // Actualizamos todos los productos poniendo stock en 0
+    await dbRun(db, "UPDATE productos SET stock = 0");
+    await dbRun(db, "COMMIT");
+
+    res.json({ ok: true, mensaje: 'Todo el stock ha sido actualizado a 0' });
+
+  } catch (error) {
+    console.error("Error reseteando stock:", error);
+    await dbRun(db, "ROLLBACK");
+    res.status(500).json({ error: error.message });
   }
 });
 
