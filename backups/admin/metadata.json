@@ -1,5 +1,306 @@
 [
   {
+    "archivo": "2026-01-08_12-44-55_Importación_CSV_Histórico.db",
+    "fecha": "2026-01-08_12-44-55",
+    "accion": "Importación CSV Histórico",
+    "detalle": "35 importadas",
+    "timestampMs": 1767887095994
+  },
+  {
+    "archivo": "2026-01-08_12-42-04_Limpieza_ventas.db",
+    "fecha": "2026-01-08_12-42-04",
+    "accion": "Limpieza ventas",
+    "detalle": "24 ventas eliminadas (01/2026)",
+    "timestampMs": 1767886924579
+  },
+  {
+    "archivo": "2026-01-08_12-40-49_Importación_CSV_Histórico.db",
+    "fecha": "2026-01-08_12-40-49",
+    "accion": "Importación CSV Histórico",
+    "detalle": "24 importadas",
+    "timestampMs": 1767886849899
+  },
+  {
+    "archivo": "2026-01-08_12-29-35_Venta_eliminada.db",
+    "fecha": "2026-01-08_12-29-35",
+    "accion": "Venta eliminada",
+    "detalle": "Art: 235603, Cant: 1, $57990",
+    "timestampMs": 1767886175624
+  },
+  {
+    "archivo": "2026-01-08_12-29-33_Venta_eliminada.db",
+    "fecha": "2026-01-08_12-29-33",
+    "accion": "Venta eliminada",
+    "detalle": "Art: 675603, Cant: 1, $89990",
+    "timestampMs": 1767886173893
+  },
+  {
+    "archivo": "2026-01-08_12-29-23_Cuenta_corriente_eliminada.db",
+    "fecha": "2026-01-08_12-29-23",
+    "accion": "Cuenta corriente eliminada",
+    "detalle": "Cliente: Telefono",
+    "timestampMs": 1767886163409
+  },
+  {
+    "archivo": "2026-01-08_12-29-21_Cuenta_corriente_eliminada.db",
+    "fecha": "2026-01-08_12-29-21",
+    "accion": "Cuenta corriente eliminada",
+    "detalle": "Cliente: Prueba 1",
+    "timestampMs": 1767886161398
+  },
+  {
+    "archivo": "2026-01-08_12-02-28_Producto_modificado.db",
+    "fecha": "2026-01-08_12-02-28",
+    "accion": "Producto modificado",
+    "detalle": "Código: 905603, Stock: 1, Precio: $159990",
+    "timestampMs": 1767884548371
+  },
+  {
+    "archivo": "2026-01-08_12-02-16_Producto_modificado.db",
+    "fecha": "2026-01-08_12-02-16",
+    "accion": "Producto modificado",
+    "detalle": "Código: 905603, Stock: 2, Precio: $159990",
+    "timestampMs": 1767884536139
+  },
+  {
+    "archivo": "2026-01-08_12-02-10_Producto_modificado.db",
+    "fecha": "2026-01-08_12-02-10",
+    "accion": "Producto modificado",
+    "detalle": "Código: 905603, Stock: 1, Precio: $159990",
+    "timestampMs": 1767884530450
+  },
+  {
+    "archivo": "2026-01-08_12-01-58_Producto_modificado.db",
+    "fecha": "2026-01-08_12-01-58",
+    "accion": "Producto modificado",
+    "detalle": "Código: 905603, Stock: 1, Precio: $159991",
+    "timestampMs": 1767884518826
+  },
+  {
+    "archivo": "2026-01-08_11-26-30_Venta_eliminada.db",
+    "fecha": "2026-01-08_11-26-30",
+    "accion": "Venta eliminada",
+    "detalle": "Art: 265504, Cant: -1, $0",
+    "timestampMs": 1767882390833
+  },
+  {
+    "archivo": "2026-01-08_11-26-27_Cuenta_corriente_eliminada.db",
+    "fecha": "2026-01-08_11-26-27",
+    "accion": "Cuenta corriente eliminada",
+    "detalle": "Cliente: Rpbery",
+    "timestampMs": 1767882387318
+  },
+  {
+    "archivo": "2026-01-08_11-26-25_Cuenta_corriente_eliminada.db",
+    "fecha": "2026-01-08_11-26-25",
+    "accion": "Cuenta corriente eliminada",
+    "detalle": "Cliente: Devolución Prueba",
+    "timestampMs": 1767882385761
+  },
+  {
+    "archivo": "2026-01-08_11-19-23_Cuenta_corriente_creada.db",
+    "fecha": "2026-01-08_11-19-23",
+    "accion": "Cuenta corriente creada",
+    "detalle": "Cliente: Rpbery",
+    "timestampMs": 1767881963086
+  },
+  {
+    "archivo": "2026-01-08_11-18-48_Movimiento_CC.db",
+    "fecha": "2026-01-08_11-18-48",
+    "accion": "Movimiento CC",
+    "detalle": "Devolución Prueba: deuda $150000",
+    "timestampMs": 1767881928788
+  },
+  {
+    "archivo": "2026-01-08_11-17-04_Movimiento_CC.db",
+    "fecha": "2026-01-08_11-17-04",
+    "accion": "Movimiento CC",
+    "detalle": "Devolución Prueba: pago $98990",
+    "timestampMs": 1767881824613
+  },
+  {
+    "archivo": "2026-01-08_11-17-04_Venta_registrada.db",
+    "fecha": "2026-01-08_11-17-04",
+    "accion": "Venta registrada",
+    "detalle": "Art: 265504, Cant: -1, $0",
+    "timestampMs": 1767881824596
+  },
+  {
+    "archivo": "2026-01-08_11-17-04_Cuenta_corriente_creada.db",
+    "fecha": "2026-01-08_11-17-04",
+    "accion": "Cuenta corriente creada",
+    "detalle": "Cliente: Devolución Prueba",
+    "timestampMs": 1767881824577
+  },
+  {
+    "archivo": "2026-01-08_11-16-12_Venta_eliminada.db",
+    "fecha": "2026-01-08_11-16-12",
+    "accion": "Venta eliminada",
+    "detalle": "Art: 675203, Cant: 1, $89990",
+    "timestampMs": 1767881772821
+  },
+  {
+    "archivo": "2026-01-08_11-16-07_Cuenta_corriente_eliminada.db",
+    "fecha": "2026-01-08_11-16-07",
+    "accion": "Cuenta corriente eliminada",
+    "detalle": "Cliente: Messi",
+    "timestampMs": 1767881767556
+  },
+  {
+    "archivo": "2026-01-08_11-16-05_Cuenta_corriente_eliminada.db",
+    "fecha": "2026-01-08_11-16-05",
+    "accion": "Cuenta corriente eliminada",
+    "detalle": "Cliente: Devuelve",
+    "timestampMs": 1767881765780
+  },
+  {
+    "archivo": "2026-01-08_11-16-01_Venta_eliminada.db",
+    "fecha": "2026-01-08_11-16-01",
+    "accion": "Venta eliminada",
+    "detalle": "Art: 675710, Cant: -1, $0",
+    "timestampMs": 1767881761442
+  },
+  {
+    "archivo": "2026-01-08_11-04-47_Cuenta_corriente_eliminada.db",
+    "fecha": "2026-01-08_11-04-47",
+    "accion": "Cuenta corriente eliminada",
+    "detalle": "Cliente: Juanelo",
+    "timestampMs": 1767881087961
+  },
+  {
+    "archivo": "2026-01-08_11-04-30_Venta_registrada.db",
+    "fecha": "2026-01-08_11-04-30",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675710, Cant: -1, $0",
+    "timestampMs": 1767881070149
+  },
+  {
+    "archivo": "2026-01-08_11-04-30_Cuenta_corriente_creada.db",
+    "fecha": "2026-01-08_11-04-30",
+    "accion": "Cuenta corriente creada",
+    "detalle": "Cliente: Devuelve",
+    "timestampMs": 1767881070127
+  },
+  {
+    "archivo": "2026-01-08_10-58-30_Cuenta_corriente_creada.db",
+    "fecha": "2026-01-08_10-58-30",
+    "accion": "Cuenta corriente creada",
+    "detalle": "Cliente: Juanelo",
+    "timestampMs": 1767880710058
+  },
+  {
+    "archivo": "2026-01-08_10-57-26_Movimiento_CC.db",
+    "fecha": "2026-01-08_10-57-26",
+    "accion": "Movimiento CC",
+    "detalle": "Messi: deuda $89990",
+    "timestampMs": 1767880646266
+  },
+  {
+    "archivo": "2026-01-08_10-57-26_Venta_registrada.db",
+    "fecha": "2026-01-08_10-57-26",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675203, Cant: 1, $89990",
+    "timestampMs": 1767880646246
+  },
+  {
+    "archivo": "2026-01-08_10-57-26_Cuenta_corriente_creada.db",
+    "fecha": "2026-01-08_10-57-26",
+    "accion": "Cuenta corriente creada",
+    "detalle": "Cliente: Messi",
+    "timestampMs": 1767880646201
+  },
+  {
+    "archivo": "2026-01-08_10-56-59_Cuenta_corriente_eliminada.db",
+    "fecha": "2026-01-08_10-56-59",
+    "accion": "Cuenta corriente eliminada",
+    "detalle": "Cliente: Juanelo",
+    "timestampMs": 1767880619729
+  },
+  {
+    "archivo": "2026-01-08_10-35-25_Movimiento_CC.db",
+    "fecha": "2026-01-08_10-35-25",
+    "accion": "Movimiento CC",
+    "detalle": "Juanelo: deuda $456",
+    "timestampMs": 1767879325488
+  },
+  {
+    "archivo": "2026-01-08_10-34-11_Cuenta_corriente_creada.db",
+    "fecha": "2026-01-08_10-34-11",
+    "accion": "Cuenta corriente creada",
+    "detalle": "Cliente: Juanelo",
+    "timestampMs": 1767879251837
+  },
+  {
+    "archivo": "2026-01-07_12-05-39_Venta_registrada.db",
+    "fecha": "2026-01-07_12-05-39",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675603, Cant: 1, $89990",
+    "timestampMs": 1767798339198
+  },
+  {
+    "archivo": "2026-01-07_11-42-45_Venta_registrada.db",
+    "fecha": "2026-01-07_11-42-45",
+    "accion": "Venta registrada",
+    "detalle": "Art: 235603, Cant: 1, $57990",
+    "timestampMs": 1767796965711
+  },
+  {
+    "archivo": "2026-01-06_11-13-10_Venta_eliminada.db",
+    "fecha": "2026-01-06_11-13-10",
+    "accion": "Venta eliminada",
+    "detalle": "Art: 675603, Cant: -1, $0",
+    "timestampMs": 1767708790129
+  },
+  {
+    "archivo": "2026-01-06_11-12-57_Venta_registrada.db",
+    "fecha": "2026-01-06_11-12-57",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675603, Cant: -1, $0",
+    "timestampMs": 1767708777906
+  },
+  {
+    "archivo": "2026-01-06_10-50-32_Venta_eliminada.db",
+    "fecha": "2026-01-06_10-50-32",
+    "accion": "Venta eliminada",
+    "detalle": "Art: 675603, Cant: 1, $89990",
+    "timestampMs": 1767707432583
+  },
+  {
+    "archivo": "2026-01-06_10-50-24_Venta_registrada.db",
+    "fecha": "2026-01-06_10-50-24",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675603, Cant: 1, $89990",
+    "timestampMs": 1767707424510
+  },
+  {
+    "archivo": "2026-01-06_10-49-22_Venta_eliminada.db",
+    "fecha": "2026-01-06_10-49-22",
+    "accion": "Venta eliminada",
+    "detalle": "Art: 675710, Cant: -1, $0",
+    "timestampMs": 1767707362276
+  },
+  {
+    "archivo": "2026-01-06_10-49-01_Venta_registrada.db",
+    "fecha": "2026-01-06_10-49-01",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675710, Cant: -1, $0",
+    "timestampMs": 1767707341677
+  },
+  {
+    "archivo": "2026-01-06_10-40-49_Venta_eliminada.db",
+    "fecha": "2026-01-06_10-40-49",
+    "accion": "Venta eliminada",
+    "detalle": "Art: 675203, Cant: 1, $89990",
+    "timestampMs": 1767706849520
+  },
+  {
+    "archivo": "2026-01-06_10-40-44_Venta_registrada.db",
+    "fecha": "2026-01-06_10-40-44",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675203, Cant: 1, $89990",
+    "timestampMs": 1767706844732
+  },
+  {
     "archivo": "2026-01-05_12-17-58_Importación_CSV_Histórico.db",
     "fecha": "2026-01-05_12-17-58",
     "accion": "Importación CSV Histórico",

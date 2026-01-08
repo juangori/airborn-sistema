@@ -144,10 +144,20 @@ function inicializarBdCliente(db) {
       CREATE TABLE IF NOT EXISTS cuentasCorrientes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         cliente TEXT UNIQUE,
+        telefono TEXT,
+        articulo TEXT,
         deuda REAL DEFAULT 0,
         pagos REAL DEFAULT 0
       )
     `);
+
+    // Migración automática para bases existentes (intenta agregar columnas, ignora si ya están)
+    const columnasExtra = ['telefono TEXT', 'articulo TEXT'];
+    columnasExtra.forEach(col => {
+      db.run(`ALTER TABLE cuentasCorrientes ADD COLUMN ${col}`, (err) => {
+        // Ignoramos error si la columna ya existe
+      });
+    });
 
     db.run(`
       CREATE TABLE IF NOT EXISTS movimientosCuentas (
@@ -434,7 +444,8 @@ app.post('/api/ventas', requireAuth, async (req, res) => {
     categoria, factura, tipoPago, comentarios
   } = req.body;
 
-  if (!fecha || !articulo || !cantidad || !precio) {
+  // Validamos que existan los campos, pero permitimos precio 0 y cantidad negativa
+  if (!fecha || !articulo || cantidad === undefined || precio === undefined) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
 
@@ -736,6 +747,8 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), (req, re
   res.json({ ok: true, importados, omitidos });
 });
 
+
+
 // 7. OBTENER STOCK DE UN PRODUCTO
 app.get('/api/productos/stock/:codigo', requireAuth, (req, res) => {
   const db = req.db;
@@ -755,28 +768,39 @@ app.get('/api/productos/stock/:codigo', requireAuth, (req, res) => {
 // 8. CUENTAS CORRIENTES - OBTENER
 app.get('/api/cuentas', requireAuth, (req, res) => {
   const db = req.db;
-  db.all('SELECT * FROM cuentasCorrientes ORDER BY cliente', (err, rows) => {
+  
+  // IMPORTANTE: Asegurate que diga "SELECT *" o que incluya telefono y articulo
+  const sql = "SELECT * FROM cuentasCorrientes ORDER BY cliente ASC";
+  
+  db.all(sql, [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json(rows || []);
+    res.json(rows);
   });
 });
 
-// 9. CUENTAS CORRIENTES - CREAR
+// 9. CUENTAS CORRIENTES - CREAR (ACTUALIZADO)
 app.post('/api/cuentas', requireAuth, (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
+  const { cliente, telefono, articulo } = req.body;
 
-  const { cliente } = req.body;
+  if (!cliente) return res.status(400).json({ error: 'Nombre requerido' });
 
-  if (!cliente) return res.status(400).json({ error: 'Nombre de cliente requerido' });
-
+  // Insertar o Ignorar (si ya existe no hace nada)
   db.run(
-    'INSERT OR IGNORE INTO cuentasCorrientes (cliente, deuda, pagos) VALUES (?, 0, 0)',
-    [cliente],
+    'INSERT OR IGNORE INTO cuentasCorrientes (cliente, telefono, articulo, deuda, pagos) VALUES (?, ?, ?, 0, 0)',
+    [cliente.trim(), telefono || '', articulo || ''],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      crearBackup(usuario, 'Cuenta corriente creada', `Cliente: ${cliente}`);
-      res.json({ message: 'Cuenta creada' });
+      
+      // Si ya existía (no insertó), actualizamos los datos extra por si cambiaron
+      if (this.changes === 0) {
+        db.run('UPDATE cuentasCorrientes SET telefono = ?, articulo = ? WHERE cliente = ?', 
+          [telefono || '', articulo || '', cliente.trim()]);
+      }
+
+      crearBackup(usuario, 'Cuenta Creada/Act', `Cliente: ${cliente}`);
+      res.json({ message: 'Cuenta gestionada' });
     }
   );
 });
@@ -857,6 +881,45 @@ app.delete('/api/cuentas/:cliente', requireAuth, (req, res) => {
   });
 });
 
+// ==================== PROMEDIOS MENSUALES ====================
+app.get('/api/ventas/promedios', requireAuth, (req, res) => {
+  const db = req.db;
+  const { anio, mes } = req.query;
+
+  if (!anio || !mes) return res.status(400).json({ error: 'Año y mes requeridos' });
+
+  // Formato YYYY-MM
+  const mesStr = mes.toString().padStart(2, '0');
+  const periodo = `${anio}-${mesStr}`;
+
+  // Consulta: Agrupa por fecha y suma los totales (considerando descuentos)
+  // OJO: Filtramos solo las ventas que NO son cambios (precio > 0) o restamos devoluciones
+  // La lógica de tu sistema es: (precio * cantidad * (1 - desc/100))
+  const sql = `
+    SELECT 
+      fecha,
+      SUM(precio * cantidad * (1 - COALESCE(descuento, 0) / 100.0)) as totalDia,
+      COUNT(*) as tickets
+    FROM ventas
+    WHERE strftime('%Y-%m', fecha) = ?
+    GROUP BY fecha
+    ORDER BY fecha ASC
+  `;
+
+  db.all(sql, [periodo], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    
+    // Devolvemos un objeto { "2025-01-01": 15000, "2025-01-02": 20000, ... }
+    // para que sea fácil de buscar en el frontend
+    const mapaVentas = {};
+    rows.forEach(r => {
+        mapaVentas[r.fecha] = r.totalDia;
+    });
+
+    res.json({ ok: true, ventas: mapaVentas });
+  });
+});
+
 // 14. HISTÓRICO DE VENTAS
 app.get('/api/ventas/historico', requireAuth, (req, res) => {
   const db = req.db;
@@ -887,7 +950,7 @@ app.get('/api/ventas/historico', requireAuth, (req, res) => {
 });
 
 // =======================================================
-// 15. IMPORTAR VENTAS DESDE CSV (CORREGIDO Y ROBUSTO)
+// 15. IMPORTAR VENTAS DESDE CSV (DEFINITIVO)
 // =======================================================
 app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (req, res) => {
   const db = req.db;
@@ -895,7 +958,7 @@ app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (re
 
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
 
-  // Función auxiliar para usar Promesas con sqlite3 (para poder usar await)
+  // Función auxiliar para promesas
   const dbRun = (sql, params = []) => {
     return new Promise((resolve, reject) => {
       db.run(sql, params, function (err) {
@@ -905,111 +968,122 @@ app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (re
     });
   };
 
+  // --- FUNCIÓN DE NORMALIZACIÓN DE FECHA (CLAVE PARA CAJAS DIARIAS) ---
+  const normalizarFecha = (fechaStr) => {
+      if (!fechaStr) return null;
+      fechaStr = fechaStr.trim();
+      
+      // Si ya viene como YYYY-MM-DD, joya.
+      if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) return fechaStr;
+
+      // Detectar separador (/ o -)
+      const partes = fechaStr.split(/[\/\-]/); 
+      if (partes.length === 3) {
+          let dia = partes[0].padStart(2, '0');
+          let mes = partes[1].padStart(2, '0');
+          let anio = partes[2];
+
+          // CORRECCIÓN DE AÑO CORTO: Si viene "26", lo pasamos a "2026"
+          if (anio.length === 2) anio = '20' + anio;
+
+          return `${anio}-${mes}-${dia}`;
+      }
+      return null; 
+  };
+  // ------------------------------------------------------------------
+
   const errores = [];
   let importadas = 0;
   let procesadas = 0;
 
   try {
-    // 1. Iniciamos la transacción
     await dbRun("BEGIN TRANSACTION");
 
-    // 2. Preparamos el stream
     const stream = Readable.from(req.file.buffer.toString('utf8'))
       .pipe(csv({
         mapHeaders: ({ header }) => header.trim().toLowerCase(),
-        separator: ','
+        separator: ',' // Ojo: si tu CSV usa punto y coma, cambiá esto a ';'
       }));
 
-    // 3. Procesamos FILA POR FILA (esperando que cada una termine)
     for await (const row of stream) {
       procesadas++;
 
-      // Mapeo flexible de columnas
-      const fechaRaw = row.fecha || row.date;
-      const articulo = row.articulo || row.codigo || row.article;
+      // 1. Mapeo de datos
+      const fechaRaw = row.fecha || row.date || row.FECHA;
+      const articulo = row.articulo || row.codigo || row.article || row.ARTICULO;
       const cantidadRaw = row.cantidad || row.cant || row.qty;
-      const precioRaw = row.precio || row.price || row.monto;
+      const precioRaw = row.precio || row.price || row.monto || row.total; // A veces el CSV trae el total, no el unitario
       const categoria = row.categoria || row.category || '';
       const factura = row.factura || row.invoice || '';
-      const tipoPago = row['tipo pago'] || row.tipopago || row.pago || '';
+      const tipoPago = row['tipo pago'] || row.tipopago || row.pago || 'Efectivo';
+      const comentarios = row.comentarios || row.detalle || 'Importado CSV';
 
-      // Validaciones
-      if (!fechaRaw || !articulo || !cantidadRaw || !precioRaw) {
-        errores.push(`Fila ${procesadas}: Datos incompletos`);
-        continue;
-      }
-      if (fechaRaw.includes('#N/A')) continue;
-
-      // Parseo Fecha
-      let fechaISO = '';
-      if (fechaRaw.includes('/')) {
-        const partes = fechaRaw.split('/');
-        if (partes.length === 3) fechaISO = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
-      } else if (fechaRaw.includes('-')) {
-        fechaISO = fechaRaw;
-      }
-
-      if (fechaISO.length !== 10) {
-        errores.push(`Fila ${procesadas}: Fecha inválida (${fechaRaw})`);
+      // 2. Validaciones básicas
+      if (!fechaRaw || !articulo) {
+        errores.push(`Fila ${procesadas}: Falta fecha o artículo`);
         continue;
       }
 
-      // Parseo Números
-      const cleanPrecio = precioRaw.toString().replace(/[$\s.]/g, '').replace(',', '.');
-      const precioTotal = parseFloat(cleanPrecio);
-      const cleanCantidad = cantidadRaw.toString().replace(/[.]/g, '');
+      // 3. Normalizar Fecha (Usamos la función inteligente)
+      const fechaISO = normalizarFecha(fechaRaw);
+      if (!fechaISO) {
+          errores.push(`Fila ${procesadas}: Fecha inválida (${fechaRaw})`);
+          continue;
+      }
+
+      // 4. Parseo de Números (Manejo de miles y decimales)
+      // Quitamos $ y espacios. Reemplazamos coma por punto para decimales.
+      // OJO: Esto asume formato "1000,50". Si tu CSV es formato USA "1,000.50", avisame.
+      const cleanPrecio = precioRaw ? precioRaw.toString().replace(/[$\s]/g, '').replace(',', '.') : '0';
+      const precioNum = parseFloat(cleanPrecio);
+
+      const cleanCantidad = cantidadRaw ? cantidadRaw.toString().replace(/[.,]/g, '') : '1'; // Asumimos enteros
       const cantidad = parseInt(cleanCantidad);
 
-      if (isNaN(precioTotal)) {
-        errores.push(`Fila ${procesadas}: Precio inválido (${precioRaw})`);
-        continue;
-      }
-      if (isNaN(cantidad) || cantidad === 0) {
-        // Ignoramos cantidad 0
-        continue;
+      if (isNaN(precioNum) || isNaN(cantidad) || cantidad === 0) {
+         continue; // Saltamos filas con errores numéricos
       }
 
-      const precioUnitario = precioTotal / cantidad; // Si es 0 division, da Infinity, ojo.
-      const precioFinal = isFinite(precioUnitario) ? precioUnitario : 0;
+      // Calculamos unitario si el CSV traía el total, o asumimos que es unitario
+      // (Depende de tu CSV, por ahora asumo que "precio" es el precio unitario)
+      const precioFinal = precioNum; 
 
-      // Insertamos esperando a que la DB responda antes de seguir
+      // 5. Insertar
       try {
+        // NOTA: Cambié 'codigoArticulo' por 'articulo' para coincidir con la tabla original.
+        // Si cambiaste el nombre de la columna en la BD, poné 'codigoArticulo' de vuelta.
         await dbRun(`
-          INSERT INTO ventas (fecha, codigoArticulo, cantidad, precio, descuento, categoria, factura, tipoPago, detalles, caja)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO ventas (fecha, articulo, cantidad, precio, descuento, categoria, factura, tipoPago, comentarios)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           fechaISO,
           articulo.trim(),
           cantidad,
           precioFinal,
-          0,
+          0, // Descuento 0 por defecto al importar
           categoria.trim(),
           factura.trim(),
           tipoPago.trim(),
-          '',
-          'Historico'
+          comentarios
         ]);
         importadas++;
       } catch (err) {
-        // Si falla UN insert, guardamos el error pero NO rompemos todo el proceso
         errores.push(`Fila ${procesadas}: Error BD - ${err.message}`);
       }
     }
 
-    // 4. Si llegamos acá, todo fluyó bien. Confirmamos cambios.
     await dbRun("COMMIT");
     
-    crearBackup(usuario, 'Importación CSV Histórico', `${importadas} importadas`);
+    crearBackup(usuario, 'Importación CSV', `Importadas: ${importadas}`);
     
     res.json({
       ok: true,
       totalProcesadas: procesadas,
       importadas: importadas,
-      errores: errores.slice(0, 100)
+      errores: errores.slice(0, 50) // Limitamos errores para no saturar
     });
 
   } catch (errorGeneral) {
-    // Si algo explota mal (ej: error de disco), deshacemos todo
     console.error("Error fatal importando:", errorGeneral);
     try { await dbRun("ROLLBACK"); } catch (_) {}
     res.status(500).json({ error: 'Error procesando archivo: ' + errorGeneral.message });
@@ -1130,6 +1204,63 @@ app.get('/api/ventas/comparativa', requireAuth, async (req, res) => {
     console.error("Error en comparativa:", error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// ==================== PRODUCTOS Y STOCK INDIVIDUAL ====================
+
+// 1. CREAR PRODUCTO NUEVO (INDIVIDUAL)
+app.post('/api/productos/nuevo', requireAuth, async (req, res) => {
+    const db = req.db;
+    const { codigo, descripcion, categoria, precio, costo, stock } = req.body;
+
+    if (!codigo || !descripcion) {
+        return res.status(400).json({ error: 'Código y Descripción son obligatorios' });
+    }
+
+    try {
+        await dbRun(db, 
+            `INSERT INTO productos (codigo, descripcion, categoria, precioPublico, costo, stock) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [codigo, descripcion, categoria || 'General', precio || 0, costo || 0, stock || 0]
+        );
+        
+        crearBackup(req.session.usuario, 'Producto Creado', `Alta: ${codigo} (${descripcion})`);
+        res.json({ ok: true, mensaje: 'Producto creado exitosamente' });
+    } catch (e) {
+        // Error común: Código duplicado (SQLITE_CONSTRAINT)
+        if (e.message.includes('UNIQUE')) {
+            return res.status(400).json({ error: 'El código ya existe' });
+        }
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 2. ACTUALIZAR STOCK INDIVIDUAL (EDICIÓN RÁPIDA EN TABLA)
+app.put('/api/productos/stock/unitario', requireAuth, async (req, res) => {
+    const db = req.db;
+    const { codigo, nuevoStock } = req.body;
+
+    try {
+        await dbRun(db, "UPDATE productos SET stock = ? WHERE codigo = ?", [nuevoStock, codigo]);
+        // Opcional: No generamos backup por cada click para no saturar, o sí, depende tu gusto.
+        // crearBackup(req.session.usuario, 'Ajuste Stock', `${codigo} -> ${nuevoStock}`);
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// BORRAR PRODUCTO EN LA TABLA
+app.delete('/api/productos/:codigo', requireAuth, async (req, res) => {
+    const db = req.db;
+    const { codigo } = req.params;
+    try {
+        await dbRun(db, "DELETE FROM productos WHERE codigo = ?", [codigo]);
+        crearBackup(req.session.usuario, 'Producto Eliminado', `Código: ${codigo}`);
+        res.json({ ok: true, mensaje: 'Producto eliminado' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // ==================== CAMBIOS ====================
