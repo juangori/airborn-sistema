@@ -760,36 +760,63 @@ async function crearCCdesdeCambio(cambioId, monto, fecha, artDevuelto, artNuevo)
         }
     });
 
-    // ==================== 1. BÚSQUEDA DE PRECIOS INSTANTÁNEA (CACHE) ====================
+// ==================== 1. BÚSQUEDA DE PRECIOS (LÓGICA MEJORADA) ====================
 
 document.getElementById('busquedaInput')?.addEventListener('keyup', (e) => {
     const texto = e.target.value.toLowerCase().trim();
     const contenedor = document.getElementById('busquedaResultado');
 
-    // 1. Si el campo está vacío, limpiamos el contenedor
+    // 1. Limpiar si está vacío
     if (texto.length === 0) {
         contenedor.innerHTML = '';
         return;
     }
 
-    // 2. BUSCAR EN MEMORIA (Instantáneo)
-    // Filtramos el array global 'productosCache'
-    const encontrados = productosCache.filter(p => {
+    // 2. FILTRAR (Lógica ajustada)
+    let encontrados = productosCache.filter(p => {
         const codigo = (p.codigo || '').toLowerCase();
         const desc = (p.descripcion || '').toLowerCase();
-        return codigo.includes(texto) || desc.includes(texto);
+        
+        // A. CÓDIGO: Debe EMPEZAR con el texto (Estricto)
+        const coincideCodigo = codigo.startsWith(texto);
+        
+        // B. DESCRIPCIÓN: Puede CONTENER el texto (Flexible)
+        const coincideDesc = desc.includes(texto);
+
+        return coincideCodigo || coincideDesc;
     });
 
-    // 3. RENDERIZAR RESULTADOS
+    // 3. ORDENAR RESULTADOS (Para que sea más intuitivo)
+    encontrados.sort((a, b) => {
+        const codigoA = (a.codigo || '').toLowerCase();
+        const codigoB = (b.codigo || '').toLowerCase();
+
+        // 1ro: Prioridad absoluta si el código es IDÉNTICO a lo que escribiste
+        if (codigoA === texto && codigoB !== texto) return -1;
+        if (codigoB === texto && codigoA !== texto) return 1;
+
+        // 2do: Prioridad a los que coinciden por CÓDIGO sobre los de DESCRIPCIÓN
+        const aStart = codigoA.startsWith(texto);
+        const bStart = codigoB.startsWith(texto);
+        if (aStart && !bStart) return -1;
+        if (!aStart && bStart) return 1;
+
+        // 3ro: Si ambos coinciden por código, mostrar primero los más cortos (ej: "5" antes que "500")
+        if (aStart && bStart) {
+            return codigoA.length - codigoB.length;
+        }
+
+        return 0;
+    });
+
+    // 4. RENDERIZAR
     if (encontrados.length === 0) {
-        contenedor.innerHTML = `<div class="alert alert-warning">❌ No se encontraron productos con "${texto}"</div>`;
+        contenedor.innerHTML = `<div class="alert alert-warning">❌ No se encontraron productos comenzando con "${texto}"</div>`;
     } 
     else if (encontrados.length === 1) {
-        // UN SOLO RESULTADO: Mostrar la ficha grande directamente
         mostrarProductoDetalle(encontrados[0], contenedor);
     } 
     else {
-        // MUCHOS RESULTADOS: Mostrar lista de tarjetas
         mostrarListaResultados(encontrados, contenedor);
     }
 });
