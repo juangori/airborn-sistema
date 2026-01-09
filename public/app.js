@@ -3461,63 +3461,64 @@ function renderTablaPromedios(ventasMap, anio, mes) {
     tbody.innerHTML = '';
 
     const hoy = new Date();
-    // Ajustamos "hoy" para ignorar la hora y comparar solo fecha
     hoy.setHours(0,0,0,0);
     
-    // Chequeamos si el mes seleccionado es el actual
     const esMesActual = hoy.getFullYear() === anio && (hoy.getMonth() + 1) === mes;
-    
     const diasEnMes = new Date(anio, mes, 0).getDate();
     
-    let acumulado = 0;
-    let diasOperativos = 0; // Días que cuentan para el promedio (divisor)
-    let diasOperativosTotalesMes = 0; // Para la proyección (multiplicador)
+    let acumuladoDinero = 0;
+    let acumuladoPrendas = 0; // Nuevo acumulador
+    
+    let diasOperativos = 0; 
+    let diasOperativosTotalesMes = 0; 
     
     let html = '';
 
-    // PRIMERA PASADA: Calcular días operativos totales del mes (para proyección)
+    // 1. CALCULAR DÍAS OPERATIVOS TOTALES (Pre-cálculo)
     for (let d = 1; d <= diasEnMes; d++) {
-        // Objeto fecha para chequear día de semana y feriado
-        // Nota: en JS los meses en Date van de 0 a 11
         const f = new Date(anio, mes - 1, d);
         const esDom = f.getDay() === 0;
         const esFer = esFeriado(d, mes);
         
-        // Clave para buscar si hubo venta real
         const key = `${anio}-${mes.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-        const tuvoVenta = (ventasMap[key] || 0) > 0;
+        // Ahora accedemos a .dinero porque ventasMap es un objeto
+        const datosDia = ventasMap[key] || { dinero: 0, prendas: 0 };
+        const tuvoVenta = datosDia.dinero > 0;
 
-        // Criterio: Cuenta si es hábil (Lun-Sab y no feriado) O si hubo ventas
         if ((!esDom && !esFer) || tuvoVenta) {
             diasOperativosTotalesMes++;
         }
     }
 
-    // SEGUNDA PASADA: Renderizar tabla y calcular acumulados
+    // 2. RENDERIZAR TABLA Y SUMAR
     for (let dia = 1; dia <= diasEnMes; dia++) {
         const fechaObj = new Date(anio, mes - 1, dia);
         const esDomingo = fechaObj.getDay() === 0;
         const esDiaFeriado = esFeriado(dia, mes);
         
         const fechaStr = `${anio}-${mes.toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}`;
-        const ventaDia = ventasMap[fechaStr] || 0;
+        
+        // RECUPERAR DATOS DEL DÍA (NUEVO FORMATO)
+        const datosDia = ventasMap[fechaStr] || { dinero: 0, prendas: 0 };
+        const ventaDia = datosDia.dinero;
+        const prendasDia = datosDia.prendas;
         
         const esHoy = fechaObj.getTime() === hoy.getTime();
         const esFuturo = fechaObj.getTime() > hoy.getTime();
 
-        // Lógica de "Día Operativo" para el promedio acumulado
         const esDiaHabil = !esDomingo && !esDiaFeriado;
         const cuentaParaPromedio = esDiaHabil || (ventaDia > 0);
 
-        acumulado += ventaDia;
+        acumuladoDinero += ventaDia;
+        acumuladoPrendas += prendasDia; // Sumamos prendas
 
         if (!esFuturo && cuentaParaPromedio) {
             diasOperativos++;
         }
 
-        let promedio = 0;
+        let promedioDinero = 0;
         if (diasOperativos > 0) {
-            promedio = acumulado / diasOperativos;
+            promedioDinero = acumuladoDinero / diasOperativos;
         }
 
         // Estilos
@@ -3548,10 +3549,11 @@ function renderTablaPromedios(ventasMap, anio, mes) {
                 </td>
                 <td style="${ventaDia > 0 ? 'color: #2c3e50; font-weight:600;' : 'color: #ccc;'}">
                     ${formatMoney(ventaDia)}
+                    ${prendasDia > 0 ? `<span style="font-size:0.75em; color:#e67e22; margin-left:5px;">(${prendasDia} un.)</span>` : ''}
                 </td>
-                <td class="col-acumulado">${!esFuturo || esHoy ? formatMoney(acumulado) : '-'}</td>
+                <td class="col-acumulado">${!esFuturo || esHoy ? formatMoney(acumuladoDinero) : '-'}</td>
                 <td class="col-promedio">
-                    ${(!esFuturo || esHoy) && cuentaParaPromedio ? formatMoney(promedio) : '-'}
+                    ${(!esFuturo || esHoy) && cuentaParaPromedio ? formatMoney(promedioDinero) : '-'}
                 </td>
             </tr>
         `;
@@ -3559,17 +3561,22 @@ function renderTablaPromedios(ventasMap, anio, mes) {
 
     tbody.innerHTML = html;
 
-    // Actualizar Tarjetas Superiores
-    document.getElementById('promTotalMes').textContent = formatMoney(acumulado);
-    document.getElementById('promDiasTranscurridos').textContent = diasOperativos;
+    // --- ACTUALIZAR TARJETAS ---
     
-    const promedioFinal = diasOperativos > 0 ? acumulado / diasOperativos : 0;
-    document.getElementById('promPromedioActual').textContent = formatMoney(promedioFinal);
+    // 1. Dinero
+    document.getElementById('promTotalMes').textContent = formatMoney(acumuladoDinero);
+    document.getElementById('promDiasTranscurridos').textContent = diasOperativos;
+    const promDineroFinal = diasOperativos > 0 ? acumuladoDinero / diasOperativos : 0;
+    document.getElementById('promPromedioActual').textContent = formatMoney(promDineroFinal);
 
-    // Proyección Fin de Mes (Solo si es mes actual)
-    // CORREGIDO: Usamos esMesActual en vez de esFuturo
+    // 2. Prendas (NUEVO)
+    document.getElementById('promTotalPrendas').textContent = acumuladoPrendas + ' un.';
+    const promPrendasFinal = diasOperativos > 0 ? (acumuladoPrendas / diasOperativos).toFixed(1) : '0.0';
+    document.getElementById('promPromedioPrendas').textContent = promPrendasFinal;
+
+    // 3. Proyección
     if (esMesActual && diasOperativos > 0) {
-        const proyeccion = promedioFinal * diasOperativosTotalesMes;
+        const proyeccion = promDineroFinal * diasOperativosTotalesMes;
         document.getElementById('promProyeccion').textContent = formatMoney(proyeccion);
         document.getElementById('promProyeccion').style.color = '#27ae60';
         document.getElementById('promProyeccion').style.fontWeight = 'bold';

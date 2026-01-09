@@ -881,24 +881,22 @@ app.delete('/api/cuentas/:cliente', requireAuth, (req, res) => {
   });
 });
 
-// ==================== PROMEDIOS MENSUALES ====================
+// ==================== PROMEDIOS MENSUALES (MODIFICADO PARA PRENDAS) ====================
 app.get('/api/ventas/promedios', requireAuth, (req, res) => {
   const db = req.db;
   const { anio, mes } = req.query;
 
   if (!anio || !mes) return res.status(400).json({ error: 'Año y mes requeridos' });
 
-  // Formato YYYY-MM
   const mesStr = mes.toString().padStart(2, '0');
   const periodo = `${anio}-${mesStr}`;
 
-  // Consulta: Agrupa por fecha y suma los totales (considerando descuentos)
-  // OJO: Filtramos solo las ventas que NO son cambios (precio > 0) o restamos devoluciones
-  // La lógica de tu sistema es: (precio * cantidad * (1 - desc/100))
+  // AGREGAMOS: SUM(cantidad) as cantidadDia
   const sql = `
     SELECT 
       fecha,
       SUM(precio * cantidad * (1 - COALESCE(descuento, 0) / 100.0)) as totalDia,
+      SUM(cantidad) as cantidadDia,
       COUNT(*) as tickets
     FROM ventas
     WHERE strftime('%Y-%m', fecha) = ?
@@ -909,14 +907,16 @@ app.get('/api/ventas/promedios', requireAuth, (req, res) => {
   db.all(sql, [periodo], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     
-    // Devolvemos un objeto { "2025-01-01": 15000, "2025-01-02": 20000, ... }
-    // para que sea fácil de buscar en el frontend
-    const mapaVentas = {};
+    // CAMBIO IMPORTANTE: Ahora el mapa guarda un OBJETO con dinero y cantidad
+    const mapaDatos = {};
     rows.forEach(r => {
-        mapaVentas[r.fecha] = r.totalDia;
+        mapaDatos[r.fecha] = {
+            dinero: r.totalDia,
+            prendas: r.cantidadDia
+        };
     });
 
-    res.json({ ok: true, ventas: mapaVentas });
+    res.json({ ok: true, ventas: mapaDatos });
   });
 });
 
