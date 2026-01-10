@@ -140,6 +140,15 @@ function inicializarBdCliente(db) {
       )
     `);
 
+    // --- NUEVA TABLA PARA MOVIMIENTOS DE CAJA ---
+    db.run(`CREATE TABLE IF NOT EXISTS movimientosCaja (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha TEXT,
+        tipo TEXT, -- 'ingreso' o 'egreso'
+        monto REAL,
+        detalle TEXT
+    )`);
+
     db.run(`
       CREATE TABLE IF NOT EXISTS cuentasCorrientes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -188,6 +197,17 @@ function inicializarBdCliente(db) {
       CREATE TABLE IF NOT EXISTS cajasIniciales (
         fecha DATE PRIMARY KEY,
         monto REAL DEFAULT 0
+      )
+    `);
+
+    // === AGREGAR ESTO AQUÍ ADENTRO ===
+    db.run(`
+      CREATE TABLE IF NOT EXISTS movimientosCaja (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha TEXT,
+        tipo TEXT, 
+        monto REAL,
+        detalle TEXT
       )
     `);
   });
@@ -1572,6 +1592,48 @@ try {
 } catch (e) {
   console.error('Error aplicando restauraciones pendientes:', e);
 }
+
+// ==================== MOVIMIENTOS DE CAJA (EXTRA) ====================
+
+// Obtener movimientos de un día
+app.get('/api/caja/movimientos/:fecha', requireAuth, (req, res) => {
+    const db = req.db; // <--- CORRECCIÓN IMPORTANTE
+    const { fecha } = req.params;
+    
+    db.all("SELECT * FROM movimientosCaja WHERE fecha = ?", [fecha], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Registrar movimiento
+app.post('/api/caja/movimiento', requireAuth, (req, res) => {
+    const db = req.db; // <--- CORRECCIÓN IMPORTANTE
+    const { fecha, tipo, monto, detalle } = req.body;
+    
+    db.run(
+        "INSERT INTO movimientosCaja (fecha, tipo, monto, detalle) VALUES (?, ?, ?, ?)",
+        [fecha, tipo, monto, detalle],
+        function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            // Backup opcional si tenés la función crearBackup disponible en este scope
+            if (typeof crearBackup === 'function') {
+                crearBackup(req.session.usuario, 'Movimiento Caja', `${tipo}: $${monto} (${detalle})`);
+            }
+            res.json({ id: this.lastID });
+        }
+    );
+});
+
+// Eliminar movimiento
+app.delete('/api/caja/movimiento/:id', requireAuth, (req, res) => {
+    const db = req.db; // <--- CORRECCIÓN IMPORTANTE
+    
+    db.run("DELETE FROM movimientosCaja WHERE id = ?", [req.params.id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Eliminado' });
+    });
+});
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);

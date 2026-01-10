@@ -1322,127 +1322,238 @@ function seleccionarDia(fecha) {
     cargarCajaInicial(fecha);
 }
 
-function cargarVentasDelDia(fecha) {
-    const ventasDelDia = ventasDelMes.filter(v => v.fecha === fecha);
-    
-    // Actualizar título
+// ==================== CARGAR VENTAS Y MOVIMIENTOS DEL DÍA ====================
+async function cargarVentasDelDia(fecha) {
+    // 1. Actualizar título
     const fechaObj = new Date(fecha + 'T00:00:00');
     const nombreDia = fechaObj.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     document.getElementById('ventasDiaTitulo').textContent = 
-        'Ventas del ' + nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1);
+        'Caja del ' + nombreDia.charAt(0).toUpperCase() + nombreDia.slice(1);
     
     const lista = document.getElementById('listaVentas');
-    
-    if (ventasDelDia.length === 0) {
-        lista.innerHTML = '<p style="color: #999;">No hay ventas registradas para este día</p>';
-        return;
-    }
+    lista.innerHTML = '<div style="text-align:center; padding:20px;">Cargando operaciones...</div>';
 
-    let totalDia = 0;
-    let totalFacturaA = 0;
-    let totalFacturaB = 0;
-    let cantFacturaA = 0;
-    let cantFacturaB = 0;
+    try {
+        // 2. Traer TODO en paralelo: Ventas del mes (ya las tenemos en variable global), Caja Inicial y Movimientos
+        const [movimientosResp, cajaInicialResp] = await Promise.all([
+            fetch(`/api/caja/movimientos/${fecha}`),
+            fetch(`/api/caja-inicial/${fecha}`)
+        ]);
 
-    // 1. ENCABEZADO (Botón movido al final)
-    let html = `
-        <div class="ventas-tabla-grid">
-            <div class="venta-grid-row venta-header">
-                <div>Fecha</div>
-                <div>Artículo</div>
-                <div style="text-align:center">Cant.</div>
-                <div style="text-align:right">Precio</div>
-                <div style="text-align:center">Desc.</div>
-                <div style="text-align:right">Total</div>
-                <div>Cat.</div>
-                <div>Fact.</div>
-                <div>Pago</div>
-                <div>Comentarios</div>
-                <div style="text-align:center">Borrar</div> </div>
-    `;
-
-    // 2. FILAS (Botón movido al final)
-    html += ventasDelDia.map(v => {
-        const precioUnitario = v.precio;
-        const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
-        const total = precioFinal * v.cantidad;
-        totalDia += total;
+        const movimientos = await movimientosResp.json();
+        const cajaData = await cajaInicialResp.json();
         
-        const tipoFactura = (v.factura || '').toUpperCase().trim();
-        if (tipoFactura === 'A') { totalFacturaA += total; cantFacturaA++; }
-        else if (tipoFactura === 'B') { totalFacturaB += total; cantFacturaB++; }
+        // Actualizar input de caja inicial visualmente
+        const inputCaja = document.getElementById('cajaInicial');
+        if(inputCaja) inputCaja.value = cajaData.monto > 0 ? formatMonedaInput(cajaData.monto) : '';
+        const montoCajaInicial = cajaData.monto || 0;
 
-        const esDevolucion = v.cantidad < 0 && v.precio == 0;
+        // Filtrar ventas de ESTE día específico desde la variable global
+        const ventasDelDia = ventasDelMes.filter(v => v.fecha === fecha);
 
-        return `
-            <div class="venta-grid-row venta-item ${esDevolucion ? 'es-devolucion' : ''}">
-                <div class="venta-detail">${v.fecha}</div>
-                
-                <div class="venta-detail" style="font-weight:600;">${v.articulo}</div>
-                
-                <div class="venta-detail" style="text-align:center;">
-                    ${esDevolucion ? '<span style="color:#e74c3c; font-weight:bold;">-1</span>' : v.cantidad}
-                </div>
+        // --- CÁLCULOS ---
+        
+        // A. Totales Ventas
+        let totalVentas = 0;
+        let totalFacturaA = 0;
+        let totalFacturaB = 0;
+        let cantFacturaA = 0;
+        let cantFacturaB = 0;
 
-                <div class="venta-detail" style="text-align:right;">
-                    ${formatMoney(precioUnitario)}
-                </div>
+        ventasDelDia.forEach(v => {
+            const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
+            const total = precioFinal * v.cantidad;
+            totalVentas += total;
+            
+            const tipoFactura = (v.factura || '').toUpperCase().trim();
+            if (tipoFactura === 'A') { totalFacturaA += total; cantFacturaA++; }
+            else if (tipoFactura === 'B') { totalFacturaB += total; cantFacturaB++; }
+        });
 
-                <div class="venta-detail" style="text-align:center; color:#e67e22; font-size:0.85em;">
-                    ${v.descuento > 0 ? v.descuento + '%' : '-'}
-                </div>
+        // B. Totales Movimientos
+        let totalIngresos = 0;
+        let totalEgresos = 0;
 
-                <div class="venta-detail" style="text-align:right; font-weight:bold;">
-                    ${esDevolucion ? '<span style="color:#e74c3c;">Devol.</span>' : formatMoney(total)}
-                </div>
+        movimientos.forEach(m => {
+            if(m.tipo === 'ingreso') totalIngresos += m.monto;
+            else totalEgresos += m.monto;
+        });
 
-                <div class="venta-detail texto-cortado" title="${v.categoria}">${v.categoria}</div>
+        const netoMovimientos = totalIngresos - totalEgresos;
+        const totalEnCaja = montoCajaInicial + totalVentas + netoMovimientos;
 
-                <div class="venta-detail" style="text-align:center;">
-                    <span style="background:${v.factura === 'A' ? '#3498db' : '#e67e22'}; color:white; padding:2px 6px; border-radius:4px; font-size:0.8em;">
-                        ${v.factura}
+        // --- RENDERIZADO ---
+
+        let html = '';
+
+        // 1. TABLA DE VENTAS (Si hay)
+        if (ventasDelDia.length === 0) {
+            html += '<p style="color: #999; text-align:center; margin-bottom:20px;">No hay ventas registradas hoy</p>';
+        } else {
+            html += `
+                <div class="ventas-tabla-grid">
+                    <div class="venta-grid-row venta-header">
+                        <div>Hora/Ref</div>
+                        <div>Artículo</div>
+                        <div style="text-align:center">Cant.</div>
+                        <div style="text-align:right">Precio</div>
+                        <div style="text-align:center">Desc.</div>
+                        <div style="text-align:right">Total</div>
+                        <div>Pago</div>
+                        <div style="text-align:center">Elim.</div> 
+                    </div>
+            `;
+            
+            html += ventasDelDia.map(v => {
+                const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
+                const total = precioFinal * v.cantidad;
+                const esDev = v.cantidad < 0 && v.precio == 0;
+
+                return `
+                <div class="venta-grid-row venta-item ${esDev ? 'es-devolucion' : ''}">
+                    <div class="venta-detail" style="font-size:0.85em; color:#888;">${v.id}</div>
+                    <div class="venta-detail" style="font-weight:600;">${v.articulo}</div>
+                    <div class="venta-detail" style="text-align:center;">${esDev ? '<span style="color:red">-1</span>' : v.cantidad}</div>
+                    <div class="venta-detail" style="text-align:right;">${formatMoney(v.precio)}</div>
+                    <div class="venta-detail" style="text-align:center; font-size:0.8em;">${v.descuento ? v.descuento+'%' : '-'}</div>
+                    <div class="venta-detail" style="text-align:right; font-weight:bold;">${esDev ? 'Dev.' : formatMoney(total)}</div>
+                    <div class="venta-detail texto-cortado" title="${v.tipoPago}">${v.tipoPago}</div>
+                    <div class="celda-eliminar"><button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button></div>
+                </div>`;
+            }).join('');
+            html += `</div>`; // Cierre grid
+        }
+
+        // 2. WIDGET MOVIMIENTOS DE CAJA (NUEVO)
+        html += `
+            <div class="caja-movimientos-container">
+                <div class="caja-movimientos-header">
+                    <h4>📥 Entradas y Salidas de Caja</h4>
+                    <span style="font-size:0.9em; color:${netoMovimientos >= 0 ? '#27ae60' : '#e74c3c'}">
+                        Balance Movimientos: <strong>${netoMovimientos >= 0 ? '+' : ''}${formatMoney(netoMovimientos)}</strong>
                     </span>
                 </div>
-
-                <div class="venta-detail texto-cortado" title="${v.tipoPago}">${v.tipoPago}</div>
-
-                <div class="venta-detail texto-cortado" style="color:#888; font-style:italic;" title="${v.comentarios || ''}">
-                    ${v.comentarios || ''}
+                
+                <div class="caja-form">
+                    <input type="text" id="movDetalle" placeholder="Detalle (ej: Pago Proveedor)" style="flex:2; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                    <input type="number" id="movMonto" placeholder="$ Monto" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;">
+                    <button class="btn-movimiento btn-ingreso" onclick="registrarMovimientoCaja('${fecha}', 'ingreso')">➕ Entrada</button>
+                    <button class="btn-movimiento btn-egreso" onclick="registrarMovimientoCaja('${fecha}', 'egreso')">➖ Salida</button>
                 </div>
 
-                <div class="celda-eliminar">
-                    <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})" title="Eliminar venta">✕</button>
+                <div class="movimientos-lista">
+                    ${movimientos.length === 0 ? '<div style="font-size:0.9em; color:#999; font-style:italic;">Sin movimientos extra hoy.</div>' : ''}
+                    ${movimientos.map(m => `
+                        <div class="movimiento-row">
+                            <div style="display:flex; align-items:center;">
+                                <span class="mov-tipo ${m.tipo === 'ingreso' ? 'mov-ingreso' : 'mov-egreso'}">${m.tipo}</span>
+                                <span>${m.detalle}</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <strong style="color:${m.tipo === 'ingreso' ? '#155724' : '#721c24'}">
+                                    ${m.tipo === 'ingreso' ? '+' : '-'}${formatMoney(m.monto)}
+                                </strong>
+                                <button onclick="eliminarMovimientoCaja(${m.id}, '${fecha}')" style="border:none; background:none; cursor:pointer; color:#999; font-size:1.1em;">&times;</button>
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
-    }).join('');
 
-    html += `</div>`; // Cerrar grid
+        // 3. TOTALES FINALES (Desglose)
+        html += `
+            <div class="total-final-card">
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:10px; margin-bottom:15px;">🏁 Balance del Día</h3>
+                
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:20px;">
+                    <div>
+                        <div style="opacity:0.8; font-size:0.9em;">(+) Caja Inicial</div>
+                        <div style="font-size:1.2em; font-weight:bold;">${formatMoney(montoCajaInicial)}</div>
+                    </div>
+                    <div>
+                        <div style="opacity:0.8; font-size:0.9em;">(+) Ventas Totales</div>
+                        <div style="font-size:1.2em; font-weight:bold; color:#2ecc71;">${formatMoney(totalVentas)}</div>
+                        <div style="font-size:0.75em; opacity:0.6;">${ventasDelDia.length} operaciones</div>
+                    </div>
+                    <div>
+                        <div style="opacity:0.8; font-size:0.9em;">(+/-) Movimientos</div>
+                        <div style="font-size:1.2em; font-weight:bold; color:${netoMovimientos >= 0 ? '#2ecc71' : '#e74c3c'};">
+                            ${netoMovimientos > 0 ? '+' : ''}${formatMoney(netoMovimientos)}
+                        </div>
+                    </div>
+                    <div style="text-align:right; border-left:1px solid rgba(255,255,255,0.2); padding-left:20px;">
+                        <div style="opacity:0.9; font-size:1em; margin-bottom:5px;">TOTAL EN CAJA</div>
+                        <div style="font-size:2.2em; font-weight:800; line-height:1;">${formatMoney(totalEnCaja)}</div>
+                    </div>
+                </div>
 
-    // 3. TOTALES (Igual que antes)
-    html += `
-        <div style="background: linear-gradient(135deg, #28a745 0%, #20923c 100%); color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <div style="font-size: 1em; opacity: 0.9; margin-bottom: 5px;">Factura A</div>
-                    <div style="font-size: 1.5em; font-weight: 700;">${formatMoney(totalFacturaA)}</div>
-                    <div style="font-size: 0.85em; opacity: 0.8;">${cantFacturaA} tickets</div>
-                </div>
-                <div>
-                    <div style="font-size: 1em; opacity: 0.9; margin-bottom: 5px;">Factura B</div>
-                    <div style="font-size: 1.5em; font-weight: 700;">${formatMoney(totalFacturaB)}</div>
-                    <div style="font-size: 0.85em; opacity: 0.8;">${cantFacturaB} tickets</div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 1em; opacity: 0.9; margin-bottom: 5px;">Total del Día</div>
-                    <div style="font-size: 2em; font-weight: 700;">${formatMoney(totalDia)}</div>
-                    <div style="font-size: 0.85em; opacity: 0.8;">${ventasDelDia.length} operaciones</div>
+                <div style="margin-top:15px; font-size:0.85em; opacity:0.7; text-align:right;">
+                    Fact. A: ${formatMoney(totalFacturaA)} | Fact. B: ${formatMoney(totalFacturaB)}
                 </div>
             </div>
-        </div>
-    `;
+        `;
 
-    lista.innerHTML = html;
+        lista.innerHTML = html;
+
+    } catch (e) {
+        console.error(e);
+        lista.innerHTML = `<div class="alert alert-danger">Error cargando datos: ${e.message}</div>`;
+    }
+}
+
+// ==================== NUEVAS FUNCIONES PARA LOS MOVIMIENTOS ====================
+
+async function registrarMovimientoCaja(fecha, tipo) {
+    const detalleInput = document.getElementById('movDetalle');
+    const montoInput = document.getElementById('movMonto');
+    
+    const detalle = detalleInput.value.trim();
+    const monto = parseFloat(montoInput.value);
+
+    if (!detalle) {
+        showToast('⚠️ Ingresá un detalle', 'error');
+        return;
+    }
+    if (!monto || monto <= 0) {
+        showToast('⚠️ Ingresá un monto válido', 'error');
+        return;
+    }
+
+    try {
+        const resp = await fetch('/api/caja/movimiento', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fecha, tipo, monto, detalle })
+        });
+
+        if (resp.ok) {
+            showToast(`✅ ${tipo === 'ingreso' ? 'Entrada' : 'Salida'} registrada`, 'success');
+            cargarVentasDelDia(fecha); // Recargamos para ver cambios
+        } else {
+            throw new Error('Error al guardar');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('❌ Error de conexión', 'error');
+    }
+}
+
+async function eliminarMovimientoCaja(id, fecha) {
+    if(!confirm('¿Eliminar este movimiento de caja?')) return;
+
+    try {
+        const resp = await fetch(`/api/caja/movimiento/${id}`, { method: 'DELETE' });
+        if(resp.ok) {
+            showToast('🗑️ Movimiento eliminado', 'success');
+            cargarVentasDelDia(fecha);
+        } else {
+            showToast('❌ Error al eliminar', 'error');
+        }
+    } catch(e) {
+        console.error(e);
+        showToast('❌ Error de conexión', 'error');
+    }
 }
 
 // ==================== CAJA INICIAL DEL DÍA ====================
@@ -2382,10 +2493,13 @@ async function cargarHistorico() {
         
         // CORRECCIÓN: Solo actualizar gráficos si la sección YA está visible.
         // Nunca forzar la apertura automática.
-        const seccion = document.getElementById('seccionGraficos');
+        /*const seccion = document.getElementById('seccionGraficos');
         if (seccion && seccion.style.display === 'block') {
             generarGraficos();
-        }
+        } */
+
+        // Siempre regenerar gráficos porque ahora está abierto por default
+        generarGraficos();
 
     } catch (err) {
         console.error('Error histórico:', err);
@@ -2397,6 +2511,7 @@ function renderHistorico(anio, meses) {
     const periodoLabel = document.getElementById('histPeriodoLabel');
     const nombresMesLargos = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+    // 1. Actualizar título del período
     if (meses.length === 1) {
         periodoLabel.textContent = `${nombresMesLargos[meses[0]-1]} ${anio}`;
     } else {
@@ -2405,7 +2520,7 @@ function renderHistorico(anio, meses) {
         periodoLabel.textContent = `${primero} – ${ultimo} ${anio}`;
     }
 
-    // Métricas
+    // 2. Calcular Métricas Generales
     let totalVentas = 0;
     let totalPrendas = 0;
     let facturaACant = 0;
@@ -2433,49 +2548,53 @@ function renderHistorico(anio, meses) {
     const totalTickets = historicoVentas.length;
     const ticketPromedio = totalTickets ? totalVentas / totalTickets : 0;
 
+    // 3. Renderizar Métricas en el DOM
     document.getElementById('histTotalVentas').textContent = formatMoney(totalVentas);
     document.getElementById('histTotalTickets').textContent = `${totalTickets} tickets`;
     document.getElementById('histPrendasVendidas').textContent = totalPrendas;
     document.getElementById('histTicketPromedio').textContent = formatMoney(ticketPromedio);
     
-    // Facturación A y B separadas
+    // Facturación A y B
     document.getElementById('histFacturaAMonto').textContent = formatMoney(facturaAMonto);
     document.getElementById('histFacturaACant').textContent = `${facturaACant} tickets`;
     document.getElementById('histFacturaBMonto').textContent = formatMoney(facturaBMonto);
     document.getElementById('histFacturaBCant').textContent = `${facturaBCant} tickets`;
 
-    // Tabla de ventas
+    // 4. Renderizar Tabla de Ventas
     const tbody = document.getElementById('histVentasBody');
+    
     if (!historicoVentas.length) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#9ca3af; padding:10px;">Sin ventas en este período</td></tr>`;
-        return;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#9ca3af; padding:20px;">Sin ventas en este período</td></tr>`;
+        // IMPORTANTE: No hacemos 'return' acá para que el código siga y limpie los filtros abajo
+    } else {
+        tbody.innerHTML = historicoVentas.map(v => {
+            const precioUnitario = v.precio;
+            const precioConDescuento = v.precio * (1 - (v.descuento || 0)/100);
+            const total = precioConDescuento * v.cantidad;
+            
+            const precioDisplay = formatMoney(precioUnitario);
+            const facturaDisplay = v.factura || '-';
+            const facturaColor = v.factura === 'A' ? '#3498db' : v.factura === 'B' ? '#e67e22' : '#999';
+
+            return `
+                <tr>
+                    <td>${v.fecha}</td>
+                    <td>${v.codigoArticulo}</td>
+                    <td>${v.categoria || ''}</td>
+                    <td class="num">${v.cantidad}</td>
+                    <td class="num">${precioDisplay}</td>
+                    <td class="num">${v.descuento ? v.descuento + '%' : '-'}</td>
+                    <td class="num">${formatMoney(total)}</td>
+                    <td>${v.tipoPago || '-'}</td>
+                    <td style="color: ${facturaColor}; font-weight: bold;">${facturaDisplay}</td>
+                </tr>
+            `;
+        }).join('');
     }
 
-    tbody.innerHTML = historicoVentas.map(v => {
-    const precioUnitario = v.precio; // Precio base SIN descuento
-    const precioConDescuento = v.precio * (1 - (v.descuento || 0)/100);
-    const total = precioConDescuento * v.cantidad;
-    
-    const precioDisplay = formatMoney(precioUnitario);
-    const facturaDisplay = v.factura || '-';
-    const facturaColor = v.factura === 'A' ? '#3498db' : v.factura === 'B' ? '#e67e22' : '#999';
-
-    
-    return `
-        <tr>
-            <td>${v.fecha}</td>
-            <td>${v.codigoArticulo}</td>
-            <td>${v.categoria || ''}</td>
-            <td class="num">${v.cantidad}</td>
-            <td class="num">${precioDisplay}</td>
-            <td class="num">${v.descuento ? v.descuento + '%' : '-'}</td>
-            <td class="num">${formatMoney(total)}</td>
-            <td>${v.tipoPago || '-'}</td>
-            <td style="color: ${facturaColor}; font-weight: bold;">${facturaDisplay}</td>
-        </tr>
-    `;
-}).join('');
-
+    // 5. ACTUALIZAR FILTROS (Nueva línea clave)
+    // Esto asegura que el desplegable de categorías se llene con los datos recién cargados
+    cargarOpcionesFiltros(); 
 }
 
 // ==================== FILTROS DE TABLA ====================
@@ -2494,24 +2613,40 @@ function toggleFiltrosTabla() {
 }
 
 function cargarOpcionesFiltros() {
-    const categorias = [...new Set(historicoVentas.map(v => v.categoria).filter(c => c))];
-    const selectCat = document.getElementById('filtroCategoria');
+    // Usamos los NUEVOS IDs únicos
+    const selectCat = document.getElementById('histFiltroCategoria');
+    const selectPago = document.getElementById('histFiltroTipoPago');
+    
+    if (!selectCat || !selectPago) return;
+
+    // 1. Obtener datos únicos
+    const categorias = [...new Set(historicoVentas.map(v => v.categoria).filter(c => c))].sort();
+    const tiposPago = [...new Set(historicoVentas.map(v => v.tipoPago).filter(t => t))].sort();
+
+    // 2. Guardar selección actual
+    const catSeleccionada = selectCat.value;
+    const pagoSeleccionado = selectPago.value;
+
+    // 3. Llenar HTML
     selectCat.innerHTML = '<option value="">Todas</option>' + 
         categorias.map(cat => `<option value="${cat}">${cat}</option>`).join('');
 
-    const tiposPago = [...new Set(historicoVentas.map(v => v.tipoPago).filter(t => t))];
-    const selectPago = document.getElementById('filtroTipoPago');
     selectPago.innerHTML = '<option value="">Todos</option>' + 
         tiposPago.map(tipo => `<option value="${tipo}">${tipo}</option>`).join('');
+
+    // 4. Restaurar selección
+    if (categorias.includes(catSeleccionada)) selectCat.value = catSeleccionada;
+    if (tiposPago.includes(pagoSeleccionado)) selectPago.value = pagoSeleccionado;
 }
 
 function aplicarFiltrosTabla() {
-    const articulo = document.getElementById('filtroArticulo').value.toLowerCase();
-    const categoria = document.getElementById('filtroCategoria').value;
-    const tipoPago = document.getElementById('filtroTipoPago').value;
-    const montoMin = parseFloat(document.getElementById('filtroMontoMin').value) || 0;
-    const montoMax = parseFloat(document.getElementById('filtroMontoMax').value) || Infinity;
-    const cantidadMin = parseInt(document.getElementById('filtroCantidadMin').value) || 0;
+    // Leemos de los NUEVOS IDs
+    const articulo = document.getElementById('histFiltroArticulo').value.toLowerCase();
+    const categoria = document.getElementById('histFiltroCategoria').value;
+    const tipoPago = document.getElementById('histFiltroTipoPago').value;
+    const montoMin = parseFloat(document.getElementById('histFiltroMontoMin').value) || 0;
+    const montoMax = parseFloat(document.getElementById('histFiltroMontoMax').value) || Infinity;
+    const cantidadMin = parseInt(document.getElementById('histFiltroCantidadMin').value) || 0;
 
     ventasFiltradas = historicoVentas.filter(v => {
         const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
@@ -2528,8 +2663,12 @@ function aplicarFiltrosTabla() {
     });
 
     renderTablaFiltrada();
-    document.getElementById('filtrosResultado').textContent = 
-        `${ventasFiltradas.length} de ${historicoVentas.length} ventas`;
+    
+    // Actualizar contador
+    const label = document.getElementById('filtrosResultado');
+    if (label) {
+        label.textContent = `${ventasFiltradas.length} de ${historicoVentas.length} ventas`;
+    }
 }
 
 function renderTablaFiltrada() {
@@ -2570,16 +2709,23 @@ function renderTablaFiltrada() {
 
 
 function limpiarFiltrosTabla() {
-    document.getElementById('filtroArticulo').value = '';
-    document.getElementById('filtroCategoria').value = '';
-    document.getElementById('filtroTipoPago').value = '';
-    document.getElementById('filtroMontoMin').value = '';
-    document.getElementById('filtroMontoMax').value = '';
-    document.getElementById('filtroCantidadMin').value = '';
+    // Limpiar los NUEVOS IDs
+    document.getElementById('histFiltroArticulo').value = '';
+    document.getElementById('histFiltroCategoria').value = '';
+    document.getElementById('histFiltroTipoPago').value = '';
+    document.getElementById('histFiltroMontoMin').value = '';
+    document.getElementById('histFiltroMontoMax').value = '';
+    document.getElementById('histFiltroCantidadMin').value = '';
     
     ventasFiltradas = [];
-    renderHistorico(document.getElementById('historicoAnio').value, getMesesSeleccionados());
-    document.getElementById('filtrosResultado').textContent = '';
+    
+    // Redibujar la tabla original
+    const anio = document.getElementById('historicoAnio').value;
+    const meses = getMesesSeleccionados();
+    renderHistorico(anio, meses);
+    
+    const label = document.getElementById('filtrosResultado');
+    if (label) label.textContent = '';
 }
 
 // ==================== GRÁFICOS INTERACTIVOS ====================
@@ -2613,17 +2759,25 @@ function cambiarGrafico(tipo) {
     
     const chartIds = {
         'categorias': 'chartCategorias',
-        'tiempo': 'chartTiempo',
+        'comparativa-periodo': 'chartComparativaPeriodo', // ID NUEVO
         'pagos': 'chartPagos',
         'productos': 'chartProductos'
     };
     
-    document.getElementById(chartIds[tipo]).classList.add('active');
+    const id = chartIds[tipo];
+    if(id) document.getElementById(id).classList.add('active');
+
+    // Trigger de carga si es el nuevo tab
+    if (tipo === 'comparativa-periodo') {
+        generarGraficoComparativoPeriodo();
+    }
 }
 
 function generarGraficos() {
     generarGraficoCategorias();
-    generarGraficoTiempo();
+    if(document.querySelector('[data-chart="comparativa-periodo"]').classList.contains('active')){
+         generarGraficoComparativoPeriodo();
+    }
     generarGraficoPagos();
     generarGraficoProductos();
 }
@@ -3910,4 +4064,153 @@ async function eliminarProducto(codigo, descripcion) {
         console.error(e);
         showToast('❌ Error de conexión', 'error');
     }
+}
+
+// ==================== COMPARATIVA VS AÑO ANTERIOR (TABLA) ====================
+async function generarGraficoComparativoPeriodo() {
+    const contenedor = document.getElementById('chartComparativaPeriodo');
+    contenedor.innerHTML = '<div style="text-align:center; padding:20px;"><span class="loading-spinner"></span> Cargando datos año anterior...</div>';
+
+    // 1. Obtener parámetros actuales
+    const anioActual = parseInt(document.getElementById('historicoAnio').value);
+    const anioAnterior = anioActual - 1;
+    const meses = getMesesSeleccionados(); // Tu función existente que devuelve array [1, 2, ...]
+
+    if (meses.length === 0) {
+        contenedor.innerHTML = '<div class="alert alert-warning">Seleccioná al menos un mes arriba.</div>';
+        return;
+    }
+
+    try {
+        // 2. Buscar datos del año anterior (Fetch manual porque historicoVentas tiene solo el año actual)
+        const resp = await fetch(`/api/ventas/historico?anio=${anioAnterior}&meses=${meses.join(',')}`);
+        const ventasAnterior = await resp.json();
+
+        // 3. Procesar datos Actuales (Ya los tenemos en historicoVentas)
+        const datosActual = procesarDatosParaTabla(historicoVentas);
+        const datosAnterior = procesarDatosParaTabla(ventasAnterior);
+
+        // 4. Unir Categorías (Todas las que existan en A o B)
+        const todasCategorias = new Set([...Object.keys(datosActual.porCategoria), ...Object.keys(datosAnterior.porCategoria)]);
+        const listaCategorias = Array.from(todasCategorias).sort();
+
+        // 5. Renderizar
+        const totalVar = calcularVariacion(datosAnterior.total, datosActual.total);
+        const totalUnidVar = calcularVariacion(datosAnterior.unidades, datosActual.unidades);
+
+        let html = `
+            <div class="header-comp-periodo">
+                <h3 style="margin:0; color:#1565c0;">
+                    ${obtenerNombreMeses(meses)} ${anioActual} <small style="color:#555">vs</small> ${anioAnterior}
+                </h3>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+                <div class="comp-card" style="border-left: 5px solid #27ae60;">
+                    <h4 style="margin:0 0 5px 0; font-size:0.9em; color:#666;">Facturación Total</h4>
+                    <div style="display:flex; justify-content:space-between; align-items:end;">
+                        <div>
+                            <div style="font-size:0.8em; color:#888;">${anioAnterior}: ${formatMoney(datosAnterior.total)}</div>
+                            <div class="valor" style="color:#27ae60;">${formatMoney(datosActual.total)}</div>
+                        </div>
+                        <div class="var-pill ${totalVar.clase}">${totalVar.texto}</div>
+                    </div>
+                </div>
+                <div class="comp-card" style="border-left: 5px solid #e67e22;">
+                    <h4 style="margin:0 0 5px 0; font-size:0.9em; color:#666;">Unidades Vendidas</h4>
+                    <div style="display:flex; justify-content:space-between; align-items:end;">
+                         <div>
+                            <div style="font-size:0.8em; color:#888;">${anioAnterior}: ${datosAnterior.unidades} u.</div>
+                            <div class="valor" style="color:#d35400;">${datosActual.unidades} u.</div>
+                        </div>
+                        <div class="var-pill ${totalUnidVar.clase}">${totalUnidVar.texto}</div>
+                    </div>
+                </div>
+            </div>
+
+            <h4 style="margin-bottom:10px;">Desglose por Categoría</h4>
+            <div style="overflow-x:auto;">
+                <table class="tabla-comp-periodo">
+                    <thead>
+                        <tr>
+                            <th>Categoría</th>
+                            <th>${anioAnterior} ($)</th>
+                            <th>${anioActual} ($)</th>
+                            <th>Diferencia $</th>
+                            <th>Var %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        listaCategorias.forEach(cat => {
+            const valAnt = datosAnterior.porCategoria[cat] || 0;
+            const valAct = datosActual.porCategoria[cat] || 0;
+            const dif = valAct - valAnt;
+            const variacion = calcularVariacion(valAnt, valAct);
+
+            html += `
+                <tr>
+                    <td>${cat}</td>
+                    <td style="color:#888;">${formatMoney(valAnt)}</td>
+                    <td style="font-weight:bold;">${formatMoney(valAct)}</td>
+                    <td style="color:${dif >= 0 ? '#27ae60' : '#e74c3c'}">${dif >= 0 ? '+' : ''}${formatMoney(dif)}</td>
+                    <td><span class="var-pill ${variacion.clase}">${variacion.texto}</span></td>
+                </tr>
+            `;
+        });
+
+        html += `   </tbody>
+                </table>
+            </div>
+        `;
+
+        contenedor.innerHTML = html;
+
+    } catch (e) {
+        console.error(e);
+        contenedor.innerHTML = '<div class="alert alert-danger">Error al cargar comparativa.</div>';
+    }
+}
+
+// Helpers para la comparativa
+function procesarDatosParaTabla(listaVentas) {
+    let total = 0;
+    let unidades = 0;
+    const porCategoria = {};
+
+    listaVentas.forEach(v => {
+        const precioFinal = v.precio * (1 - (v.descuento || 0) / 100);
+        const subtotal = precioFinal * v.cantidad;
+        
+        total += subtotal;
+        unidades += v.cantidad;
+
+        const cat = v.categoria || 'Sin Categoría';
+        porCategoria[cat] = (porCategoria[cat] || 0) + subtotal;
+    });
+
+    return { total, unidades, porCategoria };
+}
+
+function calcularVariacion(anterior, actual) {
+    if (anterior === 0) {
+        return actual > 0 
+            ? { texto: 'N/A (Nuevo)', clase: 'var-pos' } 
+            : { texto: '-', clase: 'var-neu' };
+    }
+    const porc = ((actual - anterior) / anterior) * 100;
+    return {
+        texto: (porc > 0 ? '+' : '') + porc.toFixed(1) + '%',
+        clase: porc > 0 ? 'var-pos' : porc < 0 ? 'var-neg' : 'var-neu'
+    };
+}
+
+function obtenerNombreMeses(mesesArr) {
+    const todos = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    if (mesesArr.length === 12) return "Año Completo";
+    if (mesesArr.length === 1) return todos[mesesArr[0]-1];
+    // Rango simple (ej: Ene - Mar)
+    const sorted = [...mesesArr].sort((a,b)=>a-b);
+    return `${todos[sorted[0]-1]} - ${todos[sorted[sorted.length-1]-1]}`;
 }

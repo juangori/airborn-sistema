@@ -567,19 +567,18 @@
         </div>
 
         <button class="btn-toggle-graficos" onclick="toggleSeccionGraficos()">
-            <span id="iconoGraficos">📊</span> 
-            <span>Ver Análisis Visual y Gráficos</span>
-            <span style="font-size: 0.8em; opacity: 0.7; margin-left: auto;">(Click para desplegar) ▼</span>
+            <span id="iconoGraficos">▲</span> 
+            <span>Gráficos</span>
         </button>
 
-        <div id="seccionGraficos" class="graficos-container" style="display: none; margin-bottom: 30px;">
+        <div id="seccionGraficos" class="graficos-container" style="display: block; margin-bottom: 30px;">
             <div class="graficos-selector">
                 <button class="grafico-tab active" data-chart="categorias" onclick="cambiarGrafico('categorias')">
                     🏷️ Por categoría
                 </button>
-                <button class="grafico-tab" data-chart="tiempo" onclick="cambiarGrafico('tiempo')">
-                    📈 Evolución temporal
-                </button>
+                <button class="grafico-tab" data-chart="comparativa-periodo" onclick="cambiarGrafico('comparativa-periodo')">
+        🆚 Vs. Año Anterior
+    </button>
                 <button class="grafico-tab" data-chart="pagos" onclick="cambiarGrafico('pagos')">
                     💳 Métodos de pago
                 </button>
@@ -588,11 +587,17 @@
                 </button>
             </div>
             <div class="grafico-wrapper">
-                <div id="chartCategorias" class="chart-canvas active"></div>
-                <div id="chartTiempo" class="chart-canvas"></div>
-                <div id="chartPagos" class="chart-canvas"></div>
-                <div id="chartProductos" class="chart-canvas"></div>
-            </div>
+    <div id="chartCategorias" class="chart-canvas active"></div>
+    
+    <div id="chartComparativaPeriodo" class="chart-canvas">
+        <div style="text-align: center; color: #666; padding: 20px;">
+            Cargando comparativa...
+        </div>
+    </div>
+    
+    <div id="chartPagos" class="chart-canvas"></div>
+    <div id="chartProductos" class="chart-canvas"></div>
+</div>
         </div>
 
         <div class="historico-metricas">
@@ -643,31 +648,31 @@
                 <div class="filtros-grid">
                     <div class="filtro-item">
                         <label>Buscar artículo</label>
-                        <input type="text" id="filtroArticulo" placeholder="..." onkeyup="aplicarFiltrosTabla()">
+                        <input type="text" id="histFiltroArticulo" placeholder="..." onkeyup="aplicarFiltrosTabla()">
                     </div>
                     <div class="filtro-item">
                         <label>Categoría</label>
-                        <select id="filtroCategoria" onchange="aplicarFiltrosTabla()">
+                        <select id="histFiltroCategoria" onchange="aplicarFiltrosTabla()">
                             <option value="">Todas</option>
                         </select>
                     </div>
                     <div class="filtro-item">
                         <label>Tipo de pago</label>
-                        <select id="filtroTipoPago" onchange="aplicarFiltrosTabla()">
+                        <select id="histFiltroTipoPago" onchange="aplicarFiltrosTabla()">
                             <option value="">Todos</option>
                         </select>
                     </div>
                     <div class="filtro-item">
                         <label>Monto mínimo</label>
-                        <input type="number" id="filtroMontoMin" placeholder="$0" onkeyup="aplicarFiltrosTabla()">
+                        <input type="number" id="histFiltroMontoMin" placeholder="$0" onkeyup="aplicarFiltrosTabla()">
                     </div>
                     <div class="filtro-item">
                         <label>Monto máximo</label>
-                        <input type="number" id="filtroMontoMax" placeholder="Sin límite" onkeyup="aplicarFiltrosTabla()">
+                        <input type="number" id="histFiltroMontoMax" placeholder="Sin límite" onkeyup="aplicarFiltrosTabla()">
                     </div>
                     <div class="filtro-item">
                         <label>Cantidad mínima</label>
-                        <input type="number" id="filtroCantidadMin" placeholder="0" onkeyup="aplicarFiltrosTabla()">
+                        <input type="number" id="histFiltroCantidadMin" placeholder="0" onkeyup="aplicarFiltrosTabla()">
                     </div>
                 </div>
                 <div class="filtros-acciones">

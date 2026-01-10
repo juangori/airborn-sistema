@@ -1,5 +1,19 @@
 [
   {
+    "archivo": "2026-01-10_12-26-29_Venta_registrada.db",
+    "fecha": "2026-01-10_12-26-29",
+    "accion": "Venta registrada",
+    "detalle": "Art: 675710, Cant: 1, $95990",
+    "timestampMs": 1768058789592
+  },
+  {
+    "archivo": "2026-01-10_12-25-59_Movimiento_Caja.db",
+    "fecha": "2026-01-10_12-25-59",
+    "accion": "Movimiento Caja",
+    "detalle": "egreso: $35000 (Pago Alarma)",
+    "timestampMs": 1768058759988
+  },
+  {
     "archivo": "2026-01-08_12-44-55_Importación_CSV_Histórico.db",
     "fecha": "2026-01-08_12-44-55",
     "accion": "Importación CSV Histórico",
