@@ -1334,7 +1334,7 @@ async function cargarVentasDelDia(fecha) {
     lista.innerHTML = '<div style="text-align:center; padding:20px;">Cargando operaciones...</div>';
 
     try {
-        // 2. Traer TODO en paralelo: Ventas del mes (ya las tenemos en variable global), Caja Inicial y Movimientos
+        // 2. Traer TODO en paralelo
         const [movimientosResp, cajaInicialResp] = await Promise.all([
             fetch(`/api/caja/movimientos/${fecha}`),
             fetch(`/api/caja-inicial/${fecha}`)
@@ -1348,7 +1348,7 @@ async function cargarVentasDelDia(fecha) {
         if(inputCaja) inputCaja.value = cajaData.monto > 0 ? formatMonedaInput(cajaData.monto) : '';
         const montoCajaInicial = cajaData.monto || 0;
 
-        // Filtrar ventas de ESTE día específico desde la variable global
+        // Filtrar ventas de ESTE día
         const ventasDelDia = ventasDelMes.filter(v => v.fecha === fecha);
 
         // --- CÁLCULOS ---
@@ -1357,20 +1357,18 @@ async function cargarVentasDelDia(fecha) {
         let totalVentas = 0;
         let totalFacturaA = 0;
         let totalFacturaB = 0;
-        let cantFacturaA = 0;
-        let cantFacturaB = 0;
-
+        
         ventasDelDia.forEach(v => {
             const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
             const total = precioFinal * v.cantidad;
             totalVentas += total;
             
             const tipoFactura = (v.factura || '').toUpperCase().trim();
-            if (tipoFactura === 'A') { totalFacturaA += total; cantFacturaA++; }
-            else if (tipoFactura === 'B') { totalFacturaB += total; cantFacturaB++; }
+            if (tipoFactura === 'A') totalFacturaA += total;
+            else if (tipoFactura === 'B') totalFacturaB += total;
         });
 
-        // B. Totales Movimientos
+        // B. Totales Movimientos (SOLO INFORMATIVO AHORA)
         let totalIngresos = 0;
         let totalEgresos = 0;
 
@@ -1379,14 +1377,15 @@ async function cargarVentasDelDia(fecha) {
             else totalEgresos += m.monto;
         });
 
+        // CAMBIO CLAVE: El total final NO incluye movimientos, solo Caja Inicial + Ventas
+        const totalEnCaja = montoCajaInicial + totalVentas;
         const netoMovimientos = totalIngresos - totalEgresos;
-        const totalEnCaja = montoCajaInicial + totalVentas + netoMovimientos;
 
         // --- RENDERIZADO ---
 
         let html = '';
 
-        // 1. TABLA DE VENTAS (Si hay)
+        // 1. TABLA DE VENTAS
         if (ventasDelDia.length === 0) {
             html += '<p style="color: #999; text-align:center; margin-bottom:20px;">No hay ventas registradas hoy</p>';
         } else {
@@ -1403,12 +1402,10 @@ async function cargarVentasDelDia(fecha) {
                         <div style="text-align:center">Elim.</div> 
                     </div>
             `;
-            
             html += ventasDelDia.map(v => {
                 const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
                 const total = precioFinal * v.cantidad;
                 const esDev = v.cantidad < 0 && v.precio == 0;
-
                 return `
                 <div class="venta-grid-row venta-item ${esDev ? 'es-devolucion' : ''}">
                     <div class="venta-detail" style="font-size:0.85em; color:#888;">${v.id}</div>
@@ -1421,28 +1418,25 @@ async function cargarVentasDelDia(fecha) {
                     <div class="celda-eliminar"><button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button></div>
                 </div>`;
             }).join('');
-            html += `</div>`; // Cierre grid
+            html += `</div>`;
         }
 
-        // 2. WIDGET MOVIMIENTOS DE CAJA (NUEVO)
+        // 2. WIDGET MOVIMIENTOS (INTERMEDIO)
         html += `
             <div class="caja-movimientos-container">
                 <div class="caja-movimientos-header">
-                    <h4>📥 Entradas y Salidas de Caja</h4>
-                    <span style="font-size:0.9em; color:${netoMovimientos >= 0 ? '#27ae60' : '#e74c3c'}">
-                        Balance Movimientos: <strong>${netoMovimientos >= 0 ? '+' : ''}${formatMoney(netoMovimientos)}</strong>
-                    </span>
+                    <h4>📥 Registro de Movimientos (Caja Chica / Gastos)</h4>
                 </div>
                 
                 <div class="caja-form">
                     <input type="text" id="movDetalle" placeholder="Detalle (ej: Pago Proveedor)" style="flex:2; padding:10px; border:1px solid #ddd; border-radius:6px;">
                     <input type="number" id="movMonto" placeholder="$ Monto" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;">
-                    <button class="btn-movimiento btn-ingreso" onclick="registrarMovimientoCaja('${fecha}', 'ingreso')">➕ Entrada</button>
-                    <button class="btn-movimiento btn-egreso" onclick="registrarMovimientoCaja('${fecha}', 'egreso')">➖ Salida</button>
+                    <button class="btn-movimiento btn-ingreso" onclick="registrarMovimientoCaja('${fecha}', 'ingreso')">➕ Ingreso</button>
+                    <button class="btn-movimiento btn-egreso" onclick="registrarMovimientoCaja('${fecha}', 'egreso')">➖ Egreso</button>
                 </div>
 
                 <div class="movimientos-lista">
-                    ${movimientos.length === 0 ? '<div style="font-size:0.9em; color:#999; font-style:italic;">Sin movimientos extra hoy.</div>' : ''}
+                    ${movimientos.length === 0 ? '<div style="font-size:0.9em; color:#999; font-style:italic;">No hay movimientos extras registrados.</div>' : ''}
                     ${movimientos.map(m => `
                         <div class="movimiento-row">
                             <div style="display:flex; align-items:center;">
@@ -1451,9 +1445,9 @@ async function cargarVentasDelDia(fecha) {
                             </div>
                             <div style="display:flex; align-items:center; gap:10px;">
                                 <strong style="color:${m.tipo === 'ingreso' ? '#155724' : '#721c24'}">
-                                    ${m.tipo === 'ingreso' ? '+' : '-'}${formatMoney(m.monto)}
+                                    ${formatMoney(m.monto)}
                                 </strong>
-                                <button onclick="eliminarMovimientoCaja(${m.id}, '${fecha}')" style="border:none; background:none; cursor:pointer; color:#999; font-size:1.1em;">&times;</button>
+                                <button onclick="eliminarMovimientoCaja(${m.id}, '${fecha}')" style="border:none; background:none; cursor:pointer; color:#999;">&times;</button>
                             </div>
                         </div>
                     `).join('')}
@@ -1461,34 +1455,42 @@ async function cargarVentasDelDia(fecha) {
             </div>
         `;
 
-        // 3. TOTALES FINALES (Desglose)
+        // 3. TOTALES FINALES (MODIFICADO: SEPARA LOS MOVIMIENTOS)
         html += `
-            <div class="total-final-card">
-                <h3 style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:10px; margin-bottom:15px;">🏁 Balance del Día</h3>
+            <div class="total-final-card" style="background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:10px; margin-bottom:15px;">🏁 Cierre de Caja (Ventas)</h3>
                 
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:20px;">
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; align-items: center;">
                     <div>
                         <div style="opacity:0.8; font-size:0.9em;">(+) Caja Inicial</div>
-                        <div style="font-size:1.2em; font-weight:bold;">${formatMoney(montoCajaInicial)}</div>
+                        <div style="font-size:1.4em; font-weight:bold;">${formatMoney(montoCajaInicial)}</div>
                     </div>
+
                     <div>
                         <div style="opacity:0.8; font-size:0.9em;">(+) Ventas Totales</div>
-                        <div style="font-size:1.2em; font-weight:bold; color:#2ecc71;">${formatMoney(totalVentas)}</div>
-                        <div style="font-size:0.75em; opacity:0.6;">${ventasDelDia.length} operaciones</div>
+                        <div style="font-size:1.4em; font-weight:bold; color:#2ecc71;">${formatMoney(totalVentas)}</div>
                     </div>
-                    <div>
-                        <div style="opacity:0.8; font-size:0.9em;">(+/-) Movimientos</div>
-                        <div style="font-size:1.2em; font-weight:bold; color:${netoMovimientos >= 0 ? '#2ecc71' : '#e74c3c'};">
-                            ${netoMovimientos > 0 ? '+' : ''}${formatMoney(netoMovimientos)}
-                        </div>
-                    </div>
+
                     <div style="text-align:right; border-left:1px solid rgba(255,255,255,0.2); padding-left:20px;">
-                        <div style="opacity:0.9; font-size:1em; margin-bottom:5px;">TOTAL EN CAJA</div>
+                        <div style="opacity:0.9; font-size:1em; margin-bottom:5px;">TOTAL VENTAS + CAJA</div>
                         <div style="font-size:2.2em; font-weight:800; line-height:1;">${formatMoney(totalEnCaja)}</div>
                     </div>
                 </div>
 
-                <div style="margin-top:15px; font-size:0.85em; opacity:0.7; text-align:right;">
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.3); display: flex; justify-content: space-between; align-items: center; font-size: 0.9em;">
+                    <div style="opacity: 0.9;">
+                        <strong>ℹ️ Movimientos Extra (No suman al total):</strong>
+                    </div>
+                    <div style="display: flex; gap: 20px;">
+                        <span style="color: #a8e6cf;">⬆ Entradas: ${formatMoney(totalIngresos)}</span>
+                        <span style="color: #ff8b8b;">⬇ Salidas: ${formatMoney(totalEgresos)}</span>
+                        <span style="font-weight: bold; color: ${netoMovimientos >= 0 ? '#a8e6cf' : '#ff8b8b'};">
+                            Balance: ${netoMovimientos > 0 ? '+' : ''}${formatMoney(netoMovimientos)}
+                        </span>
+                    </div>
+                </div>
+
+                <div style="margin-top:10px; font-size:0.8em; opacity:0.6; text-align:right;">
                     Fact. A: ${formatMoney(totalFacturaA)} | Fact. B: ${formatMoney(totalFacturaB)}
                 </div>
             </div>
