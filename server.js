@@ -36,7 +36,7 @@ const dbGet = (db, sql, params = []) => {
 // ==================== CONFIGURACIÓN ====================
 const DATOS_DIR = './datos';          // acá se guardan las BD por cliente: datos/<usuario>.db
 const BACKUPS_DIR = './backups';      // backups por cliente: backups/<usuario>/
-const USUARIOS_DB = './usuarios.db';  // BD maestra de usuarios
+const USUARIOS_DB = path.join(DATOS_DIR, 'usuarios.db');
 const CONFIG_FILE = './config.json';
 
 // Crear carpetas necesarias
