@@ -1395,45 +1395,31 @@ async function cargarVentasDelDia(fecha) {
             html += '<p style="color: #999; text-align:center; margin-bottom:20px;">No hay ventas registradas hoy</p>';
         } else {
             html += `
-                <div class="ventas-tabla-grid venta-header">
-                    <div>Ref</div>
-                    <div>Código</div>
-                    <div>Producto</div>   <div>Categ.</div>     <div style="text-align:center">Cant.</div>
-                    <div style="text-align:right">Precio</div>
-                    <div style="text-align:center">% Desc.</div>
-                    <div style="text-align:right">Total</div>
-                    <div>Pago</div>
-                    <div style="text-align:center">🗑️</div> 
-                </div>
+                <div class="ventas-tabla-grid">
+                    <div class="venta-grid-row venta-header">
+                        <div>Hora/Ref</div>
+                        <div>Artículo</div>
+                        <div style="text-align:center">Cant.</div>
+                        <div style="text-align:right">Precio</div>
+                        <div style="text-align:center">Desc.</div>
+                        <div style="text-align:right">Total</div>
+                        <div>Pago</div>
+                        <div style="text-align:center">Elim.</div> 
+                    </div>
             `;
             html += ventasDelDia.map(v => {
                 const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
                 const total = precioFinal * v.cantidad;
                 const esDev = v.cantidad < 0 && v.precio == 0;
-                
-                // === LÓGICA SEGURA (EL "AGREGADO") ===
-                // Si la base de datos trajo descripción, joya. Si no, ponemos un guión.
-                // Esto asegura que la venta se vea SIEMPRE, con o sin producto cargado.
-                const nombreProducto = v.descripcion || '-';
-                const nombreCategoria = v.categoriaProducto || v.categoria || ''; 
-                // =====================================
-
                 return `
-                <div class="ventas-tabla-grid venta-item ${esDev ? 'es-devolucion' : ''}">
-                    <div class="venta-detail" style="font-size:0.85em; color:#888;">#${v.id}</div>
-                    
-                    <div class="venta-detail" style="font-weight:600; color:#2c3e50;">${v.codigoArticulo}</div>
-                    
-                    <div class="venta-detail" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#444;" title="${nombreProducto}">
-                        ${nombreProducto}
-                    </div>
-                    <div class="venta-detail" style="font-size:0.85em; color:#666;">${nombreCategoria}</div>
-                    
+                <div class="venta-grid-row venta-item ${esDev ? 'es-devolucion' : ''}">
+                    <div class="venta-detail" style="font-size:0.85em; color:#888;">${v.id}</div>
+                    <div class="venta-detail" style="font-weight:600;">${v.articulo}</div>
                     <div class="venta-detail" style="text-align:center;">${esDev ? '<span style="color:red">-1</span>' : v.cantidad}</div>
                     <div class="venta-detail" style="text-align:right;">${formatMoney(v.precio)}</div>
                     <div class="venta-detail" style="text-align:center; font-size:0.8em;">${v.descuento ? v.descuento+'%' : '-'}</div>
                     <div class="venta-detail" style="text-align:right; font-weight:bold;">${esDev ? 'Dev.' : formatMoney(total)}</div>
-                    <div class="venta-detail texto-cortado" title="${v.tipoPago}" style="font-size:0.85em;">${v.tipoPago}</div>
+                    <div class="venta-detail texto-cortado" title="${v.tipoPago}">${v.tipoPago}</div>
                     <div class="celda-eliminar"><button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button></div>
                 </div>`;
             }).join('');

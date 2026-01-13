@@ -809,19 +809,13 @@ input:focus, textarea:focus, select:focus {
 
 /* ==================== LISTA DE VENTAS (MODO TABLA PRO) ==================== */
 
-/* GRID DE 10 COLUMNAS (Para incluir Producto y Categoría) */
+/* Contenedor del encabezado y las filas */
 .ventas-tabla-grid {
-    display: grid;
-    /* Estructura: 
-       Ref | Código | Producto (Flexible) | Categ | Cant | Precio | % | Total | Pago | Borrar 
-    */
-    grid-template-columns: 70px 90px 2fr 90px 50px 90px 50px 90px 90px 40px;
-    gap: 8px;
-    align-items: center;
-    background: white;
-    border-bottom: 1px solid #eee;
-    padding: 8px;
-    font-size: 0.9em;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    overflow-x: auto; /* Scroll horizontal si es necesario */
 }
 
 /* Definición de las columnas para Encabezado y Filas */
