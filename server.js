@@ -1629,6 +1629,33 @@ app.post('/api/admin/stock/zero', requireAuth, async (req, res) => {
   }
 });
 
+// BORRAR TODOS LOS PRODUCTOS (VACIAR CATÁLOGO)
+app.post('/api/admin/productos/eliminar-todos', requireAuth, async (req, res) => {
+  const db = req.db;
+  const usuario = req.session.usuario;
+
+  try {
+    crearBackup(usuario, 'Catálogo Eliminado', 'Se borraron todos los productos de la base de datos');
+
+    await dbRun(db, "BEGIN TRANSACTION");
+    // Borramos todos los registros de la tabla productos
+    await dbRun(db, "DELETE FROM productos");
+    await dbRun(db, "COMMIT");
+
+    res.json({ ok: true, mensaje: 'Catálogo de productos vaciado correctamente.' });
+
+  } catch (error) {
+    console.error("Error vaciando catálogo:", error);
+    await dbRun(db, "ROLLBACK");
+    
+    // Si falla por Foreign Keys (porque hay ventas asociadas), avisamos
+    if (error.message.includes('FOREIGN KEY')) {
+        return res.status(400).json({ error: 'No se pueden borrar productos porque tienen ventas asociadas. Borrá las ventas primero o importá encima (Upsert).' });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== SERVIDOR ====================
 const PORT = process.env.PORT || 3000;
 

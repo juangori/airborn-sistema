@@ -4298,3 +4298,29 @@ async function crearUsuarioSaas() {
         showToast('❌ Error de conexión', 'error');
     }
 }
+
+async function eliminarCatalogoCompleto() {
+    // Doble confirmación para evitar desastres
+    if (!confirm('⚠️ ¡PELIGRO!\n\nEstás a punto de BORRAR TODOS LOS PRODUCTOS del sistema.\n\nEsto no se puede deshacer. ¿Estás 100% seguro?')) return;
+    if (!confirm('¿De verdad? Confirmá una vez más que querés vaciar el catálogo.')) return;
+
+    try {
+        const resp = await fetch('/api/admin/productos/eliminar-todos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await resp.json();
+
+        if (resp.ok) {
+            showToast('🗑️ Catálogo eliminado correctamente', 'success');
+            // Opcional: Recargar la página o limpiar la tabla visualmente
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('❌ Error: ' + data.error, 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('❌ Error de conexión', 'error');
+    }
+}
