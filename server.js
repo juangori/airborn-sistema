@@ -52,16 +52,22 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(bodyParser.json());
 
 // Sesiones (en Railway conviene setear secret con env var)
+const isProduction = process.env.NODE_ENV === 'production';
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || ('airborn-secret-key-cambiar-en-produccion-' + Date.now()),
+  secret: process.env.SESSION_SECRET || 'secreto_super_seguro_cambiar',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // poner true cuando tengas HTTPS
+    secure: true, // ¡Ahora sí! Forzamos cookies seguras
     httpOnly: true,
+    sameSite: 'lax', // Recomendado para cookies modernas
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
+
+// Importante: Para que las cookies seguras funcionen en Railway (que usa proxy)
+app.set('trust proxy', 1);
 
 // Servir estáticos, pero NO servir index.html automáticamente
 app.use(express.static('public', { index: false }));
