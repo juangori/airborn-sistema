@@ -676,105 +676,102 @@ app.post('/api/stock/upload', requireAuth, upload.single('file'), (req, res) => 
     });
 });
 
-// 6b. IMPORTAR PRODUCTOS CSV (crear/actualizar productos)
-app.post('/api/productos/importar', requireAuth, upload.single('file'), (req, res) => {
+// 6b. IMPORTAR PRODUCTOS CSV (MEJORADO Y BLINDADO)
+app.post('/api/productos/importar', requireAuth, upload.single('file'), async (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
 
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
 
-  const contenido = req.file.buffer.toString('utf-8');
-  const lineas = contenido.split(/\r?\n/).filter(l => l.trim());
+  // Función auxiliar para promesas
+  const dbRun = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+      db.run(sql, params, function (err) {
+        if (err) reject(err);
+        else resolve(this);
+      });
+    });
+  };
 
-  if (lineas.length < 2) {
-    return res.status(400).json({ error: 'Archivo vacío o sin datos' });
-  }
-
-  // Detectar headers
-  const headerLine = lineas[0].toLowerCase();
-  const headers = headerLine.split(',').map(h => h.trim().replace(/"/g, ''));
-  
   let importados = 0;
-  let omitidos = 0;
-  const filas = lineas.slice(1);
+  let actualizados = 0;
+  const errores = [];
 
-  filas.forEach(linea => {
-    // Parser CSV básico
-    const valores = [];
-    let dentroComillas = false;
-    let valorActual = '';
+  try {
+    await dbRun("BEGIN TRANSACTION");
 
-    for (let i = 0; i < linea.length; i++) {
-      const char = linea[i];
-      if (char === '"') {
-        dentroComillas = !dentroComillas;
-      } else if (char === ',' && !dentroComillas) {
-        valores.push(valorActual.trim().replace(/^"|"$/g, ''));
-        valorActual = '';
-      } else {
-        valorActual += char;
+    // 1. Limpieza de BOM
+    let csvContent = req.file.buffer.toString('utf8');
+    if (csvContent.charCodeAt(0) === 0xFEFF) {
+        csvContent = csvContent.slice(1);
+    }
+
+    const stream = Readable.from(csvContent)
+      .pipe(csv({
+        mapHeaders: ({ header }) => header.trim().toLowerCase(),
+        separator: ',' 
+      }));
+
+    for await (const row of stream) {
+      // 2. Mapeo inteligente de columnas (acepta varios nombres comunes)
+      const codigo = row.codigo || row['código'] || row.id;
+      const descripcion = row.descripcion || row['descripción'] || row.producto || row.nombre || '';
+      const categoria = row.categoria || row['categoría'] || row.rubro || 'General';
+      
+      const precioRaw = row.preciopublico || row.precio || row['precio público'] || '0';
+      const costoRaw = row.costo || '0';
+      const stockRaw = row.stock || row.cantidad || row.existencia || '0';
+
+      // Validación mínima
+      if (!codigo) continue;
+
+      // 3. Limpieza de datos (Precios ARS y Stock)
+      // Usamos parseARS para que entienda "$ 43.990,00"
+      const precioNum = parseARS(precioRaw);
+      const costoNum = parseARS(costoRaw);
+      const stockNum = parseInt(stockRaw.toString().replace(/[.,]/g, '')) || 0;
+
+      // 4. Insertar o Actualizar (Upsert)
+      try {
+        await dbRun(`
+          INSERT INTO productos (codigo, descripcion, categoria, precioPublico, costo, stock)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT(codigo) DO UPDATE SET
+            descripcion = excluded.descripcion,
+            categoria = excluded.categoria,
+            precioPublico = excluded.precioPublico,
+            costo = excluded.costo,
+            stock = excluded.stock
+        `, [
+          codigo.toString().trim(),
+          descripcion.toString().trim(), // Aseguramos que entre la descripción
+          categoria.toString().trim(),
+          precioNum,
+          costoNum,
+          stockNum
+        ]);
+        importados++;
+      } catch (err) {
+        errores.push(`Error en código ${codigo}: ${err.message}`);
       }
     }
-    valores.push(valorActual.trim().replace(/^"|"$/g, ''));
 
-    if (valores.length < 2) {
-      omitidos++;
-      return;
-    }
+    await dbRun("COMMIT");
 
-    // Mapear por headers o por posición
-    let codigo, descripcion, categoria, precioPublico, costo, stock;
+    crearBackup(usuario, 'Importación Productos', `Procesados: ${importados}`);
+    res.json({ 
+        ok: true, 
+        importados, 
+        mensaje: `Se procesaron ${importados} productos correctamente.`,
+        errores: errores.length > 0 ? errores : undefined
+    });
 
-    if (headers.includes('codigo') || headers.includes('código')) {
-      // Usar headers
-      const idx = (name) => headers.findIndex(h => h === name || h === name.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
-      codigo = valores[idx('codigo')] || valores[idx('código')] || valores[0];
-      descripcion = valores[idx('descripcion')] || valores[idx('descripción')] || valores[1] || '';
-      categoria = valores[idx('categoria')] || valores[idx('categoría')] || valores[2] || '';
-      precioPublico = valores[idx('preciopublico')] || valores[idx('precio')] || valores[3] || '0';
-      costo = valores[idx('costo')] || valores[4] || '0';
-      stock = valores[idx('stock')] || valores[idx('cantidad')] || valores[5] || '0';
-    } else {
-      // Asumir orden: codigo, descripcion, categoria, precioPublico, costo, stock
-      [codigo, descripcion, categoria, precioPublico, costo, stock] = valores;
-    }
-
-    if (!codigo) {
-      omitidos++;
-      return;
-    }
-
-    // Limpiar valores numéricos (formato argentino: $199.990,00)
-    // 1. Quitar $ y espacios
-    // 2. Quitar puntos de miles
-    // 3. Reemplazar coma decimal por punto
-    const parsearPrecioARG = (valor) => {
-      if (!valor || valor === '##########') return 0;
-      const limpio = valor.toString()
-        .replace(/[$\s]/g, '')     // Quitar $ y espacios
-        .replace(/\./g, '')         // Quitar puntos de miles
-        .replace(',', '.');         // Coma decimal -> punto
-      return parseFloat(limpio) || 0;
-    };
-
-    const precioNum = parsearPrecioARG(precioPublico);
-    const costoNum = parsearPrecioARG(costo);
-    const stockNum = parseInt((stock || '0').toString().replace(/[^\d-]/g, '')) || 0;
-
-    db.run(`
-      INSERT OR REPLACE INTO productos (codigo, descripcion, categoria, precioPublico, costo, stock)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [codigo.toString().trim(), descripcion || '', categoria || '', precioNum, costoNum, stockNum]);
-
-    importados++;
-  });
-
-  crearBackup(usuario, 'Productos importados', `${importados} productos, ${omitidos} omitidos`);
-  console.log(`📦 Productos importados: ${importados}, omitidos: ${omitidos}`);
-  res.json({ ok: true, importados, omitidos });
+  } catch (error) {
+    console.error("Error importando productos:", error);
+    try { await dbRun("ROLLBACK"); } catch (_) {}
+    res.status(500).json({ error: 'Error procesando archivo: ' + error.message });
+  }
 });
-
-
 
 // 7. OBTENER STOCK DE UN PRODUCTO
 app.get('/api/productos/stock/:codigo', requireAuth, (req, res) => {
