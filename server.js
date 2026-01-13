@@ -1396,7 +1396,7 @@ app.post('/api/config/nombre', requireAuth, (req, res) => {
   );
 });
 
-// ==================== BACKUPS ====================
+// ==================== BACKUPS POR USER ====================
 app.get('/api/backups', requireAuth, (req, res) => {
   const usuario = req.session.usuario;
   const dirUser = dirBackupsUsuario(usuario);
