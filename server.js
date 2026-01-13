@@ -977,7 +977,7 @@ app.get('/api/ventas/historico', requireAuth, (req, res) => {
 });
 
 // =======================================================
-// 15. IMPORTAR VENTAS DESDE CSV (DEFINITIVO)
+// 15. IMPORTAR VENTAS DESDE CSV (CORREGIDO Y BLINDADO)
 // =======================================================
 app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (req, res) => {
   const db = req.db;
@@ -995,29 +995,23 @@ app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (re
     });
   };
 
-  // --- FUNCIÓN DE NORMALIZACIÓN DE FECHA (CLAVE PARA CAJAS DIARIAS) ---
+  // --- FUNCIÓN DE NORMALIZACIÓN DE FECHA ---
   const normalizarFecha = (fechaStr) => {
       if (!fechaStr) return null;
       fechaStr = fechaStr.trim();
-      
-      // Si ya viene como YYYY-MM-DD, joya.
+      // Si ya viene como YYYY-MM-DD
       if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) return fechaStr;
-
       // Detectar separador (/ o -)
       const partes = fechaStr.split(/[\/\-]/); 
       if (partes.length === 3) {
           let dia = partes[0].padStart(2, '0');
           let mes = partes[1].padStart(2, '0');
           let anio = partes[2];
-
-          // CORRECCIÓN DE AÑO CORTO: Si viene "26", lo pasamos a "2026"
           if (anio.length === 2) anio = '20' + anio;
-
           return `${anio}-${mes}-${dia}`;
       }
       return null; 
   };
-  // ------------------------------------------------------------------
 
   const errores = [];
   let importadas = 0;
@@ -1026,72 +1020,78 @@ app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (re
   try {
     await dbRun("BEGIN TRANSACTION");
 
-    const stream = Readable.from(req.file.buffer.toString('utf8'))
+    // 1. LIMPIEZA DE BOM (Byte Order Mark) y espacios iniciales
+    // Esto arregla el error de que la columna "Fecha" no se reconozca
+    let csvContent = req.file.buffer.toString('utf8');
+    if (csvContent.charCodeAt(0) === 0xFEFF) {
+        csvContent = csvContent.slice(1);
+    }
+
+    const stream = Readable.from(csvContent)
       .pipe(csv({
         mapHeaders: ({ header }) => header.trim().toLowerCase(),
-        separator: ',' // Ojo: si tu CSV usa punto y coma, cambiá esto a ';'
+        separator: ',' // IMPORTANTE: Confirmá si tu CSV usa coma (,) o punto y coma (;)
       }));
 
     for await (const row of stream) {
       procesadas++;
 
-      // 1. Mapeo de datos
+      // 2. Mapeo inteligente de columnas
       const fechaRaw = row.fecha || row.date || row.FECHA;
       const articulo = row.articulo || row.codigo || row.article || row.ARTICULO;
       const cantidadRaw = row.cantidad || row.cant || row.qty;
-      const precioRaw = row.precio || row.price || row.monto || row.total; // A veces el CSV trae el total, no el unitario
+      const precioRaw = row.precio || row.price || row.monto || row.total;
+      
       const categoria = row.categoria || row.category || '';
       const factura = row.factura || row.invoice || '';
       const tipoPago = row['tipo pago'] || row.tipopago || row.pago || 'Efectivo';
       const comentarios = row.comentarios || row.detalle || 'Importado CSV';
 
-      // 2. Validaciones básicas
+      // Validación básica
       if (!fechaRaw || !articulo) {
-        errores.push(`Fila ${procesadas}: Falta fecha o artículo`);
+        // Solo reportar error si la fila no está totalmente vacía
+        if (Object.values(row).some(x => x)) {
+            errores.push(`Fila ${procesadas}: Falta fecha o artículo`);
+        }
         continue;
       }
 
-      // 3. Normalizar Fecha (Usamos la función inteligente)
+      // 3. Normalizar Fecha
       const fechaISO = normalizarFecha(fechaRaw);
       if (!fechaISO) {
           errores.push(`Fila ${procesadas}: Fecha inválida (${fechaRaw})`);
           continue;
       }
 
-      // 4. Parseo de Números (Manejo de miles y decimales)
-      // Quitamos $ y espacios. Reemplazamos coma por punto para decimales.
-      // OJO: Esto asume formato "1000,50". Si tu CSV es formato USA "1,000.50", avisame.
-      const cleanPrecio = precioRaw ? precioRaw.toString().replace(/[$\s]/g, '').replace(',', '.') : '0';
-      const precioNum = parseFloat(cleanPrecio);
+      // 4. Parseo de Precio ARGENTINO (Usamos tu función parseARS)
+      // Esto maneja perfecto el "$ 64.990,00" quitando el punto de mil y la coma
+      const precioFinal = parseARS(precioRaw);
 
-      const cleanCantidad = cantidadRaw ? cantidadRaw.toString().replace(/[.,]/g, '') : '1'; // Asumimos enteros
+      // 5. Parseo de Cantidad
+      const cleanCantidad = cantidadRaw ? cantidadRaw.toString().replace(/[.,]/g, '') : '1';
       const cantidad = parseInt(cleanCantidad);
 
-      if (isNaN(precioNum) || isNaN(cantidad) || cantidad === 0) {
-         continue; // Saltamos filas con errores numéricos
+      if (isNaN(precioFinal) || isNaN(cantidad) || cantidad === 0) {
+         errores.push(`Fila ${procesadas}: Error en precio ($${precioRaw}) o cantidad (${cantidadRaw})`);
+         continue; 
       }
 
-      // Calculamos unitario si el CSV traía el total, o asumimos que es unitario
-      // (Depende de tu CSV, por ahora asumo que "precio" es el precio unitario)
-      const precioFinal = precioNum; 
-
-      // 5. Insertar
+      // 6. Insertar en BD
       try {
-        // NOTA: Cambié 'codigoArticulo' por 'articulo' para coincidir con la tabla original.
-        // Si cambiaste el nombre de la columna en la BD, poné 'codigoArticulo' de vuelta.
         await dbRun(`
-          INSERT INTO ventas (fecha, articulo, cantidad, precio, descuento, categoria, factura, tipoPago, comentarios)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO ventas (fecha, codigoArticulo, cantidad, precio, descuento, categoria, factura, tipoPago, detalles, caja)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
           fechaISO,
           articulo.trim(),
           cantidad,
           precioFinal,
-          0, // Descuento 0 por defecto al importar
+          0,
           categoria.trim(),
           factura.trim(),
           tipoPago.trim(),
-          comentarios
+          comentarios,
+          'A' // Asumimos Caja A por defecto
         ]);
         importadas++;
       } catch (err) {
@@ -1107,7 +1107,7 @@ app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (re
       ok: true,
       totalProcesadas: procesadas,
       importadas: importadas,
-      errores: errores.slice(0, 50) // Limitamos errores para no saturar
+      errores: errores.slice(0, 50)
     });
 
   } catch (errorGeneral) {
