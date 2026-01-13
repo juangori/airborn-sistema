@@ -569,19 +569,25 @@ app.delete('/api/ventas/:id', requireAuth, async (req, res) => {
   }
 });
 
-// 5. OBTENER VENTAS DEL DÍA
+// 5. OBTENER VENTAS DEL DÍA (CON DATOS ENRIQUECIDOS)
 app.get('/api/ventas/dia/:fecha', requireAuth, (req, res) => {
   const db = req.db;
   const { fecha } = req.params;
 
-  db.all(
-    'SELECT * FROM ventas WHERE fecha = ? ORDER BY id DESC',
-    [fecha],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows || []);
-    }
-  );
+  // LEFT JOIN: Buscamos el producto. 
+  // Si existe, trae descripcion y categoria. Si no existe, trae null (y no rompe nada).
+  const sql = `
+    SELECT v.*, p.descripcion, p.categoria as categoriaProducto
+    FROM ventas v
+    LEFT JOIN productos p ON v.codigoArticulo = p.codigo
+    WHERE v.fecha = ?
+    ORDER BY v.id DESC
+  `;
+
+  db.all(sql, [fecha], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows || []);
+  });
 });
 
 // 5b. ACTUALIZAR PRODUCTO
