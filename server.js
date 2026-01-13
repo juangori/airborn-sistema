@@ -1426,6 +1426,47 @@ app.post('/api/backups/restaurar', requireAuth, (req, res) => {
   }
 });
 
+// ==================== SUPER ADMIN (GESTIÓN DE CLIENTES) ====================
+
+// Middleware de seguridad: Solo deja pasar si sos 'admin'
+function requireSuperAdmin(req, res, next) {
+    if (req.session && req.session.usuario === 'admin') {
+        return next();
+    }
+    return res.status(403).json({ error: 'Acceso denegado. Solo Admin.' });
+}
+
+// 1. LISTAR TODOS LOS CLIENTES
+app.get('/api/admin/usuarios', requireAuth, requireSuperAdmin, (req, res) => {
+    usuariosDb.all('SELECT id, usuario, nombreComercio, fechaCreacion FROM usuarios', (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// 2. CREAR NUEVO CLIENTE (SAAS)
+app.post('/api/admin/crear-usuario', requireAuth, requireSuperAdmin, (req, res) => {
+    const { usuario, password, nombreComercio } = req.body;
+    
+    if (!usuario || !password) {
+        return res.status(400).json({ error: 'Faltan datos obligatorios' });
+    }
+
+    const hash = bcrypt.hashSync(password, 10);
+    
+    usuariosDb.run(
+        `INSERT INTO usuarios (usuario, password, nombreComercio) VALUES (?, ?, ?)`,
+        [usuario.trim(), hash, nombreComercio || ''],
+        function(err) {
+            if (err) {
+                if (err.message.includes('UNIQUE')) return res.status(400).json({ error: 'El usuario ya existe' });
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ ok: true, mensaje: 'Usuario creado exitosamente' });
+        }
+    );
+});
+
 // ==================== SERVIDOR ====================
 // ==================== CAJA INICIAL DEL DÍA ====================
 

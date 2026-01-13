@@ -174,6 +174,11 @@
             
             // Mostrar usuario actual
             document.getElementById('usuarioActual').textContent = `👤 ${sessionData.usuario}`;
+
+            if (sessionData.usuario === 'admin') {
+        const btn = document.getElementById('btnSuperAdmin');
+        if (btn) btn.style.display = 'block';
+    }
             
             // Cargar configuración
             const configResp = await fetch('/api/config');
@@ -4215,4 +4220,81 @@ function obtenerNombreMeses(mesesArr) {
     // Rango simple (ej: Ene - Mar)
     const sorted = [...mesesArr].sort((a,b)=>a-b);
     return `${todos[sorted[0]-1]} - ${todos[sorted[sorted.length-1]-1]}`;
+}
+
+// ==================== SUPER ADMIN LOGIC ====================
+
+function abrirSuperAdmin() {
+    document.getElementById('modalSuperAdmin').classList.add('active');
+    cargarUsuariosSaas();
+}
+
+function cerrarSuperAdmin() {
+    document.getElementById('modalSuperAdmin').classList.remove('active');
+}
+
+async function cargarUsuariosSaas() {
+    const tbody = document.getElementById('listaUsuariosBody');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr>';
+
+    try {
+        const resp = await fetch('/api/admin/usuarios');
+        if (!resp.ok) throw new Error('Error de permisos');
+        const usuarios = await resp.json();
+
+        if (usuarios.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">No hay clientes aún.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = usuarios.map(u => `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding:10px; font-weight:bold; color:#2c3e50;">${u.usuario}</td>
+                <td style="padding:10px;">${u.nombreComercio || '-'}</td>
+                <td style="padding:10px; color:#666;">${new Date(u.fechaCreacion).toLocaleDateString()}</td>
+                <td style="padding:10px; text-align:center;">
+                    <span style="background:#d4edda; color:#155724; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold;">Activo</span>
+                </td>
+            </tr>
+        `).join('');
+
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red; padding:20px;">Error: ${e.message}</td></tr>`;
+    }
+}
+
+async function crearUsuarioSaas() {
+    const usuario = document.getElementById('saUser').value.trim();
+    const password = document.getElementById('saPass').value.trim();
+    const nombreComercio = document.getElementById('saNombre').value.trim();
+
+    if (!usuario || !password) {
+        showToast('⚠️ Usuario y contraseña requeridos', 'error'); // Usamos tu sistema de toast existente
+        return;
+    }
+
+    try {
+        const resp = await fetch('/api/admin/crear-usuario', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario, password, nombreComercio })
+        });
+
+        const data = await resp.json();
+
+        if (resp.ok) {
+            showToast('✅ Cliente creado correctamente', 'success');
+            // Limpiar campos
+            document.getElementById('saUser').value = '';
+            document.getElementById('saPass').value = '';
+            document.getElementById('saNombre').value = '';
+            // Recargar lista
+            cargarUsuariosSaas();
+        } else {
+            showToast('❌ ' + (data.error || 'Error al crear'), 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('❌ Error de conexión', 'error');
+    }
 }

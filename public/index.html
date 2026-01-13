@@ -15,14 +15,19 @@
                     <p>Sistema de Gestión de Inventario</p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span id="usuarioActual" style="color: rgba(255,255,255,0.8); font-size: 0.9em;"></span>
-                    <button class="admin-btn" onclick="abrirAdmin()">
-                        ⚙️ Admin
-                    </button>
-                    <button class="admin-btn" onclick="cerrarSesion()" style="background: rgba(231,76,60,0.3); border-color: rgba(231,76,60,0.5);">
-                        🚪 Salir
-                    </button>
-                </div>
+    <span id="usuarioActual" style="color: rgba(255,255,255,0.8); font-size: 0.9em;"></span>
+    
+    <button class="admin-btn" id="btnSuperAdmin" onclick="abrirSuperAdmin()" 
+            style="display: none; background: #f1c40f; color: #2c3e50; border-color: #f39c12; font-weight: bold;">
+        👑 Clientes
+    </button>
+    <button class="admin-btn" onclick="abrirAdmin()">
+        ⚙️ Admin
+    </button>
+    <button class="admin-btn" onclick="cerrarSesion()" ...>
+        🚪 Salir
+    </button>
+</div>
             </div>
         </div>
     </header>
@@ -883,6 +888,52 @@
             <button class="btn-guardar-modal" onclick="guardarNuevoProducto()">
                 💾 Guardar Producto
             </button>
+        </div>
+    </div>
+</div>
+
+<div id="modalSuperAdmin" class="admin-modal">
+    <div class="admin-modal-content" style="max-width: 800px;">
+        <div class="admin-modal-header" style="background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);">
+            <h2 style="color: #2c3e50;">👑 Gestión de Clientes</h2>
+            <button class="close-admin-modal" onclick="cerrarSuperAdmin()" style="color:#2c3e50;">×</button>
+        </div>
+        
+        <div class="admin-modal-body">
+            <div style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px;">
+                <h4 style="margin-top:0; color:#555;">✨ Dar de Alta Nuevo Comercio</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
+                    <div class="form-group" style="margin:0;">
+                        <label>Usuario (Login)</label>
+                        <input type="text" id="saUser" placeholder="ej: local1">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label>Contraseña</label>
+                        <input type="text" id="saPass" placeholder="******">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label>Nombre Fantasía</label>
+                        <input type="text" id="saNombre" placeholder="ej: Tienda Norte">
+                    </div>
+                    <button onclick="crearUsuarioSaas()" class="btn-guardar-modal" style="margin:0; background:#27ae60;">+ Crear</button>
+                </div>
+            </div>
+
+            <h4 style="color:#555;">📂 Comercios Registrados</h4>
+            <div style="overflow-y: auto; max-height: 400px; border: 1px solid #eee; border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                    <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                        <tr>
+                            <th style="padding:12px; text-align:left; border-bottom:2px solid #ddd;">Usuario</th>
+                            <th style="padding:12px; text-align:left; border-bottom:2px solid #ddd;">Comercio</th>
+                            <th style="padding:12px; text-align:left; border-bottom:2px solid #ddd;">Alta</th>
+                            <th style="padding:12px; text-align:center; border-bottom:2px solid #ddd;">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaUsuariosBody" style="background: white;">
+                        </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
