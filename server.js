@@ -1363,21 +1363,37 @@ app.delete('/api/cambios/:id', requireAuth, (req, res) => {
   });
 });
 
-// ==================== CONFIGURACIÓN ====================
+// ==================== CONFIGURACIÓN (CORREGIDO MULTI-USER) ====================
+
+// Obtener nombre del comercio (desde la sesión del usuario actual)
 app.get('/api/config', requireAuth, (req, res) => {
-  const config = cargarConfig();
-  res.json(config);
+  // Devolvemos el nombre que está guardado en la sesión (o un default)
+  res.json({ 
+      appName: req.session.nombreComercio || 'Mi Comercio' 
+  });
 });
 
+// Cambiar nombre del comercio (Actualiza la DB de usuarios)
 app.post('/api/config/nombre', requireAuth, (req, res) => {
   const { nombre } = req.body;
+  const usuario = req.session.usuario;
+
   if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
 
-  const config = cargarConfig();
-  config.appName = nombre;
-
-  if (guardarConfig(config)) res.json({ ok: true, nombre });
-  else res.status(500).json({ error: 'Error al guardar' });
+  // 1. Actualizamos en la Tabla Maestra de Usuarios
+  usuariosDb.run(
+      'UPDATE usuarios SET nombreComercio = ? WHERE usuario = ?',
+      [nombre, usuario],
+      function(err) {
+          if (err) return res.status(500).json({ error: err.message });
+          
+          // 2. Actualizamos la sesión activa para que se vea el cambio ya mismo
+          req.session.nombreComercio = nombre;
+          req.session.save(err => {
+              res.json({ ok: true, nombre });
+          });
+      }
+  );
 });
 
 // ==================== BACKUPS ====================
