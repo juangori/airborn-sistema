@@ -1236,18 +1236,11 @@ document.getElementById('descuento').addEventListener('change', actualizarTotalA
 
 // ==================== EDITAR COMENTARIO POST VENTA ====================
 async function editarComentarioVenta(id, textoActual) {
-    // TRUCO: Si el comentario es el automático del sistema, mostramos el campo vacío
-    // para que sea más fácil escribir uno nuevo sin tener que borrar.
-    let valorInicial = textoActual;
-    if (valorInicial === 'Importado CSV') {
-        valorInicial = '';
-    }
-
-    const nuevoComentario = prompt("Editar comentario/detalle:", valorInicial);
+    // CAMBIO: El segundo parámetro es "" para que el campo aparezca siempre vacío,
+    // sin importar si ya había un comentario antes.
+    const nuevoComentario = prompt("Escribí el nuevo comentario:", "");
     
-    // VALIDACIÓN IMPORTANTE: 
     // Si es null, es que el usuario dio al botón "Cancelar".
-    // Si es "" (vacío), es que el usuario borró el texto y dio "Aceptar" (queremos guardar el borrado).
     if (nuevoComentario === null) return; 
 
     try {
@@ -1259,8 +1252,6 @@ async function editarComentarioVenta(id, textoActual) {
 
         if (response.ok) {
             showToast('✅ Comentario actualizado', 'success');
-            
-            // Recargamos la tabla para ver los cambios
             if (typeof fechaSeleccionada !== 'undefined') {
                 cargarVentasDelDia(fechaSeleccionada);
             }
@@ -1467,10 +1458,9 @@ async function cargarVentasDelDia(fecha) {
     const codigoReal = v.articulo || v.codigoArticulo || '???';
     
     // 1. Intentamos usar la descripción que viene de la BD
-    let descripcionSegura = v.descripcion || v.detalles || '-';
+    let descripcionSegura = v.descripcion || '-';
 
-    // 2. INTELIGENCIA: Si tenemos el catálogo en memoria, buscamos la descripción real por código
-    // Esto arregla el problema de que aparezca vacío o con guión
+    // INTELIGENCIA: Si tenemos el catálogo en memoria, buscamos la descripción real
     if (window.productosCache && window.productosCache.length > 0) {
         const prodEncontrado = window.productosCache.find(p => 
             (p.codigo || '').toString().trim().toLowerCase() === codigoReal.toString().trim().toLowerCase()
