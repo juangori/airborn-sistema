@@ -875,6 +875,22 @@ input:focus, textarea:focus, select:focus {
     text-overflow: ellipsis;
 }
 
+/* Estilo para el comentario debajo de la venta */
+.venta-comentario-row {
+    background-color: #f8f9fa;
+    color: #555;
+    font-size: 0.85em;
+    font-style: italic;
+    padding: 4px 10px 8px 60px; /* Sangría a la izquierda para que parezca "hijo" de la venta */
+    border-bottom: 1px solid #eee;
+    margin-bottom: 0;
+}
+
+/* Ajuste para que la fila de venta no tenga borde doble si tiene comentario */
+.ventas-tabla-grid.venta-item {
+    transition: background-color 0.2s;
+}
+
 /* Estilo para devoluciones */
 .venta-item.es-devolucion {
     border-left-color: #e74c3c;

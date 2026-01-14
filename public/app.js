@@ -1236,11 +1236,19 @@ document.getElementById('descuento').addEventListener('change', actualizarTotalA
 
 // ==================== EDITAR COMENTARIO POST VENTA ====================
 async function editarComentarioVenta(id, textoActual) {
-    // Usamos prompt nativo para hacerlo rápido y simple
-    const nuevoComentario = prompt("Editar comentario/detalle:", textoActual);
+    // TRUCO: Si el comentario es el automático del sistema, mostramos el campo vacío
+    // para que sea más fácil escribir uno nuevo sin tener que borrar.
+    let valorInicial = textoActual;
+    if (valorInicial === 'Importado CSV') {
+        valorInicial = '';
+    }
+
+    const nuevoComentario = prompt("Editar comentario/detalle:", valorInicial);
     
-    // Si da cancelar (null), no hacemos nada
-    if (nuevoComentario === null) return;
+    // VALIDACIÓN IMPORTANTE: 
+    // Si es null, es que el usuario dio al botón "Cancelar".
+    // Si es "" (vacío), es que el usuario borró el texto y dio "Aceptar" (queremos guardar el borrado).
+    if (nuevoComentario === null) return; 
 
     try {
         const response = await fetch(`/api/ventas/${id}/comentario`, {
@@ -1251,8 +1259,11 @@ async function editarComentarioVenta(id, textoActual) {
 
         if (response.ok) {
             showToast('✅ Comentario actualizado', 'success');
-            // Recargamos la tabla para ver el cambio (o el icono de que hay comentario)
-            cargarVentasDelDia(fechaSeleccionada); 
+            
+            // Recargamos la tabla para ver los cambios
+            if (typeof fechaSeleccionada !== 'undefined') {
+                cargarVentasDelDia(fechaSeleccionada);
+            }
         } else {
             const data = await response.json();
             showToast(`❌ Error: ${data.error}`, 'error');
@@ -1262,7 +1273,6 @@ async function editarComentarioVenta(id, textoActual) {
         showToast('❌ Error de conexión', 'error');
     }
 }
-
 
 // ==================== BORRAR VENTAS ====================
 async function borrarVenta(id) {
@@ -1449,47 +1459,72 @@ async function cargarVentasDelDia(fecha) {
                 </div>
             `;
             html += ventasDelDia.map(v => {
-                const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
-                const total = precioFinal * v.cantidad;
-                const esDev = v.cantidad < 0 && v.precio == 0;
-                
-                // === LÓGICA SEGURA ===
-                // Usamos v.articulo (que es tu columna real)
-                const codigoReal = v.articulo || v.codigoArticulo || '???';
-                const descripcionSegura = v.descripcion || v.detalles || '-';
-                const categoriaSegura = v.categoriaProducto || v.categoria || ''; 
-                // =====================
-
-                return `
-                <div class="ventas-tabla-grid venta-item ${esDev ? 'es-devolucion' : ''}">
-                    <div class="venta-detail" style="font-size:0.85em; color:#888;">#${v.id}</div>
-                    
-                    <div class="venta-detail" style="font-weight:600; color:#2c3e50;">${codigoReal}</div>
-                    
-                    <div class="venta-detail" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#444;" title="${descripcionSegura}">
-                        ${descripcionSegura}
-                    </div>
-                    <div class="venta-detail" style="font-size:0.85em; color:#666;">${categoriaSegura}</div>
-                    
-                    <div class="venta-detail" style="text-align:center;">${esDev ? '<span style="color:red">-1</span>' : v.cantidad}</div>
-                    <div class="venta-detail" style="text-align:right;">${formatMoney(v.precio)}</div>
-                    <div class="venta-detail" style="text-align:center; font-size:0.8em;">${v.descuento ? v.descuento+'%' : '-'}</div>
-                    <div class="venta-detail" style="text-align:right; font-weight:bold;">${esDev ? 'Dev.' : formatMoney(total)}</div>
-                    <div class="venta-detail texto-cortado" title="${v.tipoPago}" style="font-size:0.85em;">${v.tipoPago}</div>
-                    <div class="celda-eliminar" style="display: flex; gap: 5px; justify-content: center;">
-    <button class="btn-eliminar-venta" 
-            onclick="editarComentarioVenta(${v.id}, '${(v.comentarios || '').replace(/'/g, "\\'")}')" 
-            title="${v.comentarios ? 'Editar comentario: ' + v.comentarios : 'Agregar comentario'}"
-            style="background: ${v.comentarios ? '#3498db' : '#ecf0f1'}; color: ${v.comentarios ? 'white' : '#95a5a6'};">
-        💬
-    </button>
+    const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
+    const total = precioFinal * v.cantidad;
+    const esDev = v.cantidad < 0 && v.precio == 0;
     
-    <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button>
-</div>
-                </div>`;
-            }).join('');
-            html += `</div>`;
+    // === LÓGICA SEGURA ===
+    const codigoReal = v.articulo || v.codigoArticulo || '???';
+    
+    // 1. Intentamos usar la descripción que viene de la BD
+    let descripcionSegura = v.descripcion || v.detalles || '-';
+
+    // 2. INTELIGENCIA: Si tenemos el catálogo en memoria, buscamos la descripción real por código
+    // Esto arregla el problema de que aparezca vacío o con guión
+    if (window.productosCache && window.productosCache.length > 0) {
+        const prodEncontrado = window.productosCache.find(p => 
+            (p.codigo || '').toString().trim().toLowerCase() === codigoReal.toString().trim().toLowerCase()
+        );
+        
+        if (prodEncontrado && prodEncontrado.descripcion) {
+            descripcionSegura = prodEncontrado.descripcion;
         }
+    }
+
+    const categoriaSegura = v.categoriaProducto || v.categoria || ''; 
+    // =====================
+
+    // 1. FILA DE LA VENTA (La tabla normal)
+    const filaVenta = `
+    <div class="ventas-tabla-grid venta-item ${esDev ? 'es-devolucion' : ''}" style="${v.comentarios ? 'border-bottom: none;' : ''}">
+        <div class="venta-detail" style="font-size:0.85em; color:#888;">#${v.id}</div>
+        
+        <div class="venta-detail" style="font-weight:600; color:#2c3e50;">${codigoReal}</div>
+        
+        <div class="venta-detail" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#444;" title="${descripcionSegura}">
+            ${descripcionSegura}
+        </div>
+        <div class="venta-detail" style="font-size:0.85em; color:#666;">${categoriaSegura}</div>
+        
+        <div class="venta-detail" style="text-align:center;">${esDev ? '<span style="color:red">-1</span>' : v.cantidad}</div>
+        <div class="venta-detail" style="text-align:right;">${formatMoney(v.precio)}</div>
+        <div class="venta-detail" style="text-align:center; font-size:0.8em;">${v.descuento ? v.descuento+'%' : '-'}</div>
+        <div class="venta-detail" style="text-align:right; font-weight:bold;">${esDev ? 'Dev.' : formatMoney(total)}</div>
+        <div class="venta-detail texto-cortado" title="${v.tipoPago}" style="font-size:0.85em;">${v.tipoPago}</div>
+        <div class="celda-eliminar" style="display: flex; gap: 5px; justify-content: center;">
+            <button class="btn-eliminar-venta" 
+                    onclick="editarComentarioVenta(${v.id}, '${(v.comentarios || '').replace(/'/g, "\\'")}')" 
+                    title="${v.comentarios ? 'Editar comentario' : 'Agregar comentario'}"
+                    style="background: ${v.comentarios ? '#3498db' : '#ecf0f1'}; color: ${v.comentarios ? 'white' : '#95a5a6'};">
+                💬
+            </button>
+            <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button>
+        </div>
+    </div>`;
+
+    // 2. FILA DEL COMENTARIO (Solo si existe y no está vacío)
+    let filaComentario = '';
+    if (v.comentarios && v.comentarios.trim() !== '') {
+        filaComentario = `
+            <div class="venta-comentario-row">
+                ↳ 💬 <strong>Nota:</strong> ${v.comentarios}
+            </div>
+        `;
+    }
+
+    return filaVenta + filaComentario;
+}).join('');
+html += `</div>`;
 
         // 2. WIDGET MOVIMIENTOS (INTERMEDIO)
         html += `
