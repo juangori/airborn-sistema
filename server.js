@@ -585,6 +585,23 @@ app.delete('/api/ventas/:id', requireAuth, async (req, res) => {
   }
 });
 
+// EDITAR COMENTARIO DE VENTA
+app.put('/api/ventas/:id/comentario', requireAuth, async (req, res) => {
+  const db = req.db;
+  const { id } = req.params;
+  const { comentario } = req.body;
+
+  try {
+    await dbRun(db, "UPDATE ventas SET detalles = ? WHERE id = ?", [comentario, id]);
+    // Opcional: Crear backup de esta acción si quieres ser muy detallista
+    // crearBackup(req.session.usuario, 'Comentario editado', `Venta #${id}`);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Error editando comentario:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 5. ACTUALIZAR PRODUCTO
 app.put('/api/productos/:codigo', requireAuth, (req, res) => {
   const db = req.db;

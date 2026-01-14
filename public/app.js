@@ -1234,7 +1234,37 @@ document.getElementById('descuento').addEventListener('change', actualizarTotalA
     }
 }
 
-    // ==================== BORRAR VENTAS ====================
+// ==================== EDITAR COMENTARIO POST VENTA ====================
+async function editarComentarioVenta(id, textoActual) {
+    // Usamos prompt nativo para hacerlo rápido y simple
+    const nuevoComentario = prompt("Editar comentario/detalle:", textoActual);
+    
+    // Si da cancelar (null), no hacemos nada
+    if (nuevoComentario === null) return;
+
+    try {
+        const response = await fetch(`/api/ventas/${id}/comentario`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comentario: nuevoComentario.trim() })
+        });
+
+        if (response.ok) {
+            showToast('✅ Comentario actualizado', 'success');
+            // Recargamos la tabla para ver el cambio (o el icono de que hay comentario)
+            cargarVentasDelDia(fechaSeleccionada); 
+        } else {
+            const data = await response.json();
+            showToast(`❌ Error: ${data.error}`, 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showToast('❌ Error de conexión', 'error');
+    }
+}
+
+
+// ==================== BORRAR VENTAS ====================
 async function borrarVenta(id) {
     if (!confirm('¿Estás seguro de eliminar esta venta? Se devolverá el stock.')) {
         return;
@@ -1446,7 +1476,16 @@ async function cargarVentasDelDia(fecha) {
                     <div class="venta-detail" style="text-align:center; font-size:0.8em;">${v.descuento ? v.descuento+'%' : '-'}</div>
                     <div class="venta-detail" style="text-align:right; font-weight:bold;">${esDev ? 'Dev.' : formatMoney(total)}</div>
                     <div class="venta-detail texto-cortado" title="${v.tipoPago}" style="font-size:0.85em;">${v.tipoPago}</div>
-                    <div class="celda-eliminar"><button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button></div>
+                    <div class="celda-eliminar" style="display: flex; gap: 5px; justify-content: center;">
+    <button class="btn-eliminar-venta" 
+            onclick="editarComentarioVenta(${v.id}, '${(v.comentarios || '').replace(/'/g, "\\'")}')" 
+            title="${v.comentarios ? 'Editar comentario: ' + v.comentarios : 'Agregar comentario'}"
+            style="background: ${v.comentarios ? '#3498db' : '#ecf0f1'}; color: ${v.comentarios ? 'white' : '#95a5a6'};">
+        💬
+    </button>
+    
+    <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button>
+</div>
                 </div>`;
             }).join('');
             html += `</div>`;
