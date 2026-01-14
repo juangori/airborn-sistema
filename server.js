@@ -573,35 +573,39 @@ app.delete('/api/ventas/:id', requireAuth, async (req, res) => {
 app.get('/api/ventas', requireAuth, (req, res) => {
   const db = req.db;
   
-  // Modificamos la consulta para unir con la tabla productos
+  // Usamos LOWER y TRIM para asegurar que coincidan aunque haya diferencias de mayúsculas o espacios
   const sql = `
-    SELECT v.*, p.descripcion
+    SELECT v.*, p.descripcion as descripcionProducto
     FROM ventas v
-    LEFT JOIN productos p ON TRIM(v.codigoArticulo) = TRIM(p.codigo)
+    LEFT JOIN productos p ON LOWER(TRIM(v.codigoArticulo)) = LOWER(TRIM(p.codigo))
     ORDER BY v.id DESC 
-    LIMIT 1000
+    LIMIT 500
   `;
 
   db.all(sql, [], (err, rows) => {
     if (err) {
-      console.error('Error leyendo ventas:', err);
+      console.error('❌ Error leyendo ventas:', err);
       return res.status(500).json({ error: 'Error al leer ventas' });
     }
 
-    const ventas = (rows || []).map(r => ({
-      id: r.id,
-      fecha: r.fecha,
-      articulo: r.codigoArticulo,
-      // Aquí asignamos la descripción que viene del JOIN, o usamos el detalle si no hay producto
-      descripcion: r.descripcion || r.detalles || '', 
-      cantidad: r.cantidad,
-      precio: r.precio,
-      descuento: r.descuento || 0,
-      categoria: r.categoria || '',
-      factura: r.factura || '',
-      tipoPago: r.tipoPago || '',
-      comentarios: r.detalles || ''
-    }));
+    const ventas = (rows || []).map(r => {
+      // Prioridad: 1. Descripción del producto (JOIN), 2. Detalle de venta manual, 3. Texto por defecto
+      const descFinal = r.descripcionProducto || r.detalles || '(Sin descripción)';
+      
+      return {
+        id: r.id,
+        fecha: r.fecha,
+        articulo: r.codigoArticulo,
+        descripcion: descFinal, // <--- Aquí va el dato clave
+        cantidad: r.cantidad,
+        precio: r.precio,
+        descuento: r.descuento || 0,
+        categoria: r.categoria || '',
+        factura: r.factura || '',
+        tipoPago: r.tipoPago || '',
+        comentarios: r.detalles || ''
+      };
+    });
 
     res.json(ventas);
   });
