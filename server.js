@@ -532,19 +532,26 @@ app.get('/api/ventas', requireAuth, (req, res) => {
       return res.status(500).json({ error: 'Error al leer ventas' });
     }
 
-    const ventas = (rows || []).map(r => ({
-      id: r.id,
-      fecha: r.fecha,
-      articulo: r.codigoArticulo,
-      descripcion: r.descripcionProducto || r.detalles || '',
-      cantidad: r.cantidad,
-      precio: r.precio,
-      descuento: r.descuento || 0,
-      categoria: r.categoriaProducto || r.categoria || '',
-      factura: r.factura || '',
-      tipoPago: r.tipoPago || '',
-      comentarios: r.detalles || ''
-    }));
+    const ventas = (rows || []).map(r => {
+      // CORRECCIÓN CLAVE: Aquí estaba el error. 
+      // Antes decía: r.descripcionProducto || r.detalles || ...
+      // Ahora lo forzamos: Si no hay producto, devuelve vacío. NO usa detalles.
+      const descFinal = r.descripcionProducto || ''; 
+      
+      return {
+        id: r.id,
+        fecha: r.fecha,
+        articulo: r.codigoArticulo,
+        descripcion: descFinal, // Ahora sí llegará limpio al frontend
+        cantidad: r.cantidad,
+        precio: r.precio,
+        descuento: r.descuento || 0,
+        categoria: r.categoria || '',
+        factura: r.factura || '',
+        tipoPago: r.tipoPago || '',
+        comentarios: r.detalles || ''
+      };
+    });
 
     res.json(ventas);
   });
