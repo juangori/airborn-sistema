@@ -508,10 +508,20 @@ app.post('/api/ventas', requireAuth, async (req, res) => {
   }
 });
 
-// 4. OBTENER VENTAS
+// 4. OBTENER VENTAS (CON DESCRIPCIÓN DE PRODUCTO)
 app.get('/api/ventas', requireAuth, (req, res) => {
   const db = req.db;
-  db.all('SELECT * FROM ventas ORDER BY id DESC LIMIT 200', [], (err, rows) => {
+  
+  // JOIN con productos para traer la descripción
+  const sql = `
+    SELECT v.*, p.descripcion as descripcionProducto, p.categoria as categoriaProducto
+    FROM ventas v
+    LEFT JOIN productos p ON LOWER(TRIM(v.codigoArticulo)) = LOWER(TRIM(p.codigo))
+    ORDER BY v.id DESC 
+    LIMIT 500
+  `;
+
+  db.all(sql, [], (err, rows) => {
     if (err) {
       console.error('Error leyendo ventas:', err);
       return res.status(500).json({ error: 'Error al leer ventas' });
@@ -521,10 +531,11 @@ app.get('/api/ventas', requireAuth, (req, res) => {
       id: r.id,
       fecha: r.fecha,
       articulo: r.codigoArticulo,
+      descripcion: r.descripcionProducto || r.detalles || '',
       cantidad: r.cantidad,
       precio: r.precio,
       descuento: r.descuento || 0,
-      categoria: r.categoria || '',
+      categoria: r.categoriaProducto || r.categoria || '',
       factura: r.factura || '',
       tipoPago: r.tipoPago || '',
       comentarios: r.detalles || ''
@@ -569,49 +580,7 @@ app.delete('/api/ventas/:id', requireAuth, async (req, res) => {
   }
 });
 
-// 5. OBTENER VENTAS DEL DÍA (CON DESCRIPCIÓN)
-app.get('/api/ventas', requireAuth, (req, res) => {
-  const db = req.db;
-  
-  // Usamos LOWER y TRIM para asegurar que coincidan aunque haya diferencias de mayúsculas o espacios
-  const sql = `
-    SELECT v.*, p.descripcion as descripcionProducto
-    FROM ventas v
-    LEFT JOIN productos p ON LOWER(TRIM(v.codigoArticulo)) = LOWER(TRIM(p.codigo))
-    ORDER BY v.id DESC 
-    LIMIT 500
-  `;
-
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error('❌ Error leyendo ventas:', err);
-      return res.status(500).json({ error: 'Error al leer ventas' });
-    }
-
-    const ventas = (rows || []).map(r => {
-      // Prioridad: 1. Descripción del producto (JOIN), 2. Detalle de venta manual, 3. Texto por defecto
-      const descFinal = r.descripcionProducto || r.detalles || '(Sin descripción)';
-      
-      return {
-        id: r.id,
-        fecha: r.fecha,
-        articulo: r.codigoArticulo,
-        descripcion: descFinal, // <--- Aquí va el dato clave
-        cantidad: r.cantidad,
-        precio: r.precio,
-        descuento: r.descuento || 0,
-        categoria: r.categoria || '',
-        factura: r.factura || '',
-        tipoPago: r.tipoPago || '',
-        comentarios: r.detalles || ''
-      };
-    });
-
-    res.json(ventas);
-  });
-});
-
-// 5b. ACTUALIZAR PRODUCTO
+// 5. ACTUALIZAR PRODUCTO
 app.put('/api/productos/:codigo', requireAuth, (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
