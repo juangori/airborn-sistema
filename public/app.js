@@ -1236,9 +1236,11 @@ document.getElementById('descuento').addEventListener('change', actualizarTotalA
 
 // ==================== EDITAR COMENTARIO POST VENTA (mejorado) ====================
 async function editarComentarioVenta(id, textoActual) {
-    const nuevoComentario = prompt("Escribí el nuevo comentario:", "");
+    // CAMBIO: Ahora el segundo parámetro es 'textoActual'.
+    // Esto hace que el cuadro de diálogo muestre lo que ya estaba escrito.
+    const nuevoComentario = prompt("Editar comentario:", textoActual);
     
-    // Si es null, es que el usuario dio al botón "Cancelar".
+    // Si es null, es que el usuario dio al botón "Cancelar" -> No hacemos nada.
     if (nuevoComentario === null) return; 
 
     try {
@@ -1251,17 +1253,15 @@ async function editarComentarioVenta(id, textoActual) {
         if (response.ok) {
             showToast('✅ Comentario actualizado', 'success');
             
-            // === FIX IMPORTANTE: Actualizar la memoria local ===
-            // Buscamos la venta en la lista que tenemos en memoria y le cambiamos el comentario
+            // Actualizar memoria local para reflejo inmediato
             if (typeof ventasDelMes !== 'undefined') {
                 const ventaLocal = ventasDelMes.find(v => v.id === id);
                 if (ventaLocal) {
                     ventaLocal.comentarios = nuevoComentario.trim();
                 }
             }
-            // ===================================================
 
-            // Ahora sí, al redibujar la tabla, usará el dato nuevo
+            // Recargar tabla
             if (typeof fechaSeleccionada !== 'undefined') {
                 cargarVentasDelDia(fechaSeleccionada);
             }
