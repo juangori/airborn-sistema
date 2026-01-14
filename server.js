@@ -1076,7 +1076,7 @@ app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (re
       
       const categoria = row.categoria || row.category || '';
       const factura = row.factura || row.invoice || '';
-      const tipoPago = row['tipo pago'] || row.tipopago || row.pago || 'Efectivo';
+      const tipoPago = row['tipo pago'] || row.tipopago || row.pago || 'Otro';
       const comentarios = row.comentarios || row.detalle || '';
 
       // Validación básica
