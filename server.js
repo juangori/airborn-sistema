@@ -569,18 +569,15 @@ app.delete('/api/ventas/:id', requireAuth, async (req, res) => {
   }
 });
 
-// 5. OBTENER VENTAS DEL DÍA (CORREGIDO Y BLINDADO)
+// 5. OBTENER VENTAS DEL DÍA (CON DESCRIPCIÓN)
 app.get('/api/ventas/dia/:fecha', requireAuth, (req, res) => {
   const db = req.db;
   const { fecha } = req.params;
 
-  // TRUCO TÉCNICO: 
-  // Usamos CAST(... AS TEXT) para que '123' (número) sea igual a '123' (texto).
-  // Usamos TRIM(...) para borrar espacios invisibles.
   const sql = `
-    SELECT v.*, p.descripcion, p.categoria as categoriaProducto
+    SELECT v.*, p.descripcion
     FROM ventas v
-    LEFT JOIN productos p ON TRIM(CAST(v.articulo AS TEXT)) = TRIM(CAST(p.codigo AS TEXT))
+    LEFT JOIN productos p ON TRIM(v.codigoArticulo) = TRIM(p.codigo)
     WHERE v.fecha = ?
     ORDER BY v.id DESC
   `;
