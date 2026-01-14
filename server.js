@@ -569,19 +569,24 @@ app.delete('/api/ventas/:id', requireAuth, async (req, res) => {
   }
 });
 
-// 5. OBTENER VENTAS DEL DÍA
+// 5. OBTENER VENTAS DEL DÍA (CORREGIDO: USA CAMPO 'articulo')
 app.get('/api/ventas/dia/:fecha', requireAuth, (req, res) => {
   const db = req.db;
   const { fecha } = req.params;
 
-  db.all(
-    'SELECT * FROM ventas WHERE fecha = ? ORDER BY id DESC',
-    [fecha],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows || []);
-    }
-  );
+  // CORRECCIÓN CLAVE: Usamos 'v.articulo' en el ON, no 'v.codigoArticulo'
+  const sql = `
+    SELECT v.*, p.descripcion, p.categoria as categoriaProducto
+    FROM ventas v
+    LEFT JOIN productos p ON TRIM(v.articulo) = TRIM(p.codigo)
+    WHERE v.fecha = ?
+    ORDER BY v.id DESC
+  `;
+
+  db.all(sql, [fecha], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows || []);
+  });
 });
 
 // 5b. ACTUALIZAR PRODUCTO
