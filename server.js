@@ -471,10 +471,13 @@ app.post('/api/ventas', requireAuth, async (req, res) => {
     categoria, factura, tipoPago, comentarios
   } = req.body;
 
-  // Validamos que existan los campos, pero permitimos precio 0 y cantidad negativa
-  if (!fecha || !articulo || cantidad === undefined || precio === undefined) {
+  // Validamos (quitamos !articulo para permitir ventas sin código)
+  if (!fecha || cantidad === undefined || precio === undefined) {
     return res.status(400).json({ error: 'Datos incompletos' });
   }
+
+  // Aseguramos que si no hay artículo, se guarde como string vacío o "VARIOS"
+  const articuloFinal = articulo || '';
 
   try {
     // 1. Arrancamos la transacción (Todo o nada)
@@ -486,13 +489,15 @@ app.post('/api/ventas', requireAuth, async (req, res) => {
       (fecha, codigoArticulo, cantidad, precio, descuento, categoria, factura, tipoPago, detalles, caja)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      fecha, articulo, cantidad, precio, descuento,
+      fecha, articuloFinal, cantidad, precio, descuento, // <--- Usamos articuloFinal
       categoria || '', factura || 'A', tipoPago || '',
       comentarios || '', 'A'
     ]);
 
     // 3. Descontamos stock
-    await dbRun(db, 'UPDATE productos SET stock = stock - ? WHERE codigo = ?', [cantidad, articulo]);
+    if (articuloFinal) {
+        await dbRun(db, 'UPDATE productos SET stock = stock - ? WHERE codigo = ?', [cantidad, articuloFinal]);
+    }
 
     // 4. Si todo salió bien, guardamos cambios permanentemente
     await dbRun(db, "COMMIT");

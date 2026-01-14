@@ -1086,17 +1086,28 @@ function actualizarTotalACobrar() {
   const totalDisplay = document.getElementById('totalACobrar');
   
   const precio = parseFloat(precioField.value) || 0;
-  const cantidad = parseInt(cantidadField.value) || 0;
+  // Si cantidad está vacía o es 0, usamos 0. 
+  // Pero ojo: para el cálculo, si es 0, actuará como 1 (monto fijo).
+  const cantidadValor = parseInt(cantidadField.value);
+  const cantidad = isNaN(cantidadValor) ? 0 : cantidadValor;
+  
   const descuento = parseInt(descuentoField.value) || 0;
   
-  if (precio === 0 || cantidad === 0) {
+  // LÓGICA PEDIDA: 
+  // Si precio es 0, total es 0.
+  // Pero si hay precio y cantidad es 0, el total es el precio (cobro manual).
+  
+  if (precio === 0) {
     totalDisplay.textContent = '$0.00';
     totalDisplay.style.background = 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)';
     return;
   }
   
   const precioConDescuento = precio * (1 - (descuento / 100));
-  const total = precioConDescuento * cantidad;
+  
+  // Si cantidad es 0, asumimos que es un ítem "único" o servicio manual -> Total = Precio
+  // Si cantidad es distinta de 0 (positiva o negativa), multiplicamos.
+  const total = (cantidad === 0) ? precioConDescuento : (precioConDescuento * cantidad);
   
   totalDisplay.textContent = formatMoney(total);
   
@@ -1147,10 +1158,10 @@ document.getElementById('descuento').addEventListener('change', actualizarTotalA
         let precio = parseFloat(precioField.value);
         
         // Validaciones básicas de cliente
-        if (!document.getElementById('articulo').value) {
+       /* if (!document.getElementById('articulo').value) {
              showToast('⚠️ Falta el código del artículo', 'error');
              return;
-        }
+        }*/
 
         // LÓGICA DE CAMBIO
         if (esCambio) {
