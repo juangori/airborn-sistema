@@ -569,16 +569,18 @@ app.delete('/api/ventas/:id', requireAuth, async (req, res) => {
   }
 });
 
-// 5. OBTENER VENTAS DEL DÍA (CORREGIDO: USA CAMPO 'articulo')
+// 5. OBTENER VENTAS DEL DÍA (CORREGIDO Y BLINDADO)
 app.get('/api/ventas/dia/:fecha', requireAuth, (req, res) => {
   const db = req.db;
   const { fecha } = req.params;
 
-  // CORRECCIÓN CLAVE: Usamos 'v.articulo' en el ON, no 'v.codigoArticulo'
+  // TRUCO TÉCNICO: 
+  // Usamos CAST(... AS TEXT) para que '123' (número) sea igual a '123' (texto).
+  // Usamos TRIM(...) para borrar espacios invisibles.
   const sql = `
     SELECT v.*, p.descripcion, p.categoria as categoriaProducto
     FROM ventas v
-    LEFT JOIN productos p ON TRIM(v.articulo) = TRIM(p.codigo)
+    LEFT JOIN productos p ON TRIM(CAST(v.articulo AS TEXT)) = TRIM(CAST(p.codigo AS TEXT))
     WHERE v.fecha = ?
     ORDER BY v.id DESC
   `;
