@@ -1525,6 +1525,7 @@ async function cargarVentasDelDia(fecha) {
     return filaVenta + filaComentario;
 }).join('');
 html += `</div>`;
+        }
 
         // 2. WIDGET MOVIMIENTOS (INTERMEDIO)
         html += `
