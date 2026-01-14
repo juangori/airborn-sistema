@@ -570,21 +570,40 @@ app.delete('/api/ventas/:id', requireAuth, async (req, res) => {
 });
 
 // 5. OBTENER VENTAS DEL DÍA (CON DESCRIPCIÓN)
-app.get('/api/ventas/dia/:fecha', requireAuth, (req, res) => {
+app.get('/api/ventas', requireAuth, (req, res) => {
   const db = req.db;
-  const { fecha } = req.params;
-
+  
+  // Modificamos la consulta para unir con la tabla productos
   const sql = `
     SELECT v.*, p.descripcion
     FROM ventas v
     LEFT JOIN productos p ON TRIM(v.codigoArticulo) = TRIM(p.codigo)
-    WHERE v.fecha = ?
-    ORDER BY v.id DESC
+    ORDER BY v.id DESC 
+    LIMIT 1000
   `;
 
-  db.all(sql, [fecha], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows || []);
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error('Error leyendo ventas:', err);
+      return res.status(500).json({ error: 'Error al leer ventas' });
+    }
+
+    const ventas = (rows || []).map(r => ({
+      id: r.id,
+      fecha: r.fecha,
+      articulo: r.codigoArticulo,
+      // Aquí asignamos la descripción que viene del JOIN, o usamos el detalle si no hay producto
+      descripcion: r.descripcion || r.detalles || '', 
+      cantidad: r.cantidad,
+      precio: r.precio,
+      descuento: r.descuento || 0,
+      categoria: r.categoria || '',
+      factura: r.factura || '',
+      tipoPago: r.tipoPago || '',
+      comentarios: r.detalles || ''
+    }));
+
+    res.json(ventas);
   });
 });
 
