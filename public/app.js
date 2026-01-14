@@ -1234,7 +1234,7 @@ document.getElementById('descuento').addEventListener('change', actualizarTotalA
     }
 }
 
-// ==================== EDITAR COMENTARIO POST VENTA ====================
+// ==================== EDITAR COMENTARIO POST VENTA (mejorado) ====================
 async function editarComentarioVenta(id, textoActual) {
     // CAMBIO: El segundo parámetro es "" para que el campo aparezca siempre vacío,
     // sin importar si ya había un comentario antes.
