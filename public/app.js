@@ -1417,7 +1417,7 @@ async function cargarVentasDelDia(fecha) {
         
         ventasDelDia.forEach(v => {
             const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
-            const total = precioFinal * v.cantidad;
+            const total = (v.cantidad === 0) ? precioFinal : (precioFinal * v.cantidad);
             totalVentas += total;
             
             const tipoFactura = (v.factura || '').toUpperCase().trim();
@@ -1461,7 +1461,7 @@ async function cargarVentasDelDia(fecha) {
             `;
             html += ventasDelDia.map(v => {
     const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
-    const total = precioFinal * v.cantidad;
+    const total = (v.cantidad === 0) ? precioFinal : (precioFinal * v.cantidad);
     const esDev = v.cantidad < 0 && v.precio == 0;
     
     // === LÓGICA SEGURA ===

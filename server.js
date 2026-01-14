@@ -1095,9 +1095,9 @@ app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (re
           continue;
       }
 
-      // 4. Parseo de Precio ARGENTINO (Usamos tu función parseARS)
-      // Esto maneja perfecto el "$ 64.990,00" quitando el punto de mil y la coma
-      const precioFinal = parseARS(precioRaw);
+      // 4. Parseo de Precio ARGENTINO
+      // Usamos let en lugar de const para poder modificarlo
+      let precioFinal = parseARS(precioRaw);
 
       // 5. Parseo de Cantidad
       const cleanCantidad = cantidadRaw ? cantidadRaw.toString().replace(/[.,]/g, '') : '1';
@@ -1106,6 +1106,13 @@ app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (re
       if (isNaN(precioFinal) || isNaN(cantidad) || cantidad === 0) {
          errores.push(`Fila ${procesadas}: Error en precio ($${precioRaw}) o cantidad (${cantidadRaw})`);
          continue; 
+      }
+
+      // CORRECCIÓN IMPORTANTE PARA CSV:
+      // Si la cantidad es mayor a 1, asumimos que el precio del CSV es el TOTAL del renglón.
+      // Dividimos para obtener el unitario que la base de datos necesita.
+      if (cantidad > 1) {
+          precioFinal = precioFinal / cantidad;
       }
 
       // 6. Insertar en BD
