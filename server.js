@@ -513,48 +513,58 @@ app.post('/api/ventas', requireAuth, async (req, res) => {
   }
 });
 
-// 4. OBTENER VENTAS (CON DESCRIPCIÓN DE PRODUCTO)
-app.get('/api/ventas', requireAuth, (req, res) => {
+// 4. OBTENER VENTAS (CON AUTO-LIMPIEZA Y CORRECCIÓN DE DESCRIPCIÓN)
+app.get('/api/ventas', requireAuth, async (req, res) => {
   const db = req.db;
   
-  // JOIN con productos para traer la descripción
-  const sql = `
-    SELECT v.*, p.descripcion as descripcionProducto, p.categoria as categoriaProducto
-    FROM ventas v
-    LEFT JOIN productos p ON LOWER(TRIM(v.codigoArticulo)) = LOWER(TRIM(p.codigo))
-    ORDER BY v.id DESC 
-    LIMIT 500
-  `;
-
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error('Error leyendo ventas:', err);
-      return res.status(500).json({ error: 'Error al leer ventas' });
-    }
-
-    const ventas = (rows || []).map(r => {
-      // CORRECCIÓN CLAVE: Aquí estaba el error. 
-      // Antes decía: r.descripcionProducto || r.detalles || ...
-      // Ahora lo forzamos: Si no hay producto, devuelve vacío. NO usa detalles.
-      const descFinal = r.descripcionProducto || ''; 
-      
-      return {
-        id: r.id,
-        fecha: r.fecha,
-        articulo: r.codigoArticulo,
-        descripcion: descFinal, // Ahora sí llegará limpio al frontend
-        cantidad: r.cantidad,
-        precio: r.precio,
-        descuento: r.descuento || 0,
-        categoria: r.categoria || '',
-        factura: r.factura || '',
-        tipoPago: r.tipoPago || '',
-        comentarios: r.detalles || ''
-      };
+  try {
+    // 1. AUTO-LIMPIEZA SILENCIOSA: 
+    // Si hay ventas viejas con "Importado CSV", las borramos de la base de datos ahora mismo.
+    await new Promise((resolve) => {
+        db.run("UPDATE ventas SET detalles = '' WHERE detalles = 'Importado CSV'", [], () => resolve());
     });
 
-    res.json(ventas);
-  });
+    // 2. BUSCAR VENTAS LIMPIAS
+    const sql = `
+      SELECT v.*, p.descripcion as descripcionProducto
+      FROM ventas v
+      LEFT JOIN productos p ON LOWER(TRIM(v.codigoArticulo)) = LOWER(TRIM(p.codigo))
+      ORDER BY v.id DESC 
+      LIMIT 1000
+    `;
+
+    db.all(sql, [], (err, rows) => {
+      if (err) {
+        console.error('❌ Error leyendo ventas:', err);
+        return res.status(500).json({ error: 'Error al leer ventas' });
+      }
+
+      const ventas = (rows || []).map(r => {
+        // CORRECCIÓN DEFINITIVA: 
+        // La descripción es SOLO la del producto. Si no hay producto, va vacío.
+        // NUNCA usamos r.detalles aquí, así evitamos que el comentario aparezca en la columna de producto.
+        const descFinal = r.descripcionProducto || ''; 
+        
+        return {
+          id: r.id,
+          fecha: r.fecha,
+          articulo: r.codigoArticulo,
+          descripcion: descFinal, 
+          cantidad: r.cantidad,
+          precio: r.precio,
+          descuento: r.descuento || 0,
+          categoria: r.categoria || '',
+          factura: r.factura || '',
+          tipoPago: r.tipoPago || '',
+          comentarios: r.detalles || ''
+        };
+      });
+
+      res.json(ventas);
+    });
+  } catch (error) {
+     res.status(500).json({ error: error.message });
+  }
 });
 
 // 4b. ELIMINAR VENTA (CON TRANSACCIÓN)
@@ -1067,7 +1077,7 @@ app.post('/api/ventas/import-csv', requireAuth, upload.single('file'), async (re
       const categoria = row.categoria || row.category || '';
       const factura = row.factura || row.invoice || '';
       const tipoPago = row['tipo pago'] || row.tipopago || row.pago || 'Efectivo';
-      const comentarios = row.comentarios || row.detalle || 'Importado CSV';
+      const comentarios = row.comentarios || row.detalle || '';
 
       // Validación básica
       if (!fechaRaw || !articulo) {
