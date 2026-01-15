@@ -13,6 +13,14 @@ const { Readable } = require('stream');
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Función auxiliar para obtener fecha/hora Argentina (UTC-3)
+function getAhoraArgentina() {
+  // Ajustamos 3 horas atrás al tiempo UTC actual
+  const ahora = new Date();
+  ahora.setHours(ahora.getHours() - 3);
+  return ahora;
+}
+
 // ==================== PROMESAS SQL (Helpers) ====================
 // Estas funciones nos permiten usar await con sqlite3
 const dbRun = (db, sql, params = []) => {
@@ -292,9 +300,11 @@ function crearBackup(usuario, accion, detalle = '') {
   const dirUser = dirBackupsUsuario(usuario);
   if (!fs.existsSync(dirUser)) fs.mkdirSync(dirUser, { recursive: true });
 
-  const ahora = new Date();
+  // CORRECCIÓN HUSO HORARIO
+  const ahora = getAhoraArgentina(); 
+  
   const fecha = ahora.toISOString().slice(0, 10); // YYYY-MM-DD
-  const hora = ahora.toTimeString().slice(0, 8).replace(/:/g, '-'); // HH-MM-SS
+  const hora = ahora.toISOString().slice(11, 19).replace(/:/g, '-'); // HH-MM-SS
   const timestamp = `${fecha}_${hora}`;
   const nombreArchivo = `${timestamp}_${accion.replace(/\s+/g, '_').substring(0, 30)}.db`;
 
