@@ -1414,9 +1414,6 @@ async function cargarVentasDelDia(fecha) {
         if(inputCaja) inputCaja.value = cajaData.monto > 0 ? formatMonedaInput(cajaData.monto) : '';
         const montoCajaInicial = cajaData.monto || 0;
 
-        // --- NUEVO: Guardar total de ventas en el DOM para calcular rápido ---
-        document.getElementById('cajaInicial').dataset.totalVentas = totalVentas;
-
         // Filtrar ventas de ESTE día
         const ventasDelDia = ventasDelMes.filter(v => v.fecha === fecha);
 
@@ -1596,7 +1593,7 @@ html += `</div>`;
 
                     <div style="text-align:right; border-left:1px solid rgba(255,255,255,0.2); padding-left:20px;">
                         <div style="opacity:0.9; font-size:1em; margin-bottom:5px;">TOTAL VENTAS + CAJA</div>
-                        <div id="displayTotalFinal" style="font-size:2.2em; font-weight:800; line-height:1;">${formatMoney(totalEnCaja)}</div>
+                        <div style="font-size:2.2em; font-weight:800; line-height:1;">${formatMoney(totalEnCaja)}</div>
                     </div>
                 </div>
 
@@ -4442,6 +4439,7 @@ async function eliminarCatalogoCompleto() {
         showToast('❌ Error de conexión', 'error');
     }
 }
+
 async function copiarMovimientoCC(detalle, monto, tipoCaja, fecha) {
     // 1. Pedir nombre del cliente
     const cliente = prompt(`Pasar movimiento a Cta. Cte.\n"${detalle}" ($${monto})\n\nIngresá el nombre del Cliente:`);
@@ -4482,26 +4480,5 @@ async function copiarMovimientoCC(detalle, monto, tipoCaja, fecha) {
     } catch (e) {
         console.error(e);
         showToast('❌ Error: ' + e.message, 'error');
-    }
-}
-
-function actualizarTotalCajaTiempoReal(input) {
-    // 1. Obtener valor actual del input (limpiando símbolos)
-    const valStr = input.value.replace(/[^\d]/g, '');
-    const cajaInicial = parseInt(valStr) || 0;
-
-    // 2. Obtener total de ventas (que guardamos en el paso anterior)
-    const totalVentas = parseFloat(input.dataset.totalVentas) || 0;
-
-    // 3. Sumar
-    const totalFinal = cajaInicial + totalVentas;
-
-    // 4. Actualizar el número gigante de abajo
-    // Buscamos el div que tiene el total final. Como no tiene ID fácil, 
-    // lo mejor es agregarle un ID en el paso siguiente, 
-    // pero si no, buscamos por clase o estructura.
-    const elementoTotal = document.getElementById('displayTotalFinal');
-    if (elementoTotal) {
-        elementoTotal.textContent = formatMoney(totalFinal);
     }
 }
