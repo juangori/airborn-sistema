@@ -1575,7 +1575,10 @@ html += `</div>`;
             </div>
         `;
 
-        // 3. TOTALES FINALES (MODIFICADO: SEPARA LOS MOVIMIENTOS)
+        // IMPORTANTE: Guardamos el total de ventas en una variable global para usarla luego
+        window.totalVentasCache = totalVentas;
+
+        // 3. TOTALES FINALES (Box Oscuro)
         html += `
             <div class="total-final-card" style="background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
                 <h3 style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:10px; margin-bottom:15px;">🏁 Cierre de Caja (Ventas)</h3>
@@ -1583,7 +1586,7 @@ html += `</div>`;
                 <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; align-items: center;">
                     <div>
                         <div style="opacity:0.8; font-size:0.9em;">(+) Caja Inicial</div>
-                        <div style="font-size:1.4em; font-weight:bold;">${formatMoney(montoCajaInicial)}</div>
+                        <div id="displayCajaInicial" style="font-size:1.4em; font-weight:bold;">${formatMoney(montoCajaInicial)}</div>
                     </div>
 
                     <div>
@@ -1593,7 +1596,7 @@ html += `</div>`;
 
                     <div style="text-align:right; border-left:1px solid rgba(255,255,255,0.2); padding-left:20px;">
                         <div style="opacity:0.9; font-size:1em; margin-bottom:5px;">TOTAL VENTAS + CAJA</div>
-                        <div style="font-size:2.2em; font-weight:800; line-height:1;">${formatMoney(totalEnCaja)}</div>
+                        <div id="displayTotalFinal" style="font-size:2.2em; font-weight:800; line-height:1;">${formatMoney(totalEnCaja)}</div>
                     </div>
                 </div>
 
@@ -1703,15 +1706,14 @@ async function guardarCajaInicial() {
     if (!fechaSeleccionada) return;
     
     const input = document.getElementById('cajaInicial');
-    // Quitar $ y puntos de miles, quedarnos solo con dígitos
+    
+    // Obtenemos el número limpio
     const valorStr = input.value.replace(/[^\d]/g, '');
     const monto = parseInt(valorStr) || 0;
     
-    // No guardar si está vacío y no mostrar toast
-    if (monto === 0 && input.value === '') return;
-    
-    console.log('Guardando caja inicial:', fechaSeleccionada, monto);
-    
+    // Feedback visual pequeño (opacidad)
+    input.style.opacity = "0.5";
+
     try {
         const response = await fetch('/api/caja-inicial', {
             method: 'POST',
@@ -1719,14 +1721,36 @@ async function guardarCajaInicial() {
             body: JSON.stringify({ fecha: fechaSeleccionada, monto })
         });
         
-        if (response.ok && monto > 0) {
+        input.style.opacity = "1";
+
+        if (response.ok) {
             showToast('Caja inicial guardada', 'success');
-        } else if (!response.ok) {
+            
+            // === AQUÍ ESTÁ LA MAGIA ===
+            
+            // 1. Actualizamos el número de Caja Inicial abajo
+            const displayCaja = document.getElementById('displayCajaInicial');
+            if (displayCaja) {
+                displayCaja.textContent = formatMoney(monto);
+            }
+
+            // 2. Actualizamos el Total Gigante (Ventas + Nueva Caja)
+            // Usamos la variable window.totalVentasCache que guardamos en el Paso 1
+            const totalVentas = window.totalVentasCache || 0; 
+            const nuevoTotal = totalVentas + monto;
+            
+            const displayTotal = document.getElementById('displayTotalFinal');
+            if (displayTotal) {
+                displayTotal.textContent = formatMoney(nuevoTotal);
+            }
+
+        } else {
             showToast('Error al guardar caja', 'error');
         }
     } catch (e) {
+        input.style.opacity = "1";
         console.error('Error guardando caja inicial:', e);
-        showToast('Error al guardar caja', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
