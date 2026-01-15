@@ -95,12 +95,18 @@ usuariosDb.serialize(() => {
       usuario TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       nombreComercio TEXT,
+      logo TEXT,
       email TEXT,
       activo INTEGER DEFAULT 1,
       fechaCreacion TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `, (err) => {
     if (err) console.error('❌ Error creando tabla usuarios:', err);
+  });
+
+  // Migración: agregar columna logo si no existe (para BDs existentes)
+  usuariosDb.run('ALTER TABLE usuarios ADD COLUMN logo TEXT', (err) => {
+    // Ignorar error si ya existe
   });
 
   const passwordAdmin = bcrypt.hashSync('admin123', 10);
@@ -397,13 +403,25 @@ app.post('/api/logout', (req, res) => {
 // Sesión actual
 app.get('/api/session', (req, res) => {
   const logueado = !!(req.session && req.session.usuario);
-  // OJO: el frontend (index.html/login.html) espera la key `logueado`
-  return res.json({
-    ok: logueado,
-    logueado,
-    usuario: logueado ? req.session.usuario : null,
-    nombreComercio: logueado ? (req.session.nombreComercio || '') : ''
-  });
+  
+  if (!logueado) {
+    return res.json({ ok: false, logueado: false, usuario: null });
+  }
+
+  // Traer datos frescos de la BD
+  usuariosDb.get(
+    'SELECT nombreComercio, logo FROM usuarios WHERE usuario = ?',
+    [req.session.usuario],
+    (err, row) => {
+      res.json({
+        ok: true,
+        logueado: true,
+        usuario: req.session.usuario,
+        nombreComercio: row?.nombreComercio || '',
+        logo: row?.logo || null
+      });
+    }
+  );
 });
 
 // Crear usuario (admin only, opcional; si no lo querés, lo podés borrar)
@@ -1414,12 +1432,23 @@ app.delete('/api/cambios/:id', requireAuth, (req, res) => {
 
 // ==================== CONFIGURACIÓN (CORREGIDO MULTI-USER) ====================
 
-// Obtener nombre del comercio (desde la sesión del usuario actual)
+// Obtener configuración (nombre y logo del comercio)
 app.get('/api/config', requireAuth, (req, res) => {
-  // Devolvemos el nombre que está guardado en la sesión (o un default)
-  res.json({ 
-      appName: req.session.nombreComercio || 'Mi Comercio' 
-  });
+  const usuario = req.session.usuario;
+  
+  // Buscar en la BD el logo actualizado
+  usuariosDb.get(
+    'SELECT nombreComercio, logo FROM usuarios WHERE usuario = ?',
+    [usuario],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      res.json({ 
+        appName: row?.nombreComercio || req.session.nombreComercio || 'Mi Comercio',
+        logo: row?.logo || null
+      });
+    }
+  );
 });
 
 // Cambiar nombre del comercio (Actualiza la DB de usuarios)
@@ -1442,6 +1471,57 @@ app.post('/api/config/nombre', requireAuth, (req, res) => {
               res.json({ ok: true, nombre });
           });
       }
+  );
+});
+
+// Subir logo del comercio
+app.post('/api/config/logo', requireAuth, upload.single('logo'), (req, res) => {
+  const usuario = req.session.usuario;
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'No se recibió imagen' });
+  }
+
+  // Validar que sea imagen
+  const tiposPermitidos = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
+  if (!tiposPermitidos.includes(req.file.mimetype)) {
+    return res.status(400).json({ error: 'Formato no permitido. Usá PNG, JPG, GIF, WEBP o SVG.' });
+  }
+
+  // Convertir a base64 para guardar en la BD
+  const logoBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+  // Guardar en la tabla de usuarios
+  usuariosDb.run(
+    'UPDATE usuarios SET logo = ? WHERE usuario = ?',
+    [logoBase64, usuario],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      // Actualizar sesión
+      req.session.logo = logoBase64;
+      req.session.save(() => {
+        res.json({ ok: true, logo: logoBase64 });
+      });
+    }
+  );
+});
+
+// Eliminar logo
+app.delete('/api/config/logo', requireAuth, (req, res) => {
+  const usuario = req.session.usuario;
+
+  usuariosDb.run(
+    'UPDATE usuarios SET logo = NULL WHERE usuario = ?',
+    [usuario],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      req.session.logo = null;
+      req.session.save(() => {
+        res.json({ ok: true });
+      });
+    }
   );
 });
 

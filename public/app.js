@@ -30,17 +30,20 @@
     }
 
     async function cargarConfigAdmin() {
-        try {
-            const resp = await fetch('/api/config');
-            if (resp.ok) {
-                const config = await resp.json();
-                document.getElementById('inputAppName').value = config.appName || 'AIRBORN';
-                actualizarNombreApp(config.appName || 'AIRBORN');
-            }
-        } catch (error) {
-            console.error('Error cargando config:', error);
+    try {
+        const resp = await fetch('/api/config');
+        if (resp.ok) {
+            const config = await resp.json();
+            document.getElementById('inputAppName').value = config.appName || 'AIRBORN';
+            actualizarNombreApp(config.appName || 'AIRBORN');
+            
+            // Cargar logo en el modal
+            cargarLogoAdmin(config.logo);
         }
+    } catch (error) {
+        console.error('Error cargando config:', error);
     }
+}
 
     async function guardarNombreApp() {
         const nombre = document.getElementById('inputAppName').value.trim();
@@ -71,6 +74,123 @@
         document.getElementById('appName').textContent = '🛍️ ' + nombre.toUpperCase();
         document.title = nombre + ' - Sistema de Inventario';
     }
+
+// ==================== LOGO DEL COMERCIO ====================
+
+// Preview del logo antes de guardar
+function previewLogo(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const preview = document.getElementById('logoPreview');
+        const placeholder = document.getElementById('logoPlaceholder');
+        
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        
+        document.getElementById('btnGuardarLogo').style.display = 'inline-block';
+    };
+    reader.readAsDataURL(file);
+}
+
+// Guardar logo en el servidor
+async function guardarLogo() {
+    const input = document.getElementById('inputLogo');
+    const file = input.files[0];
+    
+    if (!file) {
+        showToast('⚠️ Seleccioná una imagen primero', 'error');
+        return;
+    }
+
+    // Validar tamaño (max 500KB para no sobrecargar la BD)
+    if (file.size > 500 * 1024) {
+        showToast('⚠️ La imagen es muy grande. Máximo 500KB.', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    try {
+        const resp = await fetch('/api/config/logo', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await resp.json();
+
+        if (resp.ok) {
+            showToast('✅ Logo guardado correctamente', 'success');
+            actualizarLogoHeader(data.logo);
+            document.getElementById('btnEliminarLogo').style.display = 'inline-block';
+            document.getElementById('btnGuardarLogo').style.display = 'none';
+            input.value = ''; // Limpiar input
+        } else {
+            showToast('❌ ' + (data.error || 'Error al guardar'), 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('❌ Error de conexión', 'error');
+    }
+}
+
+// Eliminar logo
+async function eliminarLogo() {
+    if (!confirm('¿Eliminar el logo del comercio?')) return;
+
+    try {
+        const resp = await fetch('/api/config/logo', { method: 'DELETE' });
+
+        if (resp.ok) {
+            showToast('🗑️ Logo eliminado', 'success');
+            
+            // Resetear preview
+            document.getElementById('logoPreview').style.display = 'none';
+            document.getElementById('logoPlaceholder').style.display = 'block';
+            document.getElementById('btnEliminarLogo').style.display = 'none';
+            
+            // Resetear header
+            actualizarLogoHeader(null);
+        }
+    } catch (e) {
+        showToast('❌ Error al eliminar', 'error');
+    }
+}
+
+// Actualizar logo en el header
+function actualizarLogoHeader(logoBase64) {
+    const logoImg = document.getElementById('logoComercio');
+    
+    if (logoBase64) {
+        logoImg.src = logoBase64;
+        logoImg.style.display = 'block';
+    } else {
+        logoImg.src = '';
+        logoImg.style.display = 'none';
+    }
+}
+
+// Cargar logo en el modal de admin
+function cargarLogoAdmin(logoBase64) {
+    const preview = document.getElementById('logoPreview');
+    const placeholder = document.getElementById('logoPlaceholder');
+    const btnEliminar = document.getElementById('btnEliminarLogo');
+    
+    if (logoBase64) {
+        preview.src = logoBase64;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        btnEliminar.style.display = 'inline-block';
+    } else {
+        preview.style.display = 'none';
+        placeholder.style.display = 'block';
+        btnEliminar.style.display = 'none';
+    }
+}    
 
     async function cargarBackups() {
         const logDiv = document.getElementById('backupLog');
@@ -180,14 +300,17 @@
         if (btn) btn.style.display = 'block';
     }
             
-            // Cargar configuración
-            const configResp = await fetch('/api/config');
-            if (configResp.ok) {
-                const config = await configResp.json();
-                if (config.appName) {
-                    actualizarNombreApp(config.appName);
-                }
-            }
+            // Cargar configuración (nombre y logo)
+const configResp = await fetch('/api/config');
+if (configResp.ok) {
+    const config = await configResp.json();
+    if (config.appName) {
+        actualizarNombreApp(config.appName);
+    }
+    if (config.logo) {
+        actualizarLogoHeader(config.logo);
+    }
+}
         } catch (e) {
             console.log('Error verificando sesión:', e);
             window.location.href = '/login.html';
