@@ -1562,6 +1562,11 @@ html += `</div>`;
                                 <strong style="color:${m.tipo === 'ingreso' ? '#155724' : '#721c24'}">
                                     ${formatMoney(m.monto)}
                                 </strong>
+                                <button onclick="editarMovimientoCaja(${m.id}, '${m.detalle.replace(/'/g, "\\'")}')" 
+                    title="Editar detalle"
+                    style="border:none; background:none; cursor:pointer; font-size: 1.1em;">
+                ✎
+            </button>
                                 <button onclick="copiarMovimientoCC('${m.detalle.replace(/'/g, "\\'")}', ${m.monto}, '${m.tipo}', '${fecha}')" 
                             title="Crear en Cuenta Corriente"
                             style="border:none; background:none; cursor:pointer; font-size: 1.1em;">
@@ -2384,6 +2389,11 @@ async function cargarCuentas() {
                                         ${m.tipo === 'deuda' ? '📈 Deuda' : '💰 A Favor'}
                                     </span>
                                     <span class="movimiento-monto">${formatMoney(m.monto)}</span>
+                                    <button onclick="editarMovimientoCuenta(${m.id}, '${(m.comentario || '').replace(/'/g, "\\'")}')"
+                    title="Editar comentario"
+                    style="border:none; background:none; cursor:pointer; color:#666;">
+                ✎
+            </button>
                                 </div>
                                 <div class="movimiento-fecha">📅 ${m.fecha}</div>
                                 ${m.comentario ? `<div class="movimiento-comentario">💬 ${m.comentario}</div>` : ''}
@@ -4504,5 +4514,51 @@ async function copiarMovimientoCC(detalle, monto, tipoCaja, fecha) {
     } catch (e) {
         console.error(e);
         showToast('❌ Error: ' + e.message, 'error');
+    }
+}
+
+// --- FUNCIONES PARA EDITAR MOVIMIENTOS ---
+
+async function editarMovimientoCaja(id, textoActual) {
+    const nuevoTexto = prompt("Editar detalle del movimiento:", textoActual);
+    if (nuevoTexto === null) return; // Cancelar
+
+    try {
+        const resp = await fetch(`/api/caja/movimiento/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ detalle: nuevoTexto.trim() })
+        });
+
+        if (resp.ok) {
+            showToast('✅ Detalle actualizado', 'success');
+            if (typeof fechaSeleccionada !== 'undefined') cargarVentasDelDia(fechaSeleccionada);
+        } else {
+            alert('Error al actualizar');
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function editarMovimientoCuenta(id, textoActual) {
+    const nuevoTexto = prompt("Editar comentario de la cuenta:", textoActual);
+    if (nuevoTexto === null) return; // Cancelar
+
+    try {
+        const resp = await fetch(`/api/cuentas/movimiento/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ comentario: nuevoTexto.trim() })
+        });
+
+        if (resp.ok) {
+            showToast('✅ Comentario actualizado', 'success');
+            cargarCuentas(); // Recargamos para ver el cambio en el historial
+        } else {
+            alert('Error al actualizar');
+        }
+    } catch (e) {
+        console.error(e);
     }
 }

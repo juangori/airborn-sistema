@@ -1780,3 +1780,29 @@ app.listen(PORT, () => {
   console.log('📌 Usuario por defecto: admin');
   console.log('📌 Contraseña por defecto: admin123');
 });
+
+// ==================== EDICIÓN DE COMENTARIOS (EXTRA) ====================
+
+// 1. Editar detalle de Movimiento de Caja (Entrada/Salida)
+app.put('/api/caja/movimiento/:id', requireAuth, (req, res) => {
+    const db = req.db;
+    const { id } = req.params;
+    const { detalle } = req.body;
+
+    db.run("UPDATE movimientosCaja SET detalle = ? WHERE id = ?", [detalle, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ ok: true });
+    });
+});
+
+// 2. Editar comentario de Movimiento en Cuenta Corriente
+app.put('/api/cuentas/movimiento/:id', requireAuth, (req, res) => {
+    const db = req.db;
+    const { id } = req.params;
+    const { comentario } = req.body; // Recibimos "comentario"
+
+    db.run("UPDATE movimientosCuentas SET comentario = ? WHERE id = ?", [comentario, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ ok: true });
+    });
+});
