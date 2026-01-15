@@ -1381,6 +1381,8 @@ function generarDiasDelMes() {
 
 function seleccionarDia(fecha) {
     fechaSeleccionada = fecha;
+    const inputFecha = document.getElementById('fecha');
+    if (inputFecha) inputFecha.value = fecha;
     generarDiasDelMes(); // Re-renderizar para actualizar el activo
     cargarVentasDelDia(fecha);
     cargarCajaInicial(fecha);
@@ -1411,6 +1413,9 @@ async function cargarVentasDelDia(fecha) {
         const inputCaja = document.getElementById('cajaInicial');
         if(inputCaja) inputCaja.value = cajaData.monto > 0 ? formatMonedaInput(cajaData.monto) : '';
         const montoCajaInicial = cajaData.monto || 0;
+
+        // --- NUEVO: Guardar total de ventas en el DOM para calcular rápido ---
+        document.getElementById('cajaInicial').dataset.totalVentas = totalVentas;
 
         // Filtrar ventas de ESTE día
         const ventasDelDia = ventasDelMes.filter(v => v.fecha === fecha);
@@ -1560,6 +1565,11 @@ html += `</div>`;
                                 <strong style="color:${m.tipo === 'ingreso' ? '#155724' : '#721c24'}">
                                     ${formatMoney(m.monto)}
                                 </strong>
+                                <button onclick="copiarMovimientoCC('${m.detalle.replace(/'/g, "\\'")}', ${m.monto}, '${m.tipo}', '${fecha}')" 
+                            title="Crear en Cuenta Corriente"
+                            style="border:none; background:none; cursor:pointer; font-size: 1.1em;">
+                        👤
+                    </button>
                                 <button onclick="eliminarMovimientoCaja(${m.id}, '${fecha}')" style="border:none; background:none; cursor:pointer; color:#999;">&times;</button>
                             </div>
                         </div>
@@ -1586,7 +1596,7 @@ html += `</div>`;
 
                     <div style="text-align:right; border-left:1px solid rgba(255,255,255,0.2); padding-left:20px;">
                         <div style="opacity:0.9; font-size:1em; margin-bottom:5px;">TOTAL VENTAS + CAJA</div>
-                        <div style="font-size:2.2em; font-weight:800; line-height:1;">${formatMoney(totalEnCaja)}</div>
+                        <div id="displayTotalFinal" style="font-size:2.2em; font-weight:800; line-height:1;">${formatMoney(totalEnCaja)}</div>
                     </div>
                 </div>
 
@@ -4430,5 +4440,68 @@ async function eliminarCatalogoCompleto() {
     } catch (e) {
         console.error(e);
         showToast('❌ Error de conexión', 'error');
+    }
+}
+async function copiarMovimientoCC(detalle, monto, tipoCaja, fecha) {
+    // 1. Pedir nombre del cliente
+    const cliente = prompt(`Pasar movimiento a Cta. Cte.\n"${detalle}" ($${monto})\n\nIngresá el nombre del Cliente:`);
+    if (!cliente || !cliente.trim()) return;
+
+    // 2. Definir lógica: 
+    // Si entró plata a la caja (Ingreso) -> Es un PAGO del cliente (A favor).
+    // Si salió plata de la caja (Egreso) -> Es DEUDA (Le prestamos o gastamos en él).
+    const tipoCC = tipoCaja === 'ingreso' ? 'pago' : 'deuda';
+    const comentario = `Desde Caja: ${detalle}`;
+
+    try {
+        // A. Asegurar que la cuenta exista (si no, la crea)
+        await fetch('/api/cuentas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cliente: cliente })
+        });
+
+        // B. Registrar el movimiento
+        const resp = await fetch(`/api/cuentas/${encodeURIComponent(cliente)}/movimiento`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tipo: tipoCC,
+                monto: monto,
+                fecha: fecha,
+                comentario: comentario
+            })
+        });
+
+        if (resp.ok) {
+            showToast(`✅ Movimiento copiado a ${cliente} (${tipoCC})`, 'success');
+        } else {
+            throw new Error('Error al registrar en cuenta');
+        }
+
+    } catch (e) {
+        console.error(e);
+        showToast('❌ Error: ' + e.message, 'error');
+    }
+}
+
+function actualizarTotalCajaTiempoReal(input) {
+    // 1. Obtener valor actual del input (limpiando símbolos)
+    const valStr = input.value.replace(/[^\d]/g, '');
+    const cajaInicial = parseInt(valStr) || 0;
+
+    // 2. Obtener total de ventas (que guardamos en el paso anterior)
+    const totalVentas = parseFloat(input.dataset.totalVentas) || 0;
+
+    // 3. Sumar
+    const totalFinal = cajaInicial + totalVentas;
+
+    // 4. Actualizar el número gigante de abajo
+    // Buscamos el div que tiene el total final. Como no tiene ID fácil, 
+    // lo mejor es agregarle un ID en el paso siguiente, 
+    // pero si no, buscamos por clase o estructura.
+    const elementoTotal = document.getElementById('displayTotalFinal');
+    if (elementoTotal) {
+        elementoTotal.textContent = formatMoney(totalFinal);
     }
 }
