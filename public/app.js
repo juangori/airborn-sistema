@@ -71,9 +71,19 @@
     }
 
     function actualizarNombreApp(nombre) {
-        document.getElementById('appName').textContent = '🛍️ ' + nombre.toUpperCase();
-        document.title = nombre + ' - Sistema de Inventario';
+    const appNameElement = document.getElementById('appName');
+    const logoImg = document.getElementById('logoComercio');
+    
+    // Si hay logo visible, solo actualizamos el texto sin emoji
+    if (logoImg && logoImg.style.display !== 'none' && logoImg.src) {
+        appNameElement.textContent = nombre.toUpperCase();
+    } else {
+        // Si NO hay logo, mostramos el emoji
+        appNameElement.textContent = '🛍️ ' + nombre.toUpperCase();
     }
+    
+    document.title = nombre + ' - Sistema de Inventario';
+}
 
 // ==================== LOGO DEL COMERCIO ====================
 

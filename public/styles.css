@@ -67,6 +67,10 @@ header p {
     opacity: 0.9;
 }
 
+img#logoComercio {
+    margin-bottom: 25px;
+}
+
 /* Botón Admin */
 .admin-btn {
     background: rgba(255,255,255,0.2);
