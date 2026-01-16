@@ -136,8 +136,8 @@ app.use(express.static('public', { index: false }));
 // ==================== VALIDACIONES JOI ====================
 const schemas = {
   login: Joi.object({
-    usuario: Joi.string().alphanum().min(3).max(30).required(),
-    password: Joi.string().min(4).max(100).required()
+    usuario: Joi.string().min(1).max(50).required(),
+    password: Joi.string().min(1).max(100).required()
   }),
   crearUsuario: Joi.object({
     usuario: Joi.string().alphanum().min(3).max(30).required(),
