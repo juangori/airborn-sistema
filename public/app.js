@@ -34,8 +34,8 @@
         const resp = await fetch('/api/config');
         if (resp.ok) {
             const config = await resp.json();
-            document.getElementById('inputAppName').value = config.appName || 'AIRBORN';
-            actualizarNombreApp(config.appName || 'AIRBORN');
+            document.getElementById('inputAppName').value = config.appName || 'Mi Comercio';
+            actualizarNombreApp(config.appName || 'Mi Comercio');
             
             // Cargar logo en el modal
             cargarLogoAdmin(config.logo);
@@ -78,8 +78,8 @@
     if (logoImg && logoImg.style.display !== 'none' && logoImg.src) {
         appNameElement.textContent = nombre.toUpperCase();
     } else {
-        // Si NO hay logo, mostramos el emoji
-        appNameElement.textContent = '🛍️ ' + nombre.toUpperCase();
+        // Si NO hay logo, mostramos solo el nombre
+        appNameElement.textContent = nombre.toUpperCase();
     }
     
     document.title = nombre + ' - Sistema de Inventario';
