@@ -4,7 +4,11 @@
   "description": "Sistema de gestión de inventario para Airborn",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -12,8 +16,16 @@
     "cors": "^2.8.5",
     "csv-parser": "^3.0.0",
     "express": "^4.18.2",
+    "express-rate-limit": "^8.2.1",
     "express-session": "^1.18.2",
+    "helmet": "^8.1.0",
+    "joi": "^18.0.2",
     "multer": "^1.4.5-lts.1",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.6",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "supertest": "^7.2.2"
   }
 }

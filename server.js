@@ -9,6 +9,9 @@ const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const { Readable } = require('stream');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const Joi = require('joi');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -57,29 +60,124 @@ const CONFIG_FILE = './config.json';
 });
 
 // ==================== MIDDLEWARE ====================
-app.use(cors({ credentials: true, origin: true }));
-app.use(bodyParser.json());
-
-// Sesiones (en Railway conviene setear secret con env var)
 const isProduction = process.env.NODE_ENV === 'production';
 
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'secreto_super_seguro_cambiar',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: true, // ¡Ahora sí! Forzamos cookies seguras
-    httpOnly: true,
-    sameSite: 'lax', // Recomendado para cookies modernas
-    maxAge: 24 * 60 * 60 * 1000
-  }
+// Seguridad: SESSION_SECRET obligatorio en producción
+if (isProduction && !process.env.SESSION_SECRET) {
+  console.error('❌ FATAL: SESSION_SECRET es obligatorio en producción');
+  process.exit(1);
+}
+
+// Seguridad: Helmet (headers de seguridad)
+app.use(helmet({
+  contentSecurityPolicy: false, // Deshabilitado para evitar conflictos con scripts inline
+  crossOriginEmbedderPolicy: false
 }));
+
+// Seguridad: CORS restringido
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:5000'];
+
+app.use(cors({
+  credentials: true,
+  origin: isProduction
+    ? (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('No permitido por CORS'));
+        }
+      }
+    : true // En desarrollo permitir todo
+}));
+
+app.use(bodyParser.json({ limit: '10mb' }));
+
+// Seguridad: Rate limiting general
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 1000, // máximo 1000 requests por ventana
+  message: { error: 'Demasiadas solicitudes, intentá más tarde' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use(generalLimiter);
+
+// Seguridad: Rate limiting estricto para login (anti brute-force)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // máximo 5 intentos de login por ventana
+  message: { error: 'Demasiados intentos de login. Esperá 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true // No contar logins exitosos
+});
 
 // Importante: Para que las cookies seguras funcionen en Railway (que usa proxy)
 app.set('trust proxy', 1);
 
+// Sesiones
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'dev_secret_cambiar_en_prod',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: isProduction, // Solo HTTPS en producción
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
+
 // Servir estáticos, pero NO servir index.html automáticamente
 app.use(express.static('public', { index: false }));
+
+// ==================== VALIDACIONES JOI ====================
+const schemas = {
+  login: Joi.object({
+    usuario: Joi.string().alphanum().min(3).max(30).required(),
+    password: Joi.string().min(4).max(100).required()
+  }),
+  crearUsuario: Joi.object({
+    usuario: Joi.string().alphanum().min(3).max(30).required(),
+    password: Joi.string().min(6).max(100).required(),
+    nombreComercio: Joi.string().max(100).allow('').optional(),
+    email: Joi.string().email().allow('').optional()
+  }),
+  venta: Joi.object({
+    fecha: Joi.string().required(),
+    articulo: Joi.string().allow('').optional(),
+    cantidad: Joi.number().integer().min(1).required(),
+    precio: Joi.number().min(0).required(),
+    descuento: Joi.number().min(0).max(100).default(0),
+    categoria: Joi.string().allow('').optional(),
+    factura: Joi.string().allow('').optional(),
+    tipoPago: Joi.string().allow('').optional(),
+    comentarios: Joi.string().allow('').optional()
+  }),
+  productoNuevo: Joi.object({
+    codigo: Joi.string().max(50).required(),
+    descripcion: Joi.string().max(200).required(),
+    categoria: Joi.string().max(50).allow('').optional(),
+    precio: Joi.number().min(0).default(0),
+    costo: Joi.number().min(0).default(0),
+    stock: Joi.number().integer().min(0).default(0)
+  }),
+  stockUpdate: Joi.object({
+    codigo: Joi.string().required(),
+    nuevoStock: Joi.number().integer().min(0).required()
+  })
+};
+
+// Helper para validar con Joi
+function validar(schema, data) {
+  const { error, value } = schema.validate(data, { stripUnknown: true });
+  if (error) {
+    return { error: error.details[0].message };
+  }
+  return { value };
+}
 
 // ==================== BASE DE DATOS DE USUARIOS ====================
 const usuariosDb = new sqlite3.Database(USUARIOS_DB, (err) => {
@@ -226,11 +324,30 @@ function inicializarBdCliente(db) {
       CREATE TABLE IF NOT EXISTS movimientosCaja (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         fecha TEXT,
-        tipo TEXT, 
+        tipo TEXT,
         monto REAL,
         detalle TEXT
       )
     `);
+
+    // ==================== ÍNDICES PARA MEJOR RENDIMIENTO ====================
+    // Índices en productos
+    db.run('CREATE INDEX IF NOT EXISTS idx_productos_codigo ON productos(codigo)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_productos_categoria ON productos(categoria)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_productos_descripcion ON productos(descripcion)');
+
+    // Índices en ventas
+    db.run('CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ventas(fecha)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_ventas_codigoArticulo ON ventas(codigoArticulo)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_ventas_tipoPago ON ventas(tipoPago)');
+
+    // Índices en cuentas corrientes
+    db.run('CREATE INDEX IF NOT EXISTS idx_cc_cliente ON cuentasCorrientes(cliente)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_movcc_cliente ON movimientosCuentas(cliente)');
+    db.run('CREATE INDEX IF NOT EXISTS idx_movcc_fecha ON movimientosCuentas(fecha)');
+
+    // Índices en movimientos de caja
+    db.run('CREATE INDEX IF NOT EXISTS idx_movcaja_fecha ON movimientosCaja(fecha)');
   });
 }
 
@@ -364,30 +481,32 @@ app.get('/', (req, res) => {
   return res.redirect('/login.html');
 });
 
-// Login
-app.post('/api/login', (req, res) => {
-  const { usuario, password } = req.body;
-
-  if (!usuario || !password) {
-    return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
+// Login (con rate limiting y validación Joi)
+app.post('/api/login', loginLimiter, (req, res) => {
+  // Validar input con Joi
+  const { error, value } = validar(schemas.login, req.body);
+  if (error) {
+    return res.status(400).json({ error });
   }
+
+  const { usuario, password } = value;
 
   usuariosDb.get(
     'SELECT * FROM usuarios WHERE usuario = ? AND activo = 1',
-    [usuario.trim()],
+    [usuario],
     (err, row) => {
       if (err) return res.status(500).json({ error: 'Error BD usuarios' });
-      if (!row) return res.status(401).json({ error: 'Usuario no existe' });
+      if (!row) return res.status(401).json({ error: 'Credenciales inválidas' });
 
       const ok = bcrypt.compareSync(password, row.password);
-      if (!ok) return res.status(401).json({ error: 'Contraseña incorrecta' });
+      if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' });
 
       req.session.usuario = row.usuario;
       req.session.nombreComercio = row.nombreComercio || '';
       // Forzar carga de DB
       obtenerDbUsuario(row.usuario);
 
-      // Asegurar que la sesión se guarde antes de responder (evita "login y te saca" en algunos casos)
+      // Asegurar que la sesión se guarde antes de responder
       req.session.save(() => {
         res.json({ ok: true, usuario: row.usuario, nombreComercio: row.nombreComercio || '' });
       });
@@ -424,15 +543,20 @@ app.get('/api/session', (req, res) => {
   );
 });
 
-// Crear usuario (admin only, opcional; si no lo querés, lo podés borrar)
+// Crear usuario (con validación Joi)
 app.post('/api/usuarios', (req, res) => {
-  const { usuario, password, nombreComercio, email } = req.body || {};
-  if (!usuario || !password) return res.status(400).json({ error: 'usuario y password requeridos' });
+  // Validar input con Joi
+  const { error, value } = validar(schemas.crearUsuario, req.body);
+  if (error) {
+    return res.status(400).json({ error });
+  }
 
+  const { usuario, password, nombreComercio, email } = value;
   const hash = bcrypt.hashSync(password, 10);
+
   usuariosDb.run(
     `INSERT INTO usuarios (usuario, password, nombreComercio, email) VALUES (?, ?, ?, ?)`,
-    [usuario.trim(), hash, nombreComercio || '', email || ''],
+    [usuario, hash, nombreComercio || '', email || ''],
     function (err) {
       if (err) {
         if ((err.message || '').includes('UNIQUE')) return res.status(409).json({ error: 'Usuario ya existe' });
@@ -489,22 +613,18 @@ app.get('/api/productos', requireAuth, (req, res) => {
   });
 });
 
-// 3. REGISTRAR VENTA (CON TRANSACCIÓN)
+// 3. REGISTRAR VENTA (CON TRANSACCIÓN Y VALIDACIÓN)
 app.post('/api/ventas', requireAuth, async (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
 
-  const {
-    fecha, articulo, cantidad, precio, descuento = 0,
-    categoria, factura, tipoPago, comentarios
-  } = req.body;
-
-  // Validamos (quitamos !articulo para permitir ventas sin código)
-  if (!fecha || cantidad === undefined || precio === undefined) {
-    return res.status(400).json({ error: 'Datos incompletos' });
+  // Validar input con Joi
+  const { error, value } = validar(schemas.venta, req.body);
+  if (error) {
+    return res.status(400).json({ error });
   }
 
-  // Aseguramos que si no hay artículo, se guarde como string vacío o "VARIOS"
+  const { fecha, articulo, cantidad, precio, descuento, categoria, factura, tipoPago, comentarios } = value;
   const articuloFinal = articulo || '';
 
   try {
@@ -517,12 +637,12 @@ app.post('/api/ventas', requireAuth, async (req, res) => {
       (fecha, codigoArticulo, cantidad, precio, descuento, categoria, factura, tipoPago, detalles, caja)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      fecha, articuloFinal, cantidad, precio, descuento, // <--- Usamos articuloFinal
+      fecha, articuloFinal, cantidad, precio, descuento,
       categoria || '', factura || 'A', tipoPago || '',
       comentarios || '', 'A'
     ]);
 
-    // 3. Descontamos stock
+    // 4. Descontamos stock
     if (articuloFinal) {
         await dbRun(db, 'UPDATE productos SET stock = stock - ? WHERE codigo = ?', [cantidad, articuloFinal]);
     }
@@ -1302,26 +1422,28 @@ app.get('/api/ventas/comparativa', requireAuth, async (req, res) => {
 
 // ==================== PRODUCTOS Y STOCK INDIVIDUAL ====================
 
-// 1. CREAR PRODUCTO NUEVO (INDIVIDUAL)
+// 1. CREAR PRODUCTO NUEVO (INDIVIDUAL, CON VALIDACIÓN)
 app.post('/api/productos/nuevo', requireAuth, async (req, res) => {
     const db = req.db;
-    const { codigo, descripcion, categoria, precio, costo, stock } = req.body;
 
-    if (!codigo || !descripcion) {
-        return res.status(400).json({ error: 'Código y Descripción son obligatorios' });
+    // Validar input con Joi
+    const { error, value } = validar(schemas.productoNuevo, req.body);
+    if (error) {
+        return res.status(400).json({ error });
     }
 
+    const { codigo, descripcion, categoria, precio, costo, stock } = value;
+
     try {
-        await dbRun(db, 
-            `INSERT INTO productos (codigo, descripcion, categoria, precioPublico, costo, stock) 
+        await dbRun(db,
+            `INSERT INTO productos (codigo, descripcion, categoria, precioPublico, costo, stock)
              VALUES (?, ?, ?, ?, ?, ?)`,
-            [codigo, descripcion, categoria || 'General', precio || 0, costo || 0, stock || 0]
+            [codigo, descripcion, categoria || 'General', precio, costo, stock]
         );
-        
+
         crearBackup(req.session.usuario, 'Producto Creado', `Alta: ${codigo} (${descripcion})`);
         res.json({ ok: true, mensaje: 'Producto creado exitosamente' });
     } catch (e) {
-        // Error común: Código duplicado (SQLITE_CONSTRAINT)
         if (e.message.includes('UNIQUE')) {
             return res.status(400).json({ error: 'El código ya existe' });
         }
@@ -1329,15 +1451,20 @@ app.post('/api/productos/nuevo', requireAuth, async (req, res) => {
     }
 });
 
-// 2. ACTUALIZAR STOCK INDIVIDUAL (EDICIÓN RÁPIDA EN TABLA)
+// 2. ACTUALIZAR STOCK INDIVIDUAL (EDICIÓN RÁPIDA EN TABLA, CON VALIDACIÓN)
 app.put('/api/productos/stock/unitario', requireAuth, async (req, res) => {
     const db = req.db;
-    const { codigo, nuevoStock } = req.body;
+
+    // Validar input con Joi
+    const { error, value } = validar(schemas.stockUpdate, req.body);
+    if (error) {
+        return res.status(400).json({ error });
+    }
+
+    const { codigo, nuevoStock } = value;
 
     try {
         await dbRun(db, "UPDATE productos SET stock = ? WHERE codigo = ?", [nuevoStock, codigo]);
-        // Opcional: No generamos backup por cada click para no saturar, o sí, depende tu gusto.
-        // crearBackup(req.session.usuario, 'Ajuste Stock', `${codigo} -> ${nuevoStock}`);
         res.json({ ok: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -1855,10 +1982,95 @@ app.delete('/api/caja/movimiento/:id', requireAuth, (req, res) => {
     });
 });
 
+// ==================== HEALTH CHECK ====================
+app.get('/api/health', (req, res) => {
+  const healthcheck = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    environment: isProduction ? 'production' : 'development'
+  };
+
+  // Verificar conexión a BD de usuarios
+  usuariosDb.get('SELECT 1', (err) => {
+    if (err) {
+      healthcheck.status = 'degraded';
+      healthcheck.database = 'error';
+    } else {
+      healthcheck.database = 'ok';
+    }
+    res.json(healthcheck);
+  });
+});
+
+// ==================== MANEJO CENTRALIZADO DE ERRORES ====================
+// Middleware para errores no capturados en rutas
+app.use((err, req, res, next) => {
+  console.error('❌ Error no manejado:', err.stack);
+
+  // No exponer detalles del error en producción
+  const mensaje = isProduction
+    ? 'Error interno del servidor'
+    : err.message;
+
+  res.status(err.status || 500).json({
+    error: mensaje,
+    ...(isProduction ? {} : { stack: err.stack })
+  });
+});
+
+// Ruta 404 para APIs
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'Endpoint no encontrado' });
+});
+
+// ==================== CIERRE GRACEFUL ====================
+function cerrarConexiones() {
+  console.log('\n🔄 Cerrando conexiones...');
+
+  // Cerrar BD de usuarios
+  usuariosDb.close((err) => {
+    if (err) console.error('Error cerrando BD usuarios:', err);
+    else console.log('✅ BD usuarios cerrada');
+  });
+
+  // Cerrar todas las BDs de clientes
+  Object.entries(conexionesDb).forEach(([usuario, db]) => {
+    db.close((err) => {
+      if (err) console.error(`Error cerrando BD de ${usuario}:`, err);
+      else console.log(`✅ BD de ${usuario} cerrada`);
+    });
+  });
+}
+
+// Escuchar señales de terminación
+process.on('SIGINT', () => {
+  cerrarConexiones();
+  setTimeout(() => process.exit(0), 1000);
+});
+
+process.on('SIGTERM', () => {
+  cerrarConexiones();
+  setTimeout(() => process.exit(0), 1000);
+});
+
+// Errores no capturados globalmente
+process.on('uncaughtException', (err) => {
+  console.error('❌ Excepción no capturada:', err);
+  cerrarConexiones();
+  setTimeout(() => process.exit(1), 1000);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Promesa rechazada no manejada:', reason);
+});
+
+// ==================== INICIAR SERVIDOR ====================
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log('📌 Usuario por defecto: admin');
-  console.log('📌 Contraseña por defecto: admin123');
+  console.log(`📌 Entorno: ${isProduction ? 'PRODUCCIÓN' : 'desarrollo'}`);
+  console.log('📌 Usuario por defecto: admin / admin123');
 });
 
 // ==================== EDICIÓN DE COMENTARIOS (EXTRA) ====================
