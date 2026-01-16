@@ -483,35 +483,52 @@ app.get('/', (req, res) => {
 
 // Login (con rate limiting y validación Joi)
 app.post('/api/login', loginLimiter, (req, res) => {
-  // Validar input con Joi
-  const { error, value } = validar(schemas.login, req.body);
-  if (error) {
-    return res.status(400).json({ error });
-  }
-
-  const { usuario, password } = value;
-
-  usuariosDb.get(
-    'SELECT * FROM usuarios WHERE usuario = ? AND activo = 1',
-    [usuario],
-    (err, row) => {
-      if (err) return res.status(500).json({ error: 'Error BD usuarios' });
-      if (!row) return res.status(401).json({ error: 'Credenciales inválidas' });
-
-      const ok = bcrypt.compareSync(password, row.password);
-      if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' });
-
-      req.session.usuario = row.usuario;
-      req.session.nombreComercio = row.nombreComercio || '';
-      // Forzar carga de DB
-      obtenerDbUsuario(row.usuario);
-
-      // Asegurar que la sesión se guarde antes de responder
-      req.session.save(() => {
-        res.json({ ok: true, usuario: row.usuario, nombreComercio: row.nombreComercio || '' });
-      });
+  try {
+    // Validar input con Joi
+    const { error, value } = validar(schemas.login, req.body);
+    if (error) {
+      console.log('Login: Error validación Joi:', error);
+      return res.status(400).json({ error });
     }
-  );
+
+    const { usuario, password } = value;
+    console.log('Login: Intentando login para usuario:', usuario);
+
+    usuariosDb.get(
+      'SELECT * FROM usuarios WHERE usuario = ? AND activo = 1',
+      [usuario],
+      (err, row) => {
+        if (err) {
+          console.error('Login: Error BD:', err);
+          return res.status(500).json({ error: 'Error BD usuarios' });
+        }
+        if (!row) {
+          console.log('Login: Usuario no encontrado:', usuario);
+          return res.status(401).json({ error: 'Credenciales inválidas' });
+        }
+
+        const ok = bcrypt.compareSync(password, row.password);
+        if (!ok) {
+          console.log('Login: Password incorrecto para:', usuario);
+          return res.status(401).json({ error: 'Credenciales inválidas' });
+        }
+
+        req.session.usuario = row.usuario;
+        req.session.nombreComercio = row.nombreComercio || '';
+        // Forzar carga de DB
+        obtenerDbUsuario(row.usuario);
+
+        // Asegurar que la sesión se guarde antes de responder
+        req.session.save(() => {
+          console.log('Login: Éxito para:', usuario);
+          res.json({ ok: true, usuario: row.usuario, nombreComercio: row.nombreComercio || '' });
+        });
+      }
+    );
+  } catch (e) {
+    console.error('Login: Excepción:', e);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
 // Logout
