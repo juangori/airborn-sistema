@@ -1224,6 +1224,7 @@ function actualizarTotalACobrar() {
   const cantidadField = document.getElementById('cantidad');
   const descuentoField = document.getElementById('descuento');
   const totalInput = document.getElementById('totalACobrar');
+  const totalExacto = document.getElementById('totalExacto');
 
   const precio = parseFloat(precioField.value) || 0;
   const cantidadValor = parseInt(cantidadField.value);
@@ -1231,25 +1232,43 @@ function actualizarTotalACobrar() {
   const descuento = parseInt(descuentoField.value) || 0;
 
   if (precio === 0) {
-    totalInput.value = 0;
+    totalInput.value = '$0';
     totalInput.style.background = '#6c757d';
+    totalExacto.classList.remove('visible');
+    return;
+  }
+
+  // Si cantidad es -1 (devolución), total siempre es 0
+  if (cantidad === -1) {
+    totalInput.value = '$0';
+    totalInput.style.background = '#dc3545'; // Rojo para devolución
+    totalInput.style.color = 'white';
+    totalExacto.classList.remove('visible');
     return;
   }
 
   const precioConDescuento = precio * (1 - (descuento / 100));
 
   // Si cantidad es 0, total = precio. Si no, multiplicamos.
-  let total = (cantidad === 0) ? precioConDescuento : (precioConDescuento * cantidad);
+  let totalSinRedondear = (cantidad === 0) ? precioConDescuento : (precioConDescuento * cantidad);
+  let totalRedondeado;
 
   // Redondear al múltiplo de 50 más cercano (para facilitar vuelto)
-  // Ej: 89091 → 89100, 89001 → 89000, 114035 → 114050, 114025 → 114000
   if (descuento > 0) {
-    total = Math.round(total / 50) * 50;
+    totalRedondeado = Math.round(totalSinRedondear / 50) * 50;
+    // Mostrar total exacto si hay diferencia
+    if (Math.abs(totalRedondeado - totalSinRedondear) > 0.5) {
+      totalExacto.textContent = formatMoney(Math.round(totalSinRedondear));
+      totalExacto.classList.add('visible');
+    } else {
+      totalExacto.classList.remove('visible');
+    }
   } else {
-    total = Math.round(total);
+    totalRedondeado = Math.round(totalSinRedondear);
+    totalExacto.classList.remove('visible');
   }
 
-  totalInput.value = total;
+  totalInput.value = formatMoney(totalRedondeado);
 
   // Cambiar color según descuento
   if (descuento > 0) {
@@ -1321,8 +1340,9 @@ document.getElementById('descuento').addEventListener('change', actualizarTotalA
         }
         
         // Obtener total del input (puede ser editado manualmente)
+        // Parsear quitando $ y puntos de miles
         const totalInput = document.getElementById('totalACobrar');
-        const totalManual = parseFloat(totalInput.value) || 0;
+        const totalManual = parseFloat(totalInput.value.replace(/[$.]/g, '').replace(',', '.')) || 0;
         const descuentoOriginal = esCambio ? 0 : (parseInt(document.getElementById('descuento').value) || 0);
 
         // Calcular qué precio unitario debería ser según el total ingresado
@@ -1336,9 +1356,10 @@ document.getElementById('descuento').addEventListener('change', actualizarTotalA
         const precioCalculado = totalManual / cantidadParaCalculo;
 
         // Verificar si el usuario modificó el total manualmente
+        const totalSinRedondear = precio * (1 - descuentoOriginal / 100) * cantidadParaCalculo;
         const totalEsperado = descuentoOriginal > 0
-            ? Math.ceil(precio * (1 - descuentoOriginal / 100) * cantidadParaCalculo)
-            : Math.round(precio * cantidadParaCalculo);
+            ? Math.round(totalSinRedondear / 50) * 50
+            : Math.round(totalSinRedondear);
 
         if (Math.abs(totalManual - totalEsperado) > 1) {
             // El usuario editó el total manualmente, usar ese precio y sin descuento

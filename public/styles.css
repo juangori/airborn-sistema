@@ -699,6 +699,19 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
 }
 
+.total-exacto {
+  font-size: 0.7em;
+  color: #aaa;
+  text-decoration: line-through;
+  text-align: center;
+  display: none;
+  margin-bottom: 2px;
+}
+
+.total-exacto.visible {
+  display: block;
+}
+
 .total-display:not(:empty) {
   animation: pulse-total 0.3s ease;
 }
