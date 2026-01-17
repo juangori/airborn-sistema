@@ -3013,15 +3013,11 @@ async function cargarHistorico() {
         ventasFiltradas = [];
         renderHistorico(anio, meses);
         
-        // CORRECCIÓN: Solo actualizar gráficos si la sección YA está visible.
-        // Nunca forzar la apertura automática.
-        /*const seccion = document.getElementById('seccionGraficos');
-        if (seccion && seccion.style.display === 'block') {
-            generarGraficos();
-        } */
-
-        // Siempre regenerar gráficos porque ahora está abierto por default
+        // OPTIMIZACIÓN: Solo generar gráficos si la sección está visible
+    const seccion = document.getElementById('seccionGraficos');
+    if (seccion && seccion.style.display !== 'none') {
         generarGraficos();
+    }
 
     } catch (err) {
         console.error('Error histórico:', err);
