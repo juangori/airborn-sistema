@@ -846,8 +846,8 @@ input:focus, textarea:focus, select:focus {
 /* Contenedor del encabezado y las filas */
 .ventas-tabla-grid {
     display: grid;
-    /* Ref | Articulo | Descripcion | Categ | Cant | Precio | % | Total | Pago | Borrar */
-    grid-template-columns: 70px 90px 2fr 120px 50px 95px 55px 95px 115px 50px;
+    /* Ref | Articulo | Descripcion | Categ | Cant | Precio | % | Total | Pago | FC | Borrar */
+    grid-template-columns: 70px 90px 2fr 120px 50px 95px 55px 95px 115px 35px 50px;
     gap: 8px;
     align-items: center;
     background: white;

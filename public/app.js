@@ -1681,14 +1681,15 @@ async function cargarVentasDelDia(fecha) {
             html += `
                 <div class="ventas-tabla-grid venta-header">
                     <div>Ref</div>
-                    <div>Artículo</div>   <div>Producto</div>   
-                    <div>Categ.</div>     
+                    <div>Artículo</div>   <div>Producto</div>
+                    <div>Categ.</div>
                     <div style="text-align:center">Cant.</div>
                     <div style="text-align:right">Precio</div>
                     <div style="text-align:center">%</div>
                     <div style="text-align:right">Total</div>
                     <div>Pago</div>
-                    <div style="text-align:center">🗑️</div> 
+                    <div style="text-align:center">FC</div>
+                    <div style="text-align:center">🗑️</div>
                 </div>
             `;
             html += ventasDelDia.map(v => {
@@ -1733,6 +1734,7 @@ async function cargarVentasDelDia(fecha) {
         <div class="venta-detail" style="text-align:center; font-size:0.8em;">${v.descuento ? v.descuento+'%' : '-'}</div>
         <div class="venta-detail" style="text-align:right; font-weight:bold;">${esDev ? 'Dev.' : formatMoney(total)}</div>
         <div class="venta-detail texto-cortado" title="${v.tipoPago}" style="font-size:0.85em;">${v.tipoPago}</div>
+        <div class="venta-detail" style="text-align:center; font-weight:bold; color:${(v.factura || '').toUpperCase() === 'A' ? '#e74c3c' : '#3498db'};">${(v.factura || '-').toUpperCase()}</div>
         <div class="celda-eliminar" style="display: flex; gap: 5px; justify-content: center;">
             <button class="btn-eliminar-venta" 
                     onclick="editarComentarioVenta(${v.id}, '${(v.comentarios || '').replace(/'/g, "\\'")}')" 
