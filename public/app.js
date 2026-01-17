@@ -174,13 +174,40 @@ async function eliminarLogo() {
 // Actualizar logo en el header
 function actualizarLogoHeader(logoBase64) {
     const logoImg = document.getElementById('logoComercio');
-    
+
     if (logoBase64) {
         logoImg.src = logoBase64;
         logoImg.style.display = 'block';
+        // También actualizar el favicon
+        actualizarFavicon(logoBase64);
     } else {
         logoImg.src = '';
         logoImg.style.display = 'none';
+        // Restaurar favicon por defecto
+        actualizarFavicon(null);
+    }
+}
+
+// Actualizar favicon dinámicamente con el logo del usuario
+function actualizarFavicon(logoBase64) {
+    let favicon = document.querySelector('link[rel="icon"]');
+    let appleFavicon = document.querySelector('link[rel="apple-touch-icon"]');
+
+    if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.rel = 'icon';
+        document.head.appendChild(favicon);
+    }
+
+    if (logoBase64) {
+        favicon.type = 'image/png';
+        favicon.href = logoBase64;
+        if (appleFavicon) appleFavicon.href = logoBase64;
+    } else {
+        // Restaurar favicon por defecto
+        favicon.type = 'image/svg+xml';
+        favicon.href = '/icons/icon-32.svg';
+        if (appleFavicon) appleFavicon.href = '/icons/icon-192.svg';
     }
 }
 
