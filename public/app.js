@@ -878,34 +878,6 @@ async function crearCCdesdeCambio(cambioId, monto, fecha, artDevuelto, artNuevo)
     }
 }
 
-    // ==================== FECHA POR DEFECTO ====================
-// Usamos la hora local del navegador (PC del usuario)
-const hoy = new Date();
-const year = hoy.getFullYear();
-const month = String(hoy.getMonth() + 1).padStart(2, '0');
-const day = String(hoy.getDate()).padStart(2, '0');
-const fechaLocal = `${year}-${month}-${day}`;
-
-document.getElementById('fecha').value = fechaLocal;
-
-    // ==================== FACTURA A/B TOGGLE ====================
-    document.querySelectorAll('.factura-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.factura-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-
-    // ==================== MOSTRAR "OTRO TIPO DE PAGO" ====================
-    document.getElementById('tipoPago').addEventListener('change', function() {
-        const otroContainer = document.getElementById('otroTipoPagoContainer');
-        if (this.value === 'otro') {
-            otroContainer.style.display = 'block';
-        } else {
-            otroContainer.style.display = 'none';
-        }
-    });
-
 // ==================== 1. BÚSQUEDA DE PRECIOS (LÓGICA MEJORADA) ====================
 
 document.getElementById('busquedaInput')?.addEventListener('keyup', (e) => {
