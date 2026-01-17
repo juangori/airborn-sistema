@@ -1026,10 +1026,10 @@ function initVentasMultiples() {
     const contenedor = document.getElementById('contenedorArticulos');
     if (!contenedor) return;
 
-    // Establecer fecha de hoy en el primer formulario
+    // Establecer fecha seleccionada en el primer formulario
     const fechaInput = contenedor.querySelector('.campo-fecha');
     if (fechaInput) {
-        fechaInput.valueAsDate = new Date();
+        fechaInput.value = fechaSeleccionada;
     }
 
     // Inicializar eventos del primer formulario
@@ -1285,8 +1285,8 @@ function agregarOtroArticulo() {
     nuevoForm.querySelector('.campo-comentarios').value = '';
     nuevoForm.querySelector('.campo-esCambio').checked = false;
 
-    // Copiar fecha del primer formulario
-    nuevoForm.querySelector('.campo-fecha').value = primerForm.querySelector('.campo-fecha').value;
+    // Usar fecha seleccionada en el calendario
+    nuevoForm.querySelector('.campo-fecha').value = fechaSeleccionada;
 
     // Copiar factura activa
     const facturaActiva = primerForm.querySelector('.factura-btn.active').dataset.value;
@@ -1687,8 +1687,10 @@ function generarDiasDelMes() {
 
 function seleccionarDia(fecha) {
     fechaSeleccionada = fecha;
-    const inputFecha = document.getElementById('fecha');
-    if (inputFecha) inputFecha.value = fecha;
+    // Actualizar todos los campos de fecha en los formularios de venta
+    document.querySelectorAll('.campo-fecha').forEach(input => {
+        input.value = fecha;
+    });
     generarDiasDelMes(); // Re-renderizar para actualizar el activo
     cargarVentasDelDia(fecha);
     cargarCajaInicial(fecha);
@@ -4273,9 +4275,10 @@ function renderTablaPromedios(ventasMap, anio, mes) {
 function abrirModalCtaCte() {
     document.getElementById('modalCtaCte').classList.add('active');
     document.getElementById('ccNombre').focus();
-    
-    // Pre-llenar artículo si hay uno en la venta
-    const artVenta = document.getElementById('articulo').value;
+
+    // Pre-llenar artículo si hay uno en la venta (del primer formulario)
+    const primerForm = document.querySelector('.articulo-form');
+    const artVenta = primerForm ? primerForm.querySelector('.campo-articulo')?.value : '';
     if(artVenta) document.getElementById('ccArticulo').value = artVenta;
 }
 
@@ -4294,6 +4297,13 @@ async function confirmarVentaCtaCte() {
         return;
     }
 
+    // Obtener el primer formulario de artículo
+    const primerForm = document.querySelector('.articulo-form');
+    if (!primerForm) {
+        showToast('⚠️ No hay formulario de venta', 'error');
+        return;
+    }
+
     try {
         // 1. Crear o Actualizar la Cuenta
         await fetch('/api/cuentas', {
@@ -4302,16 +4312,16 @@ async function confirmarVentaCtaCte() {
             body: JSON.stringify({ cliente: nombre, telefono, articulo: articuloCC })
         });
 
-        // 2. Preparar datos
-        const precioField = document.getElementById('precio');
-        const cantidadField = document.getElementById('cantidad');
-        const esCambio = document.getElementById('esCambio').checked;
-        const descuento = parseInt(document.getElementById('descuento').value) || 0;
-        
+        // 2. Preparar datos (usando clases del formulario)
+        const precioField = primerForm.querySelector('.campo-precio');
+        const cantidadField = primerForm.querySelector('.campo-cantidad');
+        const esCambio = primerForm.querySelector('.campo-esCambio').checked;
+        const descuento = parseInt(primerForm.querySelector('.campo-descuento').value) || 0;
+
         let cantidadOriginal = parseInt(cantidadField.value);
         let precioOriginal = parseFloat(precioField.value);
-        
-        // Si estaba en modo "visual" devolución, el input precio ya es 0. 
+
+        // Si estaba en modo "visual" devolución, el input precio ya es 0.
         // Intentamos recuperar el valor original del dataset.
         if (esCambio && precioOriginal === 0 && precioField.dataset.oldValue) {
             precioOriginal = parseFloat(precioField.dataset.oldValue);
@@ -4322,31 +4332,33 @@ async function confirmarVentaCtaCte() {
         let montoMovimiento = 0;
         let comentarioMovimiento = '';
 
+        const articuloValor = primerForm.querySelector('.campo-articulo').value;
+
         if (esCambio) {
             // DEVOLUCIÓN: Genera saldo A FAVOR (pago) por el valor del producto
             tipoMovimiento = 'pago';
             // Calculamos el valor real del artículo devuelto
             montoMovimiento = precioOriginal * Math.abs(cantidadOriginal);
-            comentarioMovimiento = `Devolución: ${document.getElementById('articulo').value}`;
+            comentarioMovimiento = `Devolución: ${articuloValor}`;
         } else {
             // VENTA NORMAL: Genera DEUDA
             tipoMovimiento = 'deuda';
             montoMovimiento = precioOriginal * cantidadOriginal * (1 - descuento/100);
-            comentarioMovimiento = `Compra: ${document.getElementById('articulo').value}`;
+            comentarioMovimiento = `Compra: ${articuloValor}`;
         }
 
         // 3. Registrar la Venta en el Histórico (Para stock y caja)
         // Aquí SÍ aplicamos la lógica de venta: si es cambio, precio 0 y cantidad negativa.
         const ventaBody = {
-            fecha: document.getElementById('fecha').value,
-            articulo: document.getElementById('articulo').value.trim(),
+            fecha: primerForm.querySelector('.campo-fecha').value,
+            articulo: primerForm.querySelector('.campo-articulo').value.trim(),
             cantidad: esCambio ? (-1 * Math.abs(cantidadOriginal)) : cantidadOriginal,
             precio: esCambio ? 0 : precioOriginal,
             descuento: esCambio ? 0 : descuento,
-            categoria: document.getElementById('categoria').value.trim(),
-            factura: document.querySelector('.factura-btn.active').dataset.value,
+            categoria: primerForm.querySelector('.campo-categoria').value.trim(),
+            factura: primerForm.querySelector('.factura-btn.active').dataset.value,
             tipoPago: 'Cta Cte',
-            comentarios: `${document.getElementById('comentarios').value} | ${comentarioCC}`
+            comentarios: `${primerForm.querySelector('.campo-comentarios').value} | ${comentarioCC}`
         };
 
         const respVenta = await fetch('/api/ventas', {
@@ -4365,7 +4377,7 @@ async function confirmarVentaCtaCte() {
                 body: JSON.stringify({
                     tipo: tipoMovimiento,
                     monto: montoMovimiento,
-                    fecha: document.getElementById('fecha').value,
+                    fecha: primerForm.querySelector('.campo-fecha').value,
                     comentario: comentarioMovimiento
                 })
             });
@@ -4373,23 +4385,23 @@ async function confirmarVentaCtaCte() {
 
         showToast('✅ Operación registrada en Cta. Cte.', 'success');
         cerrarModalCtaCte();
-        
-        // Limpieza
-        document.getElementById('articulo').value = '';
-        document.getElementById('precio').value = '';
-        document.getElementById('precio').readOnly = false; // Resetear si estaba bloqueado
-        document.getElementById('precio').style.backgroundColor = '';
-        document.getElementById('cantidad').value = '1';
-        document.getElementById('tipoPago').value = 'Otro';
-        document.getElementById('esCambio').checked = false;
-        
+
+        // Limpieza del formulario (usando clases)
+        primerForm.querySelector('.campo-articulo').value = '';
+        primerForm.querySelector('.campo-precio').value = '';
+        primerForm.querySelector('.campo-precio').readOnly = false;
+        primerForm.querySelector('.campo-precio').style.backgroundColor = '';
+        primerForm.querySelector('.campo-cantidad').value = '1';
+        primerForm.querySelector('.campo-tipoPago').value = 'Otro';
+        primerForm.querySelector('.campo-esCambio').checked = false;
+
         // Limpiar modal
         document.getElementById('ccNombre').value = '';
         document.getElementById('ccTelefono').value = '';
         document.getElementById('ccArticulo').value = '';
         document.getElementById('ccComentarios').value = '';
-        
-        actualizarTotalACobrar();
+
+        actualizarBotonRegistro();
         cargarVentasDelMes();
 
     } catch (e) {
