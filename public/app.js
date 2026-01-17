@@ -1,3 +1,8 @@
+// ==================== VARIABLES GLOBALES ====================
+let ventasDelMes = [];
+let productosCache = [];
+window.productosCache = productosCache;
+
 // ==================== PANEL ADMIN ====================
     function abrirAdmin() {
         document.getElementById('adminModal').classList.add('active');
@@ -404,44 +409,6 @@ function formatPercentage(num) {
     return num.toFixed(1).replace('.', ',');
 }
 
-// Lógica visual del Checkbox Cambio
-document.getElementById('esCambio').addEventListener('change', function() {
-    const precioInput = document.getElementById('precio');
-    const cantidadInput = document.getElementById('cantidad');
-    const totalDisplay = document.getElementById('totalACobrar');
-    
-    if (this.checked) {
-        // Modo Devolución activado
-        precioInput.dataset.oldValue = precioInput.value;
-
-        // Poner Precio en 0 y bloquear
-        precioInput.value = 0;
-        precioInput.readOnly = true;
-        precioInput.style.backgroundColor = '#f0f0f0';
-
-        // Poner Cantidad en -1 (para que sea visual)
-        cantidadInput.value = -1;
-
-        // Total en $0 con estilo rojo
-        totalDisplay.value = '$0';
-        totalDisplay.style.background = '#dc3545';
-        totalDisplay.style.color = 'white';
-
-        // Ocultar total exacto si estaba visible
-        const totalExacto = document.getElementById('totalExacto');
-        if (totalExacto) totalExacto.classList.remove('visible');
-    } else {
-        // Volver a normal
-        precioInput.value = precioInput.dataset.oldValue || '';
-        precioInput.readOnly = false;
-        precioInput.style.backgroundColor = '';
-        
-        // Volver cantidad a 1
-        cantidadInput.value = 1;
-        
-        actualizarTotalACobrar();
-    }
-});
 
 // ==================== TABS VENTA/CAMBIO ====================
 function switchVentaCambioTab(tab, event) {
@@ -1608,8 +1575,6 @@ async function registrarVenta(event) {
     }
 }
 
-// Inicializar al cargar
-document.addEventListener('DOMContentLoaded', initVentasMultiples);
 
 // ==================== EDITAR COMENTARIO POST VENTA (mejorado) ====================
 async function editarComentarioVenta(id, textoActual) {
@@ -1682,7 +1647,6 @@ async function borrarVenta(id) {
 
 // ==================== SELECTOR DE DÍAS DEL MES ====================
 let fechaSeleccionada = new Date().toISOString().split('T')[0];
-let ventasDelMes = [];
 
 async function cargarVentasDelMes() {
     const hoy = new Date();
@@ -2508,13 +2472,13 @@ async function guardarStockYPrecios(event) {
 }
 
 // ==================== STOCK: LISTADO Y RESUMEN ====================
-let productosCache = [];
 
 async function cargarStockCompleto() {
     try {
         const resp = await fetch('/api/productos');
         const productos = await resp.json();
         productosCache = productos || [];
+        window.productosCache = productosCache;
 
         renderStockResumen();
         renderStockTabla();
@@ -2959,6 +2923,7 @@ window.addEventListener('load', () => {
     initHistorico();
     initComparativa();
     initPromedios();
+    initVentasMultiples();
 });
 
 
