@@ -1079,602 +1079,522 @@ function mostrarProductoDetalle(producto, contenedor) {
     `;
 }
 
-    // ==================== 2. BÚSQUEDA RÁPIDA EN CAJAS DIARIAS ====================
-    let productoActual = null;
+// ==================== 2. VENTAS MÚLTIPLES - FORMULARIOS DINÁMICOS ====================
 
-    document.getElementById('busquedaRapida')?.addEventListener('keyup', async (e) => {
-        const busqueda = e.target.value.trim();
-        const resultado = document.getElementById('resultadoRapido');
+// Inicializar el primer formulario y eventos
+function initVentasMultiples() {
+    const contenedor = document.getElementById('contenedorArticulos');
+    if (!contenedor) return;
 
-        if (busqueda.length < 2) {
-            resultado.innerHTML = busqueda.length === 1 ? '<div style="color:#999; padding:10px;">Escribí al menos 2 caracteres...</div>' : '';
-            productoActual = null;
-            return;
-        }
+    // Establecer fecha de hoy en el primer formulario
+    const fechaInput = contenedor.querySelector('.campo-fecha');
+    if (fechaInput) {
+        fechaInput.valueAsDate = new Date();
+    }
 
-        try {
-            const response = await fetch(`/api/productos/buscar?q=${encodeURIComponent(busqueda)}`);
-            
-            if (!response.ok) {
-                resultado.innerHTML = `<div class="alert alert-danger show">❌ No se encontraron productos</div>`;
-                productoActual = null;
+    // Inicializar eventos del primer formulario
+    initEventosFormulario(contenedor.querySelector('.articulo-form'));
+
+    // Actualizar botón de registro
+    actualizarBotonRegistro();
+}
+
+// Inicializar eventos para un formulario de artículo
+function initEventosFormulario(form) {
+    if (!form) return;
+
+    const busquedaInput = form.querySelector('.busqueda-rapida');
+    const resultadoDiv = form.querySelector('.resultado-rapido');
+    const articuloInput = form.querySelector('.campo-articulo');
+    const precioInput = form.querySelector('.campo-precio');
+    const cantidadInput = form.querySelector('.campo-cantidad');
+    const descuentoSelect = form.querySelector('.campo-descuento');
+    const totalInput = form.querySelector('.campo-total');
+    const esCambioCheckbox = form.querySelector('.campo-esCambio');
+
+    // Búsqueda rápida
+    if (busquedaInput) {
+        busquedaInput.addEventListener('keyup', async (e) => {
+            const busqueda = e.target.value.trim();
+
+            if (busqueda.length < 2) {
+                resultadoDiv.innerHTML = busqueda.length === 1 ? '<div style="color:#999; padding:10px;">Escribí al menos 2 caracteres...</div>' : '';
                 return;
             }
 
-            const data = await response.json();
-            
-            // Si hay múltiples resultados
-            if (data.multiple) {
-                resultado.innerHTML = `
-                    <div class="resultados-lista" style="max-height: 250px;">
-                        ${data.productos.map(p => `
-                            <div class="resultado-item" onclick="seleccionarProductoVenta(${JSON.stringify(p).replace(/"/g, '&quot;')})">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <strong>${p.codigo}</strong> - ${p.descripcion}
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <span style="font-weight: bold; color: var(--primary);">${formatMoney(p.precioPublico || 0)}</span>
-                                        <span style="font-size: 0.85em; color: ${(p.stock || 0) <= 0 ? '#d9534f' : '#5cb85c'}; margin-left: 10px;">Stock: ${p.stock || 0}</span>
+            try {
+                const response = await fetch(`/api/productos/buscar?q=${encodeURIComponent(busqueda)}`);
+                if (!response.ok) {
+                    resultadoDiv.innerHTML = `<div class="alert alert-danger show">❌ No se encontraron productos</div>`;
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.multiple) {
+                    resultadoDiv.innerHTML = `
+                        <div class="resultados-lista" style="max-height: 250px;">
+                            ${data.productos.map(p => `
+                                <div class="resultado-item" onclick="seleccionarProductoEnForm(this, ${JSON.stringify(p).replace(/"/g, '&quot;')})">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div><strong>${p.codigo}</strong> - ${p.descripcion}</div>
+                                        <div style="text-align: right;">
+                                            <span style="font-weight: bold; color: var(--primary);">${formatMoney(p.precioPublico || 0)}</span>
+                                            <span style="font-size: 0.85em; color: ${(p.stock || 0) <= 0 ? '#d9534f' : '#5cb85c'}; margin-left: 10px;">Stock: ${p.stock || 0}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                productoActual = null;
-            } else {
-                // Un solo resultado - mostrar detalle
-                productoActual = data;
-                mostrarProductoVenta(data, resultado);
-            }
-        } catch (error) {
-            resultado.innerHTML = `<div class="alert alert-danger show">⚠️ Error: ${error.message}</div>`;
-            productoActual = null;
-        }
-    });
-
-    function seleccionarProductoVenta(producto) {
-        productoActual = producto;
-        mostrarProductoVenta(producto, document.getElementById('resultadoRapido'));
-    }
-
-    function mostrarProductoVenta(producto, contenedor) {
-        const precio = Number(producto.precioPublico) || 0;
-        const stock = Number(producto.stock);
-
-        contenedor.innerHTML = `
-            <div class="producto-resultado">
-                <h3>${producto.descripcion}</h3>
-                <div class="producto-grid">
-                    <div class="producto-item">
-                        <label>Código</label>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="valor">${producto.codigo}</div>
-                            <button class="btn-agregar-venta" onclick="agregarProductoAVenta()" style="margin: 0; padding: 6px 12px; font-size: 13px;">✓ Agregar</button>
+                            `).join('')}
                         </div>
-                    </div>
-                    <div class="producto-item">
-                        <label>Categoría</label>
-                        <div class="valor">${producto.categoria || '-'}</div>
-                    </div>
-                    <div class="producto-item">
-                        <label>Precio Público</label>
-                        <div class="valor">${formatMoney(precio)}</div>
-                    </div>
-                    <div class="producto-item">
-                        <label>Stock</label>
-                        <div class="valor" style="color: ${stock <= 0 ? '#d9534f' : stock <= 5 ? '#f0ad4e' : '#5cb85c'}">${stock}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // ==================== AGREGAR PRODUCTO DESDE BÚSQUEDA RÁPIDA ====================
-    function agregarProductoAVenta() {
-        if (!productoActual) return;
-        
-        document.getElementById('articulo').value = productoActual.codigo;
-        document.getElementById('precio').value = productoActual.precioPublico || 0;
-        document.getElementById('precio').dataset.original = productoActual.precioPublico || 0;
-        document.getElementById('categoria').value = productoActual.categoria || '';
-        document.getElementById('cantidad').value = 1;
-        document.getElementById('descuento').value = 0;
-        
-        // Limpiar búsqueda rápida
-        document.getElementById('busquedaRapida').value = '';
-        document.getElementById('resultadoRapido').innerHTML = '';
-        productoActual = null;
-
-        // Actualizar total
-  actualizarTotalACobrar();
-        
-        // Focus en cantidad
-        document.getElementById('cantidad').focus();
-    }
-
-    // ==================== AUTOCOMPLETAR AL ESCRIBIR ARTÍCULO ====================
-    let timeoutArticulo;
-    document.getElementById('articulo').addEventListener('input', function() {
-        clearTimeout(timeoutArticulo);
-        const codigo = this.value.trim();
-        
-        if (!codigo) {
-            document.getElementById('precio').value = '';
-            document.getElementById('precio').dataset.original = '';
-            document.getElementById('categoria').value = '';
-            actualizarTotalACobrar(); // Limpiamos el total si borra el código
-            return;
-        }
-
-        timeoutArticulo = setTimeout(async () => {
-            try {
-                const response = await fetch(`/api/productos/buscar?codigo=${codigo}`);
-                if (response.ok) {
-                    const producto = await response.json();
-                    document.getElementById('precio').value = producto.precioPublico || 0;
-                    document.getElementById('precio').dataset.original = producto.precioPublico || 0;
-                    document.getElementById('categoria').value = producto.categoria || '';
-                    
-                    // ¡ESTO ES LO QUE FALTABA!
-                    actualizarTotalACobrar(); 
+                    `;
+                } else {
+                    mostrarProductoEnForm(form, data, resultadoDiv);
                 }
             } catch (error) {
-                console.log('Producto no encontrado');
+                resultadoDiv.innerHTML = `<div class="alert alert-danger show">⚠️ Error: ${error.message}</div>`;
             }
-        }, 500);
+        });
+    }
+
+    // Autocompletar al escribir código de artículo
+    let timeoutArticulo;
+    if (articuloInput) {
+        articuloInput.addEventListener('input', function() {
+            clearTimeout(timeoutArticulo);
+            const codigo = this.value.trim();
+
+            if (!codigo) {
+                precioInput.value = '';
+                precioInput.dataset.original = '';
+                form.querySelector('.campo-categoria').value = '';
+                actualizarTotalFormulario(form);
+                return;
+            }
+
+            timeoutArticulo = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/api/productos/buscar?codigo=${codigo}`);
+                    if (response.ok) {
+                        const producto = await response.json();
+                        precioInput.value = producto.precioPublico || 0;
+                        precioInput.dataset.original = producto.precioPublico || 0;
+                        form.querySelector('.campo-categoria').value = producto.categoria || '';
+                        actualizarTotalFormulario(form);
+                    }
+                } catch (error) {
+                    console.log('Producto no encontrado');
+                }
+            }, 500);
+        });
+    }
+
+    // Eventos para recalcular total
+    if (precioInput) precioInput.addEventListener('input', () => actualizarTotalFormulario(form));
+    if (cantidadInput) cantidadInput.addEventListener('input', () => actualizarTotalFormulario(form));
+    if (descuentoSelect) descuentoSelect.addEventListener('change', () => actualizarTotalFormulario(form));
+    if (esCambioCheckbox) esCambioCheckbox.addEventListener('change', () => actualizarTotalFormulario(form));
+
+    // Botones de factura
+    form.querySelectorAll('.factura-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            form.querySelectorAll('.factura-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
     });
-
-    // ==================== RESETEAR PRECIO ORIGINAL SI SE EDITA MANUALMENTE ====================
-document.getElementById('precio').addEventListener('input', function() {
-    // Si el usuario edita el precio manualmente, ese se convierte en el "original"
-    // (se resetea el dataset para que el descuento se aplique sobre lo que escribió)
-    const descuentoActual = parseInt(document.getElementById('descuento').value);
-    
-    // Solo resetear si no hay descuento aplicado
-    if (descuentoActual === 0) {
-        this.dataset.original = '';
-    }
-});
-
-
-    // ==================== ACTUALIZAR PRECIO AL CAMBIAR DESCUENTO ====================
-document.getElementById('descuento').addEventListener('change', function() {
-  const precioField = document.getElementById('precio');
-  const precioActual = parseFloat(precioField.value);
-  
-  if (!precioActual || precioActual === 0) return;
-
-  // Guardar el precio base la primera vez
-  if (!precioField.dataset.original) {
-    precioField.dataset.original = precioActual;
-  }
-});
-
-// CALCULAR Y MOSTRAR TOTAL A COBRAR
-function actualizarTotalACobrar() {
-  const precioField = document.getElementById('precio');
-  const cantidadField = document.getElementById('cantidad');
-  const descuentoField = document.getElementById('descuento');
-  const totalInput = document.getElementById('totalACobrar');
-  const totalExacto = document.getElementById('totalExacto');
-
-  const precio = parseFloat(precioField.value) || 0;
-  const cantidadValor = parseInt(cantidadField.value);
-  const cantidad = isNaN(cantidadValor) ? 0 : cantidadValor;
-  const descuento = parseInt(descuentoField.value) || 0;
-
-  // Verificar si el checkbox de devolución está marcado
-  const esCambioCheckbox = document.getElementById('esCambio');
-  const esCambio = esCambioCheckbox && esCambioCheckbox.checked;
-
-  // Si es devolución (checkbox marcado O cantidad es -1), total siempre es 0
-  if (esCambio || cantidad === -1) {
-    totalInput.value = '$0';
-    totalInput.style.background = '#dc3545'; // Rojo para devolución
-    totalInput.style.color = 'white';
-    totalExacto.classList.remove('visible');
-    return;
-  }
-
-  if (precio === 0) {
-    totalInput.value = '$0';
-    totalInput.style.background = '#6c757d';
-    totalExacto.classList.remove('visible');
-    return;
-  }
-
-  // Resetear estilo si no es devolución
-  totalInput.style.color = 'white';
-
-  const precioConDescuento = precio * (1 - (descuento / 100));
-
-  // Si cantidad es 0, total = precio. Si no, multiplicamos.
-  let totalSinRedondear = (cantidad === 0) ? precioConDescuento : (precioConDescuento * cantidad);
-  let totalRedondeado;
-
-  // Redondear al múltiplo de 50 más cercano (para facilitar vuelto)
-  if (descuento > 0) {
-    totalRedondeado = Math.round(totalSinRedondear / 50) * 50;
-    // Mostrar total exacto si hay diferencia
-    if (Math.abs(totalRedondeado - totalSinRedondear) > 0.5) {
-      totalExacto.textContent = formatMoney(Math.round(totalSinRedondear));
-      totalExacto.classList.add('visible');
-    } else {
-      totalExacto.classList.remove('visible');
-    }
-  } else {
-    totalRedondeado = Math.round(totalSinRedondear);
-    totalExacto.classList.remove('visible');
-  }
-
-  totalInput.value = formatMoney(totalRedondeado);
-
-  // Cambiar color según descuento
-  if (descuento > 0) {
-    totalInput.style.background = '#28a745'; // Verde
-    totalInput.style.color = 'white';
-  } else {
-    totalInput.style.background = '#007bff'; // Azul
-    totalInput.style.color = 'white';
-  }
 }
 
-// Llamar la función cuando cambie precio, cantidad o descuento
-document.getElementById('precio').addEventListener('input', actualizarTotalACobrar);
-document.getElementById('cantidad').addEventListener('input', actualizarTotalACobrar);
-document.getElementById('descuento').addEventListener('change', actualizarTotalACobrar);
-
-
-// ==================== VENTAS MÚLTIPLES - Lista temporal ====================
-let articulosPendientes = []; // Array temporal para múltiples artículos
-
-function obtenerDatosFormulario() {
-    const facturaBtn = document.querySelector('.factura-btn.active');
-    const tipoPago = document.getElementById('tipoPago').value;
-    const esCambio = document.getElementById('esCambio').checked;
-
-    const precioField = document.getElementById('precio');
-    const cantidadField = document.getElementById('cantidad');
-
-    let cantidad = parseInt(cantidadField.value);
-    let precio = parseFloat(precioField.value);
-
-    // LÓGICA DE CAMBIO/DEVOLUCIÓN
-    if (esCambio) {
-        cantidad = -1 * Math.abs(cantidad);
-        precio = 0;
-    }
-
-    // Obtener total del input (puede ser editado manualmente)
-    const totalInput = document.getElementById('totalACobrar');
-    const totalManual = parseFloat(totalInput.value.replace(/[$.]/g, '').replace(',', '.')) || 0;
-    const descuentoOriginal = esCambio ? 0 : (parseInt(document.getElementById('descuento').value) || 0);
-
-    let precioFinal = precio;
-    let descuentoFinal = descuentoOriginal;
-
-    const cantidadParaCalculo = cantidad === 0 ? 1 : Math.abs(cantidad);
-    const precioCalculado = totalManual / cantidadParaCalculo;
-
-    // Verificar si el usuario modificó el total manualmente
-    const totalSinRedondear = precio * (1 - descuentoOriginal / 100) * cantidadParaCalculo;
-    const totalEsperado = descuentoOriginal > 0
-        ? Math.round(totalSinRedondear / 50) * 50
-        : Math.round(totalSinRedondear);
-
-    if (Math.abs(totalManual - totalEsperado) > 1) {
-        precioFinal = precioCalculado;
-        descuentoFinal = 0;
-    }
-
-    return {
-        fecha: document.getElementById('fecha').value,
-        articulo: document.getElementById('articulo').value.trim(),
-        cantidad: cantidad,
-        precio: precioFinal,
-        descuento: descuentoFinal,
-        categoria: document.getElementById('categoria').value.trim(),
-        factura: facturaBtn.dataset.value,
-        tipoPago: tipoPago,
-        comentarios: document.getElementById('comentarios').value.trim() + (esCambio ? ' (DEVOLUCIÓN)' : ''),
-        totalCalculado: totalManual,
-        esCambio: esCambio
-    };
+function seleccionarProductoEnForm(elemento, producto) {
+    const form = elemento.closest('.articulo-form');
+    const resultadoDiv = form.querySelector('.resultado-rapido');
+    mostrarProductoEnForm(form, producto, resultadoDiv);
 }
 
-function limpiarFormularioVenta() {
-    document.getElementById('articulo').value = '';
-    document.getElementById('precio').value = '';
-    document.getElementById('precio').readOnly = false;
-    document.getElementById('precio').style.backgroundColor = '';
-    document.getElementById('categoria').value = '';
-    document.getElementById('cantidad').value = 1;
-    document.getElementById('descuento').value = 0;
-    document.getElementById('comentarios').value = '';
-    document.getElementById('esCambio').checked = false;
-    document.getElementById('tipoPago').value = 'Otro';
-    actualizarTotalACobrar();
-}
+function mostrarProductoEnForm(form, producto, contenedor) {
+    const precio = Number(producto.precioPublico) || 0;
+    const stock = Number(producto.stock);
 
-function agregarArticuloALista(event) {
-    const tipoPago = document.getElementById('tipoPago').value;
-
-    // Interceptar Cta Cte
-    if (tipoPago === 'Cta Cte') {
-        abrirModalCtaCte();
-        return;
-    }
-
-    const precio = parseFloat(document.getElementById('precio').value);
-    const esCambio = document.getElementById('esCambio').checked;
-
-    if (!esCambio && isNaN(precio)) {
-        showToast('⚠️ Falta el precio', 'error');
-        return;
-    }
-
-    const datos = obtenerDatosFormulario();
-
-    // Agregar descripción para mostrar en la lista
-    const codigo = datos.articulo;
-    let descripcion = '-';
-    if (window.productosCache && codigo) {
-        const prod = window.productosCache.find(p =>
-            (p.codigo || '').toString().trim().toLowerCase() === codigo.toString().trim().toLowerCase()
-        );
-        if (prod) descripcion = prod.descripcion;
-    }
-    datos.descripcion = descripcion;
-
-    articulosPendientes.push(datos);
-    renderizarArticulosPendientes();
-    limpiarFormularioVenta();
-    document.getElementById('articulo').focus();
-
-    showToast('✅ Artículo agregado a la venta', 'success');
-}
-
-function renderizarArticulosPendientes() {
-    const container = document.getElementById('articulosPendientes');
-    const lista = document.getElementById('listaArticulosPendientes');
-    const contador = document.getElementById('contadorArticulos');
-    const totalSpan = document.getElementById('totalGrupo');
-
-    if (articulosPendientes.length === 0) {
-        container.style.display = 'none';
-        return;
-    }
-
-    container.style.display = 'block';
-    contador.textContent = `${articulosPendientes.length} artículo${articulosPendientes.length > 1 ? 's' : ''}`;
-
-    let totalGrupo = 0;
-
-    lista.innerHTML = articulosPendientes.map((art, index) => {
-        totalGrupo += art.totalCalculado;
-        const esDevolucion = art.esCambio;
-
-        return `
-            <div class="articulo-pendiente-item ${esDevolucion ? 'es-devolucion' : ''}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: ${esDevolucion ? 'rgba(231,76,60,0.1)' : 'rgba(255,255,255,0.8)'}; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${esDevolucion ? '#e74c3c' : '#27ae60'};">
-                <div style="flex: 1;">
-                    <strong style="color: #2c3e50;">${art.articulo || 'Sin código'}</strong>
-                    <span style="color: #7f8c8d; margin-left: 10px;">${art.descripcion}</span>
-                    <div style="font-size: 0.85em; color: #95a5a6; margin-top: 3px;">
-                        Cant: ${art.cantidad} | ${art.descuento > 0 ? art.descuento + '% desc.' : 'Sin desc.'} | ${art.factura} | ${art.tipoPago}
+    contenedor.innerHTML = `
+        <div class="producto-resultado">
+            <h3>${producto.descripcion}</h3>
+            <div class="producto-grid">
+                <div class="producto-item">
+                    <label>Código</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="valor">${producto.codigo}</div>
+                        <button class="btn-agregar-venta" onclick="agregarProductoAlForm(this, ${JSON.stringify(producto).replace(/"/g, '&quot;')})" style="margin: 0; padding: 6px 12px; font-size: 13px;">✓ Agregar</button>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="font-weight: bold; font-size: 1.1em; color: ${esDevolucion ? '#e74c3c' : '#27ae60'};">
-                        ${esDevolucion ? 'DEV' : formatMoney(art.totalCalculado)}
-                    </span>
-                    <button onclick="quitarArticuloPendiente(${index})" style="background: #e74c3c; color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1.1em;">×</button>
+                <div class="producto-item">
+                    <label>Categoría</label>
+                    <div class="valor">${producto.categoria || '-'}</div>
+                </div>
+                <div class="producto-item">
+                    <label>Precio Público</label>
+                    <div class="valor">${formatMoney(precio)}</div>
+                </div>
+                <div class="producto-item">
+                    <label>Stock</label>
+                    <div class="valor" style="color: ${stock <= 0 ? '#d9534f' : stock <= 5 ? '#f0ad4e' : '#5cb85c'}">${stock}</div>
                 </div>
             </div>
-        `;
-    }).join('');
-
-    totalSpan.textContent = formatMoney(totalGrupo);
+        </div>
+    `;
 }
 
-function quitarArticuloPendiente(index) {
-    articulosPendientes.splice(index, 1);
-    renderizarArticulosPendientes();
-    showToast('Artículo removido', 'info');
+function agregarProductoAlForm(elemento, producto) {
+    const form = elemento.closest('.articulo-form');
+
+    form.querySelector('.campo-articulo').value = producto.codigo;
+    form.querySelector('.campo-precio').value = producto.precioPublico || 0;
+    form.querySelector('.campo-precio').dataset.original = producto.precioPublico || 0;
+    form.querySelector('.campo-categoria').value = producto.categoria || '';
+    form.querySelector('.campo-cantidad').value = 1;
+    form.querySelector('.campo-descuento').value = 0;
+
+    // Limpiar búsqueda
+    form.querySelector('.busqueda-rapida').value = '';
+    form.querySelector('.resultado-rapido').innerHTML = '';
+
+    actualizarTotalFormulario(form);
+    actualizarBotonRegistro();
+
+    form.querySelector('.campo-cantidad').focus();
 }
 
-function limpiarArticulosPendientes() {
-    articulosPendientes = [];
-    renderizarArticulosPendientes();
-    showToast('Venta cancelada', 'info');
-}
+function actualizarTotalFormulario(form) {
+    const precioInput = form.querySelector('.campo-precio');
+    const cantidadInput = form.querySelector('.campo-cantidad');
+    const descuentoSelect = form.querySelector('.campo-descuento');
+    const totalInput = form.querySelector('.campo-total');
+    const totalExacto = form.querySelector('.total-exacto');
+    const esCambioCheckbox = form.querySelector('.campo-esCambio');
 
-async function registrarVentaCompleta() {
-    if (articulosPendientes.length === 0) {
-        showToast('⚠️ No hay artículos para registrar', 'error');
+    const precio = parseFloat(precioInput.value) || 0;
+    const cantidadValor = parseInt(cantidadInput.value);
+    const cantidad = isNaN(cantidadValor) ? 0 : cantidadValor;
+    const descuento = parseInt(descuentoSelect.value) || 0;
+    const esCambio = esCambioCheckbox && esCambioCheckbox.checked;
+
+    if (esCambio || cantidad === -1) {
+        totalInput.value = '$0';
+        totalInput.style.background = '#dc3545';
+        totalInput.style.color = 'white';
+        if (totalExacto) totalExacto.classList.remove('visible');
+        actualizarBotonRegistro();
         return;
     }
 
-    const btnRegistrar = event?.target;
-    const textoOriginal = btnRegistrar?.innerHTML;
-
-    if (btnRegistrar) {
-        btnRegistrar.disabled = true;
-        btnRegistrar.innerHTML = 'Procesando...';
+    if (precio === 0) {
+        totalInput.value = '$0';
+        totalInput.style.background = '#6c757d';
+        if (totalExacto) totalExacto.classList.remove('visible');
+        actualizarBotonRegistro();
+        return;
     }
 
-    try {
-        const grupoVenta = Date.now().toString();
+    totalInput.style.color = 'white';
+    const precioConDescuento = precio * (1 - (descuento / 100));
+    let totalSinRedondear = (cantidad === 0) ? precioConDescuento : (precioConDescuento * cantidad);
+    let totalRedondeado;
 
-        const payload = {
-            grupoVenta: grupoVenta,
-            articulos: articulosPendientes.map(art => ({
-                fecha: art.fecha,
-                articulo: art.articulo,
-                cantidad: art.cantidad,
-                precio: art.precio,
-                descuento: art.descuento,
-                categoria: art.categoria,
-                factura: art.factura,
-                tipoPago: art.tipoPago,
-                comentarios: art.comentarios
-            }))
-        };
-
-        const response = await fetch('/api/ventas/multiple', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            showToast(`✅ ${data.mensaje}`, 'success');
-            articulosPendientes = [];
-            renderizarArticulosPendientes();
-            limpiarFormularioVenta();
-            cargarVentasDelMes();
-        } else {
-            const data = await response.json();
-            showToast(`❌ Error: ${data.error}`, 'error');
+    if (descuento > 0) {
+        totalRedondeado = Math.round(totalSinRedondear / 50) * 50;
+        if (totalExacto && Math.abs(totalRedondeado - totalSinRedondear) > 0.5) {
+            totalExacto.textContent = formatMoney(Math.round(totalSinRedondear));
+            totalExacto.classList.add('visible');
+        } else if (totalExacto) {
+            totalExacto.classList.remove('visible');
         }
-    } catch (error) {
-        console.error(error);
-        showToast('❌ Error de conexión', 'error');
-    } finally {
-        if (btnRegistrar) {
-            btnRegistrar.disabled = false;
-            btnRegistrar.innerHTML = textoOriginal;
-        }
+    } else {
+        totalRedondeado = Math.round(totalSinRedondear);
+        if (totalExacto) totalExacto.classList.remove('visible');
     }
+
+    totalInput.value = formatMoney(totalRedondeado);
+
+    if (descuento > 0) {
+        totalInput.style.background = '#28a745';
+    } else {
+        totalInput.style.background = '#007bff';
+    }
+
+    actualizarBotonRegistro();
 }
 
-    // ==================== REGISTRAR VENTA RÁPIDA (1 artículo) ====================
-    async function registrarVentaRapida(event) {
-    const btnRegistrar = event?.target;
-    const textoOriginal = btnRegistrar?.innerHTML;
-    
-    if (btnRegistrar) {
-        btnRegistrar.disabled = true;
-        btnRegistrar.innerHTML = 'Procesando...';
+function agregarOtroArticulo() {
+    const contenedor = document.getElementById('contenedorArticulos');
+    const formularios = contenedor.querySelectorAll('.articulo-form');
+    const nuevoIndex = formularios.length;
+
+    // Clonar el primer formulario
+    const primerForm = formularios[0];
+    const nuevoForm = primerForm.cloneNode(true);
+    nuevoForm.dataset.index = nuevoIndex;
+
+    // Limpiar valores del nuevo formulario
+    nuevoForm.querySelector('.busqueda-rapida').value = '';
+    nuevoForm.querySelector('.resultado-rapido').innerHTML = '';
+    nuevoForm.querySelector('.campo-articulo').value = '';
+    nuevoForm.querySelector('.campo-cantidad').value = 1;
+    nuevoForm.querySelector('.campo-precio').value = '';
+    nuevoForm.querySelector('.campo-precio').dataset.original = '';
+    nuevoForm.querySelector('.campo-descuento').value = 0;
+    nuevoForm.querySelector('.campo-total').value = '$0';
+    nuevoForm.querySelector('.campo-total').style.background = '#6c757d';
+    nuevoForm.querySelector('.campo-categoria').value = '';
+    nuevoForm.querySelector('.campo-comentarios').value = '';
+    nuevoForm.querySelector('.campo-esCambio').checked = false;
+
+    // Copiar fecha del primer formulario
+    nuevoForm.querySelector('.campo-fecha').value = primerForm.querySelector('.campo-fecha').value;
+
+    // Copiar factura activa
+    const facturaActiva = primerForm.querySelector('.factura-btn.active').dataset.value;
+    nuevoForm.querySelectorAll('.factura-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === facturaActiva);
+    });
+
+    // Copiar tipo de pago
+    nuevoForm.querySelector('.campo-tipoPago').value = primerForm.querySelector('.campo-tipoPago').value;
+
+    // Agregar header con número de artículo y botón eliminar
+    const header = document.createElement('div');
+    header.className = 'articulo-form-header';
+    header.innerHTML = `
+        <span style="font-weight: bold; color: #3498db;">Artículo ${nuevoIndex + 1}</span>
+        <button type="button" class="btn-eliminar-articulo" onclick="eliminarArticuloForm(this)">✕ Quitar</button>
+    `;
+    nuevoForm.insertBefore(header, nuevoForm.firstChild);
+
+    // Agregar separador visual
+    const separador = document.createElement('div');
+    separador.className = 'articulo-separador';
+    contenedor.appendChild(separador);
+
+    contenedor.appendChild(nuevoForm);
+
+    // Inicializar eventos del nuevo formulario
+    initEventosFormulario(nuevoForm);
+
+    // Focus en búsqueda del nuevo formulario
+    nuevoForm.querySelector('.busqueda-rapida').focus();
+
+    actualizarBotonRegistro();
+    actualizarNumerosArticulos();
+}
+
+function eliminarArticuloForm(btn) {
+    const form = btn.closest('.articulo-form');
+    const separador = form.previousElementSibling;
+
+    if (separador && separador.classList.contains('articulo-separador')) {
+        separador.remove();
     }
-    
-    try {
-        const facturaBtn = document.querySelector('.factura-btn.active');
-        const tipoPago = document.getElementById('tipoPago').value; // Toma directo del select
-        const esCambio = document.getElementById('esCambio').checked;
+    form.remove();
 
-        // === INTERCEPCIÓN CTA CTE ===
-        if (tipoPago === 'Cta Cte') {
-            abrirModalCtaCte(); // Abrimos modal y frenamos acá
-            if (btnRegistrar) { // Restaurar botón
-                btnRegistrar.disabled = false;
-                btnRegistrar.innerHTML = textoOriginal;
-            }
-            return; 
+    actualizarNumerosArticulos();
+    actualizarBotonRegistro();
+}
+
+function actualizarNumerosArticulos() {
+    const formularios = document.querySelectorAll('#contenedorArticulos .articulo-form');
+    formularios.forEach((form, idx) => {
+        form.dataset.index = idx;
+        const header = form.querySelector('.articulo-form-header span');
+        if (header) {
+            header.textContent = `Artículo ${idx + 1}`;
         }
-        
-        const precioField = document.getElementById('precio');
-        const cantidadField = document.getElementById('cantidad');
-        
-        // Convertimos a números
-        let cantidad = parseInt(cantidadField.value);
-        let precio = parseFloat(precioField.value);
-        
-        // Validaciones básicas de cliente
-       /* if (!document.getElementById('articulo').value) {
-             showToast('⚠️ Falta el código del artículo', 'error');
-             return;
-        }*/
+    });
+}
 
-        // LÓGICA DE CAMBIO
+function actualizarBotonRegistro() {
+    const btn = document.getElementById('btnRegistrarVenta');
+    if (!btn) return;
+
+    const formularios = document.querySelectorAll('#contenedorArticulos .articulo-form');
+    let totalGeneral = 0;
+    let articulosConPrecio = 0;
+
+    formularios.forEach(form => {
+        const totalStr = form.querySelector('.campo-total').value;
+        const total = parseFloat(totalStr.replace(/[$.]/g, '').replace(',', '.')) || 0;
+        const esCambio = form.querySelector('.campo-esCambio').checked;
+
+        if (total > 0 || esCambio) {
+            articulosConPrecio++;
+            totalGeneral += total;
+        }
+    });
+
+    const cantidad = articulosConPrecio > 0 ? articulosConPrecio : formularios.length;
+    btn.textContent = `✓ Registrar Venta (${cantidad} artículo${cantidad > 1 ? 's' : ''}) - ${formatMoney(totalGeneral)}`;
+}
+
+function obtenerDatosFormularios() {
+    const formularios = document.querySelectorAll('#contenedorArticulos .articulo-form');
+    const articulos = [];
+
+    formularios.forEach(form => {
+        const facturaBtn = form.querySelector('.factura-btn.active');
+        const tipoPago = form.querySelector('.campo-tipoPago').value;
+        const esCambio = form.querySelector('.campo-esCambio').checked;
+
+        let cantidad = parseInt(form.querySelector('.campo-cantidad').value);
+        let precio = parseFloat(form.querySelector('.campo-precio').value);
+
         if (esCambio) {
-            // Aseguramos que sea negativo y precio 0
-            cantidad = -1 * Math.abs(cantidad); 
-            precio = 0; 
-        } else {
-            // Lógica normal: Si precio está vacío es error, salvo que sea cambio
-            if (isNaN(precio)) {
-                 showToast('⚠️ Falta el precio', 'error');
-                 return;
-            }
-            // Recalcular unitario si había descuento aplicado visualmente, etc.
-            // Para simplificar, confiamos en lo que dice el input "Precio" que es unitario
+            cantidad = -1 * Math.abs(cantidad);
+            precio = 0;
         }
-        
-        // Obtener total del input (puede ser editado manualmente)
-        // Parsear quitando $ y puntos de miles
-        const totalInput = document.getElementById('totalACobrar');
-        const totalManual = parseFloat(totalInput.value.replace(/[$.]/g, '').replace(',', '.')) || 0;
-        const descuentoOriginal = esCambio ? 0 : (parseInt(document.getElementById('descuento').value) || 0);
 
-        // Calcular qué precio unitario debería ser según el total ingresado
-        // Si el usuario editó el total manualmente, usamos ese total y calculamos el precio
+        const totalStr = form.querySelector('.campo-total').value;
+        const totalManual = parseFloat(totalStr.replace(/[$.]/g, '').replace(',', '.')) || 0;
+        const descuentoOriginal = esCambio ? 0 : (parseInt(form.querySelector('.campo-descuento').value) || 0);
+
         let precioFinal = precio;
         let descuentoFinal = descuentoOriginal;
 
-        // Si cantidad > 0, el precio unitario es total / cantidad
-        // Si cantidad = 0, el precio es el total directo
         const cantidadParaCalculo = cantidad === 0 ? 1 : Math.abs(cantidad);
         const precioCalculado = totalManual / cantidadParaCalculo;
 
-        // Verificar si el usuario modificó el total manualmente
         const totalSinRedondear = precio * (1 - descuentoOriginal / 100) * cantidadParaCalculo;
         const totalEsperado = descuentoOriginal > 0
             ? Math.round(totalSinRedondear / 50) * 50
             : Math.round(totalSinRedondear);
 
         if (Math.abs(totalManual - totalEsperado) > 1) {
-            // El usuario editó el total manualmente, usar ese precio y sin descuento
             precioFinal = precioCalculado;
             descuentoFinal = 0;
         }
 
-        const venta = {
-            fecha: document.getElementById('fecha').value,
-            articulo: document.getElementById('articulo').value.trim(),
-            cantidad: cantidad,
-            precio: precioFinal,
-            descuento: descuentoFinal,
-            categoria: document.getElementById('categoria').value.trim(),
-            factura: facturaBtn.dataset.value,
-            tipoPago: tipoPago,
-            comentarios: document.getElementById('comentarios').value.trim() + (esCambio ? ' (DEVOLUCIÓN)' : '')
-        };
+        // Solo agregar si tiene precio o es devolución
+        if (precioFinal > 0 || esCambio || !isNaN(precio)) {
+            articulos.push({
+                fecha: form.querySelector('.campo-fecha').value,
+                articulo: form.querySelector('.campo-articulo').value.trim(),
+                cantidad: cantidad,
+                precio: precioFinal,
+                descuento: descuentoFinal,
+                categoria: form.querySelector('.campo-categoria').value.trim(),
+                factura: facturaBtn ? facturaBtn.dataset.value : 'A',
+                tipoPago: tipoPago,
+                comentarios: form.querySelector('.campo-comentarios').value.trim() + (esCambio ? ' (DEVOLUCIÓN)' : '')
+            });
+        }
+    });
 
-        const response = await fetch('/api/ventas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(venta)
-        });
+    return articulos;
+}
 
-        if (response.ok) {
-            showToast(esCambio ? '✅ Devolución registrada (Stock +1)' : '✅ Venta registrada', 'success');
-            
-            // Resetear formulario
-            document.getElementById('articulo').value = '';
-            document.getElementById('articulo').focus();
-            
-            // Resetear precio y modo
-            precioField.value = '';
-            precioField.readOnly = false;
-            precioField.style.backgroundColor = '';
-            
-            document.getElementById('categoria').value = '';
-            cantidadField.value = 1;
-            document.getElementById('descuento').value = 0;
-            document.getElementById('comentarios').value = '';
-            document.getElementById('esCambio').checked = false; // Destildar cambio
-            
-            // Volver select de pago a default (opcional)
-            document.getElementById('tipoPago').value = 'Otro';
+function limpiarTodosLosFormularios() {
+    const contenedor = document.getElementById('contenedorArticulos');
 
-            actualizarTotalACobrar();
-            cargarVentasDelMes();
+    // Eliminar todos los formularios excepto el primero
+    const formularios = contenedor.querySelectorAll('.articulo-form');
+    formularios.forEach((form, idx) => {
+        if (idx > 0) {
+            const separador = form.previousElementSibling;
+            if (separador && separador.classList.contains('articulo-separador')) {
+                separador.remove();
+            }
+            form.remove();
+        }
+    });
+
+    // Limpiar el primer formulario
+    const primerForm = contenedor.querySelector('.articulo-form');
+    if (primerForm) {
+        primerForm.querySelector('.busqueda-rapida').value = '';
+        primerForm.querySelector('.resultado-rapido').innerHTML = '';
+        primerForm.querySelector('.campo-articulo').value = '';
+        primerForm.querySelector('.campo-cantidad').value = 1;
+        primerForm.querySelector('.campo-precio').value = '';
+        primerForm.querySelector('.campo-precio').dataset.original = '';
+        primerForm.querySelector('.campo-descuento').value = 0;
+        primerForm.querySelector('.campo-total').value = '$0';
+        primerForm.querySelector('.campo-total').style.background = '#6c757d';
+        primerForm.querySelector('.campo-categoria').value = '';
+        primerForm.querySelector('.campo-comentarios').value = '';
+        primerForm.querySelector('.campo-esCambio').checked = false;
+        primerForm.querySelector('.campo-tipoPago').value = 'Otro';
+    }
+
+    actualizarBotonRegistro();
+}
+
+// ==================== REGISTRAR VENTA ====================
+async function registrarVenta(event) {
+    const btnRegistrar = event?.target;
+    const textoOriginal = btnRegistrar?.innerHTML;
+
+    if (btnRegistrar) {
+        btnRegistrar.disabled = true;
+        btnRegistrar.innerHTML = 'Procesando...';
+    }
+
+    try {
+        const articulos = obtenerDatosFormularios();
+
+        if (articulos.length === 0) {
+            showToast('⚠️ Completá al menos un artículo con precio', 'error');
+            return;
+        }
+
+        // Verificar Cta Cte en cualquier artículo
+        const tieneCtaCte = articulos.some(a => a.tipoPago === 'Cta Cte');
+        if (tieneCtaCte) {
+            abrirModalCtaCte();
+            return;
+        }
+
+        // Si es un solo artículo, usar endpoint simple
+        if (articulos.length === 1) {
+            const venta = articulos[0];
+
+            if (isNaN(venta.precio) && !venta.comentarios.includes('DEVOLUCIÓN')) {
+                showToast('⚠️ Falta el precio', 'error');
+                return;
+            }
+
+            const response = await fetch('/api/ventas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(venta)
+            });
+
+            if (response.ok) {
+                const esDevolucion = venta.cantidad < 0;
+                showToast(esDevolucion ? '✅ Devolución registrada (Stock +1)' : '✅ Venta registrada', 'success');
+                limpiarTodosLosFormularios();
+                cargarVentasDelMes();
+            } else {
+                const data = await response.json();
+                showToast(`❌ Error: ${data.error}`, 'error');
+            }
         } else {
-            const data = await response.json();
-            showToast(`❌ Error: ${data.error}`, 'error');
+            // Múltiples artículos - usar endpoint múltiple
+            const grupoVenta = Date.now().toString();
+
+            const payload = {
+                grupoVenta: grupoVenta,
+                articulos: articulos
+            };
+
+            const response = await fetch('/api/ventas/multiple', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                showToast(`✅ ${data.mensaje}`, 'success');
+                limpiarTodosLosFormularios();
+                cargarVentasDelMes();
+            } else {
+                const data = await response.json();
+                showToast(`❌ Error: ${data.error}`, 'error');
+            }
         }
     } catch (error) {
         console.error(error);
@@ -1684,8 +1604,12 @@ async function registrarVentaCompleta() {
             btnRegistrar.disabled = false;
             btnRegistrar.innerHTML = textoOriginal;
         }
+        actualizarBotonRegistro();
     }
 }
+
+// Inicializar al cargar
+document.addEventListener('DOMContentLoaded', initVentasMultiples);
 
 // ==================== EDITAR COMENTARIO POST VENTA (mejorado) ====================
 async function editarComentarioVenta(id, textoActual) {

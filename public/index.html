@@ -202,8 +202,8 @@
     <div class="container">
         <!-- NAVEGACIÓN TABS -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('busqueda', event)">🔍 Buscar Precios</button>
-            <button class="tab-btn" onclick="switchTab('cajas', event)">📊 Cajas Diarias</button>
+            <button class="tab-btn" onclick="switchTab('busqueda', event)">🔍 Buscar Precios</button>
+            <button class="tab-btn active" onclick="switchTab('cajas', event)">📊 Cajas Diarias</button>
             <button class="tab-btn" onclick="switchTab('stock', event)">📦 Stock</button>
             <button class="tab-btn" onclick="switchTab('cuentas', event)">💰 Cuentas Corrientes</button>
             <button class="tab-btn" onclick="switchTab('promedios', event)">📈 Promedios</button>
@@ -211,7 +211,7 @@
         </div>
 
         <!-- ==================== TAB 1: BÚSQUEDA ====================-->
-        <div id="busqueda" class="tab-content active">
+        <div id="busqueda" class="tab-content">
             <div class="card">
                 <h2>Buscar Producto por Código</h2>
                 <div class="form-group input-search">
@@ -223,7 +223,7 @@
         </div>
 
         <!-- TAB 2 CAJAS DIARIAS -->
-<div id="cajas" class="tab-content">
+<div id="cajas" class="tab-content active">
 
 <!-- Selector de mes y días -->
     <div style="margin-top: 40px; margin-bottom: 20px;">
@@ -234,123 +234,116 @@
   <!-- BOX MODO OSCURO: Registro de Venta -->
     <div class="venta-box-dark">
         <h3 class="venta-box-title">💼 Registrar Nueva Venta</h3>
-        
-        <!-- Búsqueda rápida -->
-        <div class="search-box">
-            <input type="text" id="busquedaRapida" class="search-input-dark" placeholder="🔍 Buscar por código o descripción...">
-            <div id="resultadoRapido"></div>
-        </div>
 
-        <!-- Formulario de venta en línea -->
-        <div class="venta-form-inline" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
-    
-    <div class="form-field" style="width: 130px;">
-        <label>Fecha</label>
-        <input type="date" id="fecha" required>
-    </div>
+        <!-- Contenedor de formularios de artículos -->
+        <div id="contenedorArticulos">
+            <!-- Artículo 1 (siempre visible) -->
+            <div class="articulo-form" data-index="0">
+                <!-- Búsqueda rápida -->
+                <div class="search-box">
+                    <input type="text" class="search-input-dark busqueda-rapida" placeholder="🔍 Buscar por código o descripción...">
+                    <div class="resultado-rapido"></div>
+                </div>
 
-    <div class="form-field" style="width: 140px;">
-        <label>Artículo</label>
-        <input type="text" id="articulo" placeholder="Código" required>
-    </div>
+                <!-- Formulario de venta en línea -->
+                <div class="venta-form-inline" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                    <div class="form-field" style="width: 130px;">
+                        <label>Fecha</label>
+                        <input type="date" class="campo-fecha" required>
+                    </div>
 
-    <div class="form-field" style="width: 70px;">
-        <label>Cant.</label>
-        <input type="number" id="cantidad" value="1" required style="text-align: center;">
-    </div>
+                    <div class="form-field" style="width: 140px;">
+                        <label>Artículo</label>
+                        <input type="text" class="campo-articulo" placeholder="Código" required>
+                    </div>
 
-    <div class="form-field" style="width: 110px;">
-        <label>Precio</label>
-        <input type="number" id="precio" step="0.01" placeholder="0.00" required>
-    </div>
+                    <div class="form-field" style="width: 70px;">
+                        <label>Cant.</label>
+                        <input type="number" class="campo-cantidad" value="1" required style="text-align: center;">
+                    </div>
 
-    <div class="form-field" style="width: 80px;">
-        <label>Desc.</label>
-        <select id="descuento">
-            <option value="0">0%</option>
-            <option value="5">5%</option>
-            <option value="10">10%</option>
-            <option value="15">15%</option>
-            <option value="20">20%</option>
-            <option value="25">25%</option>
-            <option value="30">30%</option>
-            <option value="35">35%</option>
-            <option value="40">40%</option>
-            <option value="50">50%</option>
-        </select>
-    </div>
+                    <div class="form-field" style="width: 110px;">
+                        <label>Precio</label>
+                        <input type="number" class="campo-precio" step="0.01" placeholder="0.00" required>
+                    </div>
 
-    <div class="form-field total-field" style="width: 150px;">
-        <label>Total</label>
-        <span id="totalExacto" class="total-exacto"></span>
-        <input type="text" id="totalACobrar" class="total-input" value="$0">
-    </div>
+                    <div class="form-field" style="width: 80px;">
+                        <label>Desc.</label>
+                        <select class="campo-descuento">
+                            <option value="0">0%</option>
+                            <option value="5">5%</option>
+                            <option value="10">10%</option>
+                            <option value="15">15%</option>
+                            <option value="20">20%</option>
+                            <option value="25">25%</option>
+                            <option value="30">30%</option>
+                            <option value="35">35%</option>
+                            <option value="40">40%</option>
+                            <option value="50">50%</option>
+                        </select>
+                    </div>
 
-    <div class="form-field" style="width: 100px;">
-        <label>Cat.</label>
-        <input type="text" id="categoria" readonly>
-    </div>
+                    <div class="form-field total-field" style="width: 150px;">
+                        <label>Total</label>
+                        <span class="total-exacto"></span>
+                        <input type="text" class="total-input campo-total" value="$0">
+                    </div>
 
-    <div class="form-field" style="width: 90px;">
-        <label>Factura</label>
-        <div class="factura-select">
-            <button type="button" class="factura-btn active" data-value="A">A</button>
-            <button type="button" class="factura-btn" data-value="B">B</button>
-        </div>
-    </div>
+                    <div class="form-field" style="width: 100px;">
+                        <label>Cat.</label>
+                        <input type="text" class="campo-categoria" readonly>
+                    </div>
 
-    <div class="form-field" style="flex: 1; min-width: 140px;">
-        <label>Pago</label>
-        <select id="tipoPago">
-            <option value="Otro" selected>Otro...</option>
-            <option value="Efectivo">Efectivo</option>
-            <option value="Transferencia">Transferencia</option>
-            <option value="Tarjeta Crédito">T. Crédito</option>
-            <option value="Tarjeta Débito">T. Débito</option>
-            <option value="MP">MercadoPago</option>
-            <option value="MODO">MODO</option>
-            <option value="CDNI">CDNI</option>
-            <option value="QR">QR</option>
-            <option value="Cheque">Cheque</option>
-            <option value="Cta Cte">Cta Corriente</option>
-        </select>
-    </div>
+                    <div class="form-field" style="width: 90px;">
+                        <label>Factura</label>
+                        <div class="factura-select">
+                            <button type="button" class="factura-btn active" data-value="A">A</button>
+                            <button type="button" class="factura-btn" data-value="B">B</button>
+                        </div>
+                    </div>
 
-    <div style="width: 100%; display: flex; align-items: center; gap: 15px; margin-top: 5px;">
-        <div class="form-field" style="flex: 1;">
-            <input type="text" id="comentarios" placeholder="Comentarios opcionales..." style="width: 100%;">
-        </div>
-        
-        <div class="form-field">
-            <div class="checkbox-container">
-                <input type="checkbox" id="esCambio" style="width: 18px; height: 18px; margin: 0; cursor: pointer;">
-                <label for="esCambio" style="color: #e74c3c; cursor: pointer; font-weight: bold; margin: 0; font-size: 0.9em; text-transform: uppercase;">Devolución</label>
+                    <div class="form-field" style="flex: 1; min-width: 140px;">
+                        <label>Pago</label>
+                        <select class="campo-tipoPago">
+                            <option value="Otro" selected>Otro...</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Transferencia">Transferencia</option>
+                            <option value="Tarjeta Crédito">T. Crédito</option>
+                            <option value="Tarjeta Débito">T. Débito</option>
+                            <option value="MP">MercadoPago</option>
+                            <option value="MODO">MODO</option>
+                            <option value="CDNI">CDNI</option>
+                            <option value="QR">QR</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Cta Cte">Cta Corriente</option>
+                        </select>
+                    </div>
+
+                    <div style="width: 100%; display: flex; align-items: center; gap: 15px; margin-top: 5px;">
+                        <div class="form-field" style="flex: 1;">
+                            <input type="text" class="campo-comentarios" placeholder="Comentarios opcionales..." style="width: 100%;">
+                        </div>
+
+                        <div class="form-field">
+                            <div class="checkbox-container">
+                                <input type="checkbox" class="campo-esCambio" style="width: 18px; height: 18px; margin: 0; cursor: pointer;">
+                                <label style="color: #e74c3c; cursor: pointer; font-weight: bold; margin: 0; font-size: 0.9em; text-transform: uppercase;">Devolución</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button class="btn-agregar-articulo" onclick="agregarArticuloALista(event)">+ Agregar Artículo</button>
-            <button class="btn-registrar-dark" onclick="registrarVentaRapida(event)">✓ Venta Rápida (1 art.)</button>
+        <!-- Botón agregar otro artículo -->
+        <div style="margin-top: 10px; display: flex; justify-content: flex-start;">
+            <button class="btn-agregar-otro" onclick="agregarOtroArticulo()">+ Agregar otro artículo</button>
         </div>
-    </div>
 
-    <!-- Contenedor de artículos pendientes para venta múltiple -->
-    <div id="articulosPendientes" class="articulos-pendientes" style="display:none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h4 style="margin: 0; color: #27ae60;">Artículos en esta venta:</h4>
-            <span id="contadorArticulos" style="background: #27ae60; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.85em;">0 artículos</span>
-        </div>
-        <div id="listaArticulosPendientes"></div>
-        <div class="total-grupo" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 2px solid #27ae60;">
-            <span style="font-size: 1.1em; font-weight: bold;">TOTAL DE LA VENTA:</span>
-            <span id="totalGrupo" style="font-size: 1.3em; font-weight: bold; color: #27ae60;">$0</span>
-        </div>
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <button class="btn-registrar-dark" onclick="registrarVentaCompleta()" style="flex: 1;">✓ Registrar Venta Completa</button>
-            <button class="btn-cancelar-venta" onclick="limpiarArticulosPendientes()">✕ Cancelar</button>
-        </div>
+        <!-- Botón registrar venta -->
+        <button id="btnRegistrarVenta" class="btn-registrar-dark" onclick="registrarVenta(event)" style="margin-top: 15px;">
+            ✓ Registrar Venta (1 artículo) - $0
+        </button>
     </div>
 
     <!-- Lista de ventas del día seleccionado -->
