@@ -3,7 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airborn - Sistema de Inventario</title>
+    <title>StockMate Pro - Sistema de Inventario</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Sistema de gestión de inventario y ventas">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StockMate">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon-32.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -267,7 +282,7 @@
 
     <div class="form-field total-field" style="width: 130px;">
         <label>Total</label>
-        <div id="totalACobrar" class="total-display">$0.00</div>
+        <input type="number" id="totalACobrar" class="total-input" value="0" step="any">
     </div>
 
     <div class="form-field" style="width: 100px;">
@@ -985,5 +1000,31 @@
     </div>
 </div>
 
+<!-- Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('SW registrado:', registration.scope);
+
+                // Detectar actualizaciones
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // Nueva versión disponible
+                            if (confirm('Nueva versión disponible. ¿Actualizar ahora?')) {
+                                newWorker.postMessage('skipWaiting');
+                                window.location.reload();
+                            }
+                        }
+                    });
+                });
+            })
+            .catch((error) => console.error('Error registrando SW:', error));
+    });
+}
+</script>
 </body>
 </html>

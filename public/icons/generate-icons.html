@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generador de Iconos PWA</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a2e; color: white; }
+        .icon { margin: 10px; display: inline-block; text-align: center; }
+        canvas { border: 1px solid #444; border-radius: 8px; }
+        a { color: #6c5ce7; }
+        h2 { color: #a29bfe; }
+    </style>
+</head>
+<body>
+    <h1>Generador de Iconos para StockMate PWA</h1>
+    <p>Click derecho en cada imagen y "Guardar imagen como..." con el nombre indicado.</p>
+    <div id="icons"></div>
+
+    <script>
+        const sizes = [32, 72, 96, 128, 144, 152, 192, 384, 512];
+        const container = document.getElementById('icons');
+
+        sizes.forEach(size => {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // Fondo con gradiente
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#6c5ce7');
+            gradient.addColorStop(1, '#a29bfe');
+
+            // Rectángulo redondeado
+            const radius = size * 0.15;
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, radius);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Letra S
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.55}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('S', size/2, size/2 + size*0.05);
+
+            const div = document.createElement('div');
+            div.className = 'icon';
+            div.innerHTML = `<h2>icon-${size}.png</h2>`;
+            div.appendChild(canvas);
+
+            // Link de descarga
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = `icon-${size}.png`;
+            link.textContent = ' Descargar';
+            div.appendChild(link);
+
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>

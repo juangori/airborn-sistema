@@ -3,7 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión - Sistema de Gestión</title>
+    <title>Iniciar Sesión - StockMate Pro</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Sistema de gestión de inventario y ventas">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StockMate">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon-32.svg">
+    <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+
     <style>
         * {
             margin: 0;
@@ -226,6 +241,13 @@
                 }
             })
             .catch(() => {});
+
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then((reg) => console.log('SW registrado:', reg.scope))
+                .catch((err) => console.error('Error SW:', err));
+        }
     </script>
 </body>
 </html>

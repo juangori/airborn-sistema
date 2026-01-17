@@ -1223,39 +1223,41 @@ function actualizarTotalACobrar() {
   const precioField = document.getElementById('precio');
   const cantidadField = document.getElementById('cantidad');
   const descuentoField = document.getElementById('descuento');
-  const totalDisplay = document.getElementById('totalACobrar');
-  
+  const totalInput = document.getElementById('totalACobrar');
+
   const precio = parseFloat(precioField.value) || 0;
-  // Si cantidad está vacía o es 0, usamos 0. 
-  // Pero ojo: para el cálculo, si es 0, actuará como 1 (monto fijo).
   const cantidadValor = parseInt(cantidadField.value);
   const cantidad = isNaN(cantidadValor) ? 0 : cantidadValor;
-  
   const descuento = parseInt(descuentoField.value) || 0;
-  
-  // LÓGICA PEDIDA: 
-  // Si precio es 0, total es 0.
-  // Pero si hay precio y cantidad es 0, el total es el precio (cobro manual).
-  
+
   if (precio === 0) {
-    totalDisplay.textContent = '$0.00';
-    totalDisplay.style.background = 'linear-gradient(135deg, #6c757d 0%, #5a6268 100%)';
+    totalInput.value = 0;
+    totalInput.style.background = '#6c757d';
     return;
   }
-  
+
   const precioConDescuento = precio * (1 - (descuento / 100));
-  
-  // Si cantidad es 0, asumimos que es un ítem "único" o servicio manual -> Total = Precio
-  // Si cantidad es distinta de 0 (positiva o negativa), multiplicamos.
-  const total = (cantidad === 0) ? precioConDescuento : (precioConDescuento * cantidad);
-  
-  totalDisplay.textContent = formatMoney(total);
-  
+
+  // Si cantidad es 0, total = precio. Si no, multiplicamos.
+  let total = (cantidad === 0) ? precioConDescuento : (precioConDescuento * cantidad);
+
+  // Redondear al múltiplo de 50 más cercano (para facilitar vuelto)
+  // Ej: 89091 → 89100, 89001 → 89000, 114035 → 114050, 114025 → 114000
+  if (descuento > 0) {
+    total = Math.round(total / 50) * 50;
+  } else {
+    total = Math.round(total);
+  }
+
+  totalInput.value = total;
+
   // Cambiar color según descuento
   if (descuento > 0) {
-    totalDisplay.style.background = 'linear-gradient(135deg, #28a745 0%, #20923c 100%)'; // Verde
+    totalInput.style.background = '#28a745'; // Verde
+    totalInput.style.color = 'white';
   } else {
-    totalDisplay.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)'; // Azul
+    totalInput.style.background = '#007bff'; // Azul
+    totalInput.style.color = 'white';
   }
 }
 
@@ -1318,12 +1320,38 @@ document.getElementById('descuento').addEventListener('change', actualizarTotalA
             // Para simplificar, confiamos en lo que dice el input "Precio" que es unitario
         }
         
+        // Obtener total del input (puede ser editado manualmente)
+        const totalInput = document.getElementById('totalACobrar');
+        const totalManual = parseFloat(totalInput.value) || 0;
+        const descuentoOriginal = esCambio ? 0 : (parseInt(document.getElementById('descuento').value) || 0);
+
+        // Calcular qué precio unitario debería ser según el total ingresado
+        // Si el usuario editó el total manualmente, usamos ese total y calculamos el precio
+        let precioFinal = precio;
+        let descuentoFinal = descuentoOriginal;
+
+        // Si cantidad > 0, el precio unitario es total / cantidad
+        // Si cantidad = 0, el precio es el total directo
+        const cantidadParaCalculo = cantidad === 0 ? 1 : Math.abs(cantidad);
+        const precioCalculado = totalManual / cantidadParaCalculo;
+
+        // Verificar si el usuario modificó el total manualmente
+        const totalEsperado = descuentoOriginal > 0
+            ? Math.ceil(precio * (1 - descuentoOriginal / 100) * cantidadParaCalculo)
+            : Math.round(precio * cantidadParaCalculo);
+
+        if (Math.abs(totalManual - totalEsperado) > 1) {
+            // El usuario editó el total manualmente, usar ese precio y sin descuento
+            precioFinal = precioCalculado;
+            descuentoFinal = 0;
+        }
+
         const venta = {
             fecha: document.getElementById('fecha').value,
             articulo: document.getElementById('articulo').value.trim(),
             cantidad: cantidad,
-            precio: precio,
-            descuento: esCambio ? 0 : (parseInt(document.getElementById('descuento').value) || 0),
+            precio: precioFinal,
+            descuento: descuentoFinal,
             categoria: document.getElementById('categoria').value.trim(),
             factura: facturaBtn.dataset.value,
             tipoPago: tipoPago,

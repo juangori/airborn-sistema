@@ -148,8 +148,8 @@ const schemas = {
   venta: Joi.object({
     fecha: Joi.string().required(),
     articulo: Joi.string().allow('').optional(),
-    cantidad: Joi.number().integer().min(1).required(),
-    precio: Joi.number().min(0).required(),
+    cantidad: Joi.number().integer().required(), // Permite negativos para devoluciones
+    precio: Joi.number().required(), // Permite negativos para devoluciones
     descuento: Joi.number().min(0).max(100).default(0),
     categoria: Joi.string().allow('').optional(),
     factura: Joi.string().allow('').optional(),

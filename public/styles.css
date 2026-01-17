@@ -668,7 +668,7 @@ input:focus, textarea:focus, select:focus {
   letter-spacing: 0.5px;
 }
 
-.total-display {
+.total-display, .total-input {
   padding: 2px 1px;
   background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
   color: white;
@@ -680,6 +680,23 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
   border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.total-input {
+  -moz-appearance: textfield;
+  cursor: text;
+}
+
+.total-input::-webkit-outer-spin-button,
+.total-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.total-input:focus {
+  outline: none;
+  border-color: #ffc107;
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
 }
 
 .total-display:not(:empty) {
@@ -2904,6 +2921,7 @@ flex-direction: column;
 .venta-form-inline input,
 .venta-form-inline select,
 .venta-form-inline .total-display,
+.venta-form-inline .total-input,
 .venta-form-inline .factura-select {
     height: 40px !important; /* Altura fija uniforme */
     line-height: normal;
@@ -2913,7 +2931,8 @@ flex-direction: column;
 }
 
 /* 2. Ajuste específico para el TOTAL (Letra grande, pero caja igual a las demás) */
-.venta-form-inline .total-display {
+.venta-form-inline .total-display,
+.venta-form-inline .total-input {
     font-size: 1.4em !important; /* Letra grande */
     font-weight: 800;
     justify-content: center; /* Centrado horizontal */
