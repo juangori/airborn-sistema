@@ -1327,8 +1327,231 @@ document.getElementById('cantidad').addEventListener('input', actualizarTotalACo
 document.getElementById('descuento').addEventListener('change', actualizarTotalACobrar);
 
 
-    // ==================== REGISTRAR VENTA ====================
-    async function registrarVenta(event) {
+// ==================== VENTAS MÚLTIPLES - Lista temporal ====================
+let articulosPendientes = []; // Array temporal para múltiples artículos
+
+function obtenerDatosFormulario() {
+    const facturaBtn = document.querySelector('.factura-btn.active');
+    const tipoPago = document.getElementById('tipoPago').value;
+    const esCambio = document.getElementById('esCambio').checked;
+
+    const precioField = document.getElementById('precio');
+    const cantidadField = document.getElementById('cantidad');
+
+    let cantidad = parseInt(cantidadField.value);
+    let precio = parseFloat(precioField.value);
+
+    // LÓGICA DE CAMBIO/DEVOLUCIÓN
+    if (esCambio) {
+        cantidad = -1 * Math.abs(cantidad);
+        precio = 0;
+    }
+
+    // Obtener total del input (puede ser editado manualmente)
+    const totalInput = document.getElementById('totalACobrar');
+    const totalManual = parseFloat(totalInput.value.replace(/[$.]/g, '').replace(',', '.')) || 0;
+    const descuentoOriginal = esCambio ? 0 : (parseInt(document.getElementById('descuento').value) || 0);
+
+    let precioFinal = precio;
+    let descuentoFinal = descuentoOriginal;
+
+    const cantidadParaCalculo = cantidad === 0 ? 1 : Math.abs(cantidad);
+    const precioCalculado = totalManual / cantidadParaCalculo;
+
+    // Verificar si el usuario modificó el total manualmente
+    const totalSinRedondear = precio * (1 - descuentoOriginal / 100) * cantidadParaCalculo;
+    const totalEsperado = descuentoOriginal > 0
+        ? Math.round(totalSinRedondear / 50) * 50
+        : Math.round(totalSinRedondear);
+
+    if (Math.abs(totalManual - totalEsperado) > 1) {
+        precioFinal = precioCalculado;
+        descuentoFinal = 0;
+    }
+
+    return {
+        fecha: document.getElementById('fecha').value,
+        articulo: document.getElementById('articulo').value.trim(),
+        cantidad: cantidad,
+        precio: precioFinal,
+        descuento: descuentoFinal,
+        categoria: document.getElementById('categoria').value.trim(),
+        factura: facturaBtn.dataset.value,
+        tipoPago: tipoPago,
+        comentarios: document.getElementById('comentarios').value.trim() + (esCambio ? ' (DEVOLUCIÓN)' : ''),
+        totalCalculado: totalManual,
+        esCambio: esCambio
+    };
+}
+
+function limpiarFormularioVenta() {
+    document.getElementById('articulo').value = '';
+    document.getElementById('precio').value = '';
+    document.getElementById('precio').readOnly = false;
+    document.getElementById('precio').style.backgroundColor = '';
+    document.getElementById('categoria').value = '';
+    document.getElementById('cantidad').value = 1;
+    document.getElementById('descuento').value = 0;
+    document.getElementById('comentarios').value = '';
+    document.getElementById('esCambio').checked = false;
+    document.getElementById('tipoPago').value = 'Otro';
+    actualizarTotalACobrar();
+}
+
+function agregarArticuloALista(event) {
+    const tipoPago = document.getElementById('tipoPago').value;
+
+    // Interceptar Cta Cte
+    if (tipoPago === 'Cta Cte') {
+        abrirModalCtaCte();
+        return;
+    }
+
+    const precio = parseFloat(document.getElementById('precio').value);
+    const esCambio = document.getElementById('esCambio').checked;
+
+    if (!esCambio && isNaN(precio)) {
+        showToast('⚠️ Falta el precio', 'error');
+        return;
+    }
+
+    const datos = obtenerDatosFormulario();
+
+    // Agregar descripción para mostrar en la lista
+    const codigo = datos.articulo;
+    let descripcion = '-';
+    if (window.productosCache && codigo) {
+        const prod = window.productosCache.find(p =>
+            (p.codigo || '').toString().trim().toLowerCase() === codigo.toString().trim().toLowerCase()
+        );
+        if (prod) descripcion = prod.descripcion;
+    }
+    datos.descripcion = descripcion;
+
+    articulosPendientes.push(datos);
+    renderizarArticulosPendientes();
+    limpiarFormularioVenta();
+    document.getElementById('articulo').focus();
+
+    showToast('✅ Artículo agregado a la venta', 'success');
+}
+
+function renderizarArticulosPendientes() {
+    const container = document.getElementById('articulosPendientes');
+    const lista = document.getElementById('listaArticulosPendientes');
+    const contador = document.getElementById('contadorArticulos');
+    const totalSpan = document.getElementById('totalGrupo');
+
+    if (articulosPendientes.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    contador.textContent = `${articulosPendientes.length} artículo${articulosPendientes.length > 1 ? 's' : ''}`;
+
+    let totalGrupo = 0;
+
+    lista.innerHTML = articulosPendientes.map((art, index) => {
+        totalGrupo += art.totalCalculado;
+        const esDevolucion = art.esCambio;
+
+        return `
+            <div class="articulo-pendiente-item ${esDevolucion ? 'es-devolucion' : ''}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: ${esDevolucion ? 'rgba(231,76,60,0.1)' : 'rgba(255,255,255,0.8)'}; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid ${esDevolucion ? '#e74c3c' : '#27ae60'};">
+                <div style="flex: 1;">
+                    <strong style="color: #2c3e50;">${art.articulo || 'Sin código'}</strong>
+                    <span style="color: #7f8c8d; margin-left: 10px;">${art.descripcion}</span>
+                    <div style="font-size: 0.85em; color: #95a5a6; margin-top: 3px;">
+                        Cant: ${art.cantidad} | ${art.descuento > 0 ? art.descuento + '% desc.' : 'Sin desc.'} | ${art.factura} | ${art.tipoPago}
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-weight: bold; font-size: 1.1em; color: ${esDevolucion ? '#e74c3c' : '#27ae60'};">
+                        ${esDevolucion ? 'DEV' : formatMoney(art.totalCalculado)}
+                    </span>
+                    <button onclick="quitarArticuloPendiente(${index})" style="background: #e74c3c; color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1.1em;">×</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    totalSpan.textContent = formatMoney(totalGrupo);
+}
+
+function quitarArticuloPendiente(index) {
+    articulosPendientes.splice(index, 1);
+    renderizarArticulosPendientes();
+    showToast('Artículo removido', 'info');
+}
+
+function limpiarArticulosPendientes() {
+    articulosPendientes = [];
+    renderizarArticulosPendientes();
+    showToast('Venta cancelada', 'info');
+}
+
+async function registrarVentaCompleta() {
+    if (articulosPendientes.length === 0) {
+        showToast('⚠️ No hay artículos para registrar', 'error');
+        return;
+    }
+
+    const btnRegistrar = event?.target;
+    const textoOriginal = btnRegistrar?.innerHTML;
+
+    if (btnRegistrar) {
+        btnRegistrar.disabled = true;
+        btnRegistrar.innerHTML = 'Procesando...';
+    }
+
+    try {
+        const grupoVenta = Date.now().toString();
+
+        const payload = {
+            grupoVenta: grupoVenta,
+            articulos: articulosPendientes.map(art => ({
+                fecha: art.fecha,
+                articulo: art.articulo,
+                cantidad: art.cantidad,
+                precio: art.precio,
+                descuento: art.descuento,
+                categoria: art.categoria,
+                factura: art.factura,
+                tipoPago: art.tipoPago,
+                comentarios: art.comentarios
+            }))
+        };
+
+        const response = await fetch('/api/ventas/multiple', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            showToast(`✅ ${data.mensaje}`, 'success');
+            articulosPendientes = [];
+            renderizarArticulosPendientes();
+            limpiarFormularioVenta();
+            cargarVentasDelMes();
+        } else {
+            const data = await response.json();
+            showToast(`❌ Error: ${data.error}`, 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showToast('❌ Error de conexión', 'error');
+    } finally {
+        if (btnRegistrar) {
+            btnRegistrar.disabled = false;
+            btnRegistrar.innerHTML = textoOriginal;
+        }
+    }
+}
+
+    // ==================== REGISTRAR VENTA RÁPIDA (1 artículo) ====================
+    async function registrarVentaRapida(event) {
     const btnRegistrar = event?.target;
     const textoOriginal = btnRegistrar?.innerHTML;
     
@@ -1692,72 +1915,127 @@ async function cargarVentasDelDia(fecha) {
                     <div style="text-align:center">🗑️</div>
                 </div>
             `;
-            html += ventasDelDia.map(v => {
-    const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
-    const total = (v.cantidad === 0) ? precioFinal : (precioFinal * v.cantidad);
-    const esDev = v.cantidad < 0 && v.precio == 0;
-    
-    // === LÓGICA SEGURA ===
-    const codigoReal = v.articulo || v.codigoArticulo || '???';
-    
-    // 1. Intentamos usar la descripción que viene de la BD
-    let descripcionSegura = v.descripcion || '-';
+            // Agrupar ventas por grupoVenta
+            const grupos = {};
+            const ventasSinGrupo = [];
 
-    // INTELIGENCIA: Si tenemos el catálogo en memoria, buscamos la descripción real
-    if (window.productosCache && window.productosCache.length > 0) {
-        const prodEncontrado = window.productosCache.find(p => 
-            (p.codigo || '').toString().trim().toLowerCase() === codigoReal.toString().trim().toLowerCase()
-        );
-        
-        if (prodEncontrado && prodEncontrado.descripcion) {
-            descripcionSegura = prodEncontrado.descripcion;
-        }
-    }
+            ventasDelDia.forEach(v => {
+                if (v.grupoVenta) {
+                    if (!grupos[v.grupoVenta]) {
+                        grupos[v.grupoVenta] = [];
+                    }
+                    grupos[v.grupoVenta].push(v);
+                } else {
+                    ventasSinGrupo.push(v);
+                }
+            });
 
-    const categoriaSegura = v.categoriaProducto || v.categoria || ''; 
-    // =====================
+            // Función para renderizar una fila de venta
+            function renderizarFilaVenta(v, esParteDeGrupo = false, esPrimeroDelGrupo = false, esUltimoDelGrupo = false) {
+                const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
+                const total = (v.cantidad === 0) ? precioFinal : (precioFinal * v.cantidad);
+                const esDev = v.cantidad < 0 && v.precio == 0;
 
-    // 1. FILA DE LA VENTA (La tabla normal)
-    const filaVenta = `
-    <div class="ventas-tabla-grid venta-item ${esDev ? 'es-devolucion' : ''}" style="${v.comentarios ? 'border-bottom: none;' : ''}">
-        <div class="venta-detail" style="font-size:0.85em; color:#888;">#${v.id}</div>
-        
-        <div class="venta-detail" style="font-weight:600; color:#2c3e50;">${codigoReal}</div>
-        
-        <div class="venta-detail" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#444;" title="${descripcionSegura}">
-            ${descripcionSegura}
-        </div>
-        <div class="venta-detail" style="font-size:0.85em; color:#666;">${categoriaSegura}</div>
-        
-        <div class="venta-detail" style="text-align:center;">${esDev ? '<span style="color:red">-1</span>' : v.cantidad}</div>
-        <div class="venta-detail" style="text-align:right;">${formatMoney(v.precio)}</div>
-        <div class="venta-detail" style="text-align:center; font-size:0.8em;">${v.descuento ? v.descuento+'%' : '-'}</div>
-        <div class="venta-detail" style="text-align:right; font-weight:bold;">${esDev ? 'Dev.' : formatMoney(total)}</div>
-        <div class="venta-detail texto-cortado" title="${v.tipoPago}" style="font-size:0.85em;">${v.tipoPago}</div>
-        <div class="venta-detail" style="text-align:center; font-weight:bold; color:${(v.factura || '').toUpperCase() === 'A' ? '#e74c3c' : '#3498db'};">${(v.factura || '-').toUpperCase()}</div>
-        <div class="celda-eliminar" style="display: flex; gap: 5px; justify-content: center;">
-            <button class="btn-eliminar-venta" 
-                    onclick="editarComentarioVenta(${v.id}, '${(v.comentarios || '').replace(/'/g, "\\'")}')" 
-                    title="${v.comentarios ? 'Editar comentario' : 'Agregar comentario'}"
-                    style="background: ${v.comentarios ? '#3498db' : '#ecf0f1'}; color: ${v.comentarios ? 'white' : '#95a5a6'};">
-                💬
-            </button>
-            <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button>
-        </div>
-    </div>`;
+                const codigoReal = v.articulo || v.codigoArticulo || '???';
+                let descripcionSegura = v.descripcion || '-';
 
-    // 2. FILA DEL COMENTARIO (Solo si existe y no está vacío)
-    let filaComentario = '';
-    if (v.comentarios && v.comentarios.trim() !== '') {
-        filaComentario = `
-            <div class="venta-comentario-row">
-                ↳ 💬 <strong>Nota:</strong> ${v.comentarios}
-            </div>
-        `;
-    }
+                if (window.productosCache && window.productosCache.length > 0) {
+                    const prodEncontrado = window.productosCache.find(p =>
+                        (p.codigo || '').toString().trim().toLowerCase() === codigoReal.toString().trim().toLowerCase()
+                    );
+                    if (prodEncontrado && prodEncontrado.descripcion) {
+                        descripcionSegura = prodEncontrado.descripcion;
+                    }
+                }
 
-    return filaVenta + filaComentario;
-}).join('');
+                const categoriaSegura = v.categoriaProducto || v.categoria || '';
+
+                // Clases y estilos para grupo
+                let claseGrupo = '';
+                let estiloGrupo = '';
+                if (esParteDeGrupo) {
+                    claseGrupo = 'grupo-venta';
+                    if (esPrimeroDelGrupo) claseGrupo += ' grupo-venta-primero';
+                    if (esUltimoDelGrupo) claseGrupo += ' grupo-venta-ultimo';
+                }
+
+                const filaVenta = `
+                <div class="ventas-tabla-grid venta-item ${esDev ? 'es-devolucion' : ''} ${claseGrupo}" style="${v.comentarios ? 'border-bottom: none;' : ''}">
+                    <div class="venta-detail" style="font-size:0.85em; color:#888;">#${v.id}</div>
+                    <div class="venta-detail" style="font-weight:600; color:#2c3e50;">${codigoReal}</div>
+                    <div class="venta-detail" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#444;" title="${descripcionSegura}">
+                        ${descripcionSegura}
+                    </div>
+                    <div class="venta-detail" style="font-size:0.85em; color:#666;">${categoriaSegura}</div>
+                    <div class="venta-detail" style="text-align:center;">${esDev ? '<span style="color:red">-1</span>' : v.cantidad}</div>
+                    <div class="venta-detail" style="text-align:right;">${formatMoney(v.precio)}</div>
+                    <div class="venta-detail" style="text-align:center; font-size:0.8em;">${v.descuento ? v.descuento+'%' : '-'}</div>
+                    <div class="venta-detail" style="text-align:right; font-weight:bold;">${esDev ? 'Dev.' : formatMoney(total)}</div>
+                    <div class="venta-detail texto-cortado" title="${v.tipoPago}" style="font-size:0.85em;">${v.tipoPago}</div>
+                    <div class="venta-detail" style="text-align:center; font-weight:bold; color:${(v.factura || '').toUpperCase() === 'A' ? '#e74c3c' : '#3498db'};">${(v.factura || '-').toUpperCase()}</div>
+                    <div class="celda-eliminar" style="display: flex; gap: 5px; justify-content: center;">
+                        <button class="btn-eliminar-venta"
+                                onclick="editarComentarioVenta(${v.id}, '${(v.comentarios || '').replace(/'/g, "\\'")}')"
+                                title="${v.comentarios ? 'Editar comentario' : 'Agregar comentario'}"
+                                style="background: ${v.comentarios ? '#3498db' : '#ecf0f1'}; color: ${v.comentarios ? 'white' : '#95a5a6'};">
+                            💬
+                        </button>
+                        <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button>
+                    </div>
+                </div>`;
+
+                let filaComentario = '';
+                if (v.comentarios && v.comentarios.trim() !== '') {
+                    filaComentario = `
+                        <div class="venta-comentario-row ${esParteDeGrupo ? 'grupo-venta' : ''}">
+                            ↳ 💬 <strong>Nota:</strong> ${v.comentarios}
+                        </div>
+                    `;
+                }
+
+                return filaVenta + filaComentario;
+            }
+
+            // Renderizar grupos primero (ordenados por ID del primer elemento, descendente)
+            const gruposOrdenados = Object.entries(grupos).sort((a, b) => {
+                return b[1][0].id - a[1][0].id; // Más reciente primero
+            });
+
+            gruposOrdenados.forEach(([grupoId, ventas]) => {
+                // Calcular total del grupo
+                let totalGrupo = 0;
+                ventas.forEach(v => {
+                    const precioFinal = v.precio * (1 - (v.descuento || 0)/100);
+                    const total = (v.cantidad === 0) ? precioFinal : (precioFinal * v.cantidad);
+                    totalGrupo += total;
+                });
+
+                // Renderizar cada venta del grupo
+                ventas.forEach((v, idx) => {
+                    const esPrimero = idx === 0;
+                    const esUltimo = idx === ventas.length - 1;
+                    html += renderizarFilaVenta(v, true, esPrimero, esUltimo);
+                });
+
+                // Fila de total del grupo
+                html += `
+                    <div class="grupo-venta-total">
+                        <div style="grid-column: 1 / 8; text-align: right; padding-right: 15px; color: #2c3e50;">
+                            TOTAL VENTA (${ventas.length} art.):
+                        </div>
+                        <div style="text-align: right; font-weight: bold; font-size: 1.1em; color: #27ae60;">
+                            ${formatMoney(totalGrupo)}
+                        </div>
+                        <div style="grid-column: 9 / 12;"></div>
+                    </div>
+                `;
+            });
+
+            // Renderizar ventas sin grupo
+            ventasSinGrupo.forEach(v => {
+                html += renderizarFilaVenta(v, false, false, false);
+            });
+
 html += `</div>`;
         }
 

@@ -156,6 +156,20 @@ const schemas = {
     tipoPago: Joi.string().allow('').optional(),
     comentarios: Joi.string().allow('').optional()
   }),
+  ventaMultiple: Joi.object({
+    grupoVenta: Joi.string().required(),
+    articulos: Joi.array().items(Joi.object({
+      fecha: Joi.string().required(),
+      articulo: Joi.string().allow('').optional(),
+      cantidad: Joi.number().integer().required(),
+      precio: Joi.number().required(),
+      descuento: Joi.number().min(0).max(100).default(0),
+      categoria: Joi.string().allow('').optional(),
+      factura: Joi.string().allow('').optional(),
+      tipoPago: Joi.string().allow('').optional(),
+      comentarios: Joi.string().allow('').optional()
+    })).min(1).required()
+  }),
   productoNuevo: Joi.object({
     codigo: Joi.string().max(50).required(),
     descripcion: Joi.string().max(200).required(),
@@ -255,9 +269,15 @@ function inicializarBdCliente(db) {
         tipoPago TEXT,
         detalles TEXT,
         caja TEXT,
+        grupoVenta TEXT,
         FOREIGN KEY(codigoArticulo) REFERENCES productos(codigo)
       )
     `);
+
+    // Migración: agregar columna grupoVenta si no existe (para BDs existentes)
+    db.run(`ALTER TABLE ventas ADD COLUMN grupoVenta TEXT`, () => {
+      // Ignorar error si la columna ya existe
+    });
 
     // --- NUEVA TABLA PARA MOVIMIENTOS DE CAJA ---
     db.run(`CREATE TABLE IF NOT EXISTS movimientosCaja (
@@ -678,6 +698,54 @@ app.post('/api/ventas', requireAuth, async (req, res) => {
   }
 });
 
+// 3b. REGISTRAR VENTA MÚLTIPLE (varios artículos en una sola transacción)
+app.post('/api/ventas/multiple', requireAuth, async (req, res) => {
+  const db = req.db;
+  const usuario = req.session.usuario;
+
+  // Validar input con Joi
+  const { error, value } = validar(schemas.ventaMultiple, req.body);
+  if (error) {
+    return res.status(400).json({ error });
+  }
+
+  const { grupoVenta, articulos } = value;
+
+  try {
+    await dbRun(db, "BEGIN TRANSACTION");
+
+    for (const art of articulos) {
+      const articuloFinal = art.articulo || '';
+
+      // Insertar cada venta con el mismo grupoVenta
+      await dbRun(db, `
+        INSERT INTO ventas
+        (fecha, codigoArticulo, cantidad, precio, descuento, categoria, factura, tipoPago, detalles, caja, grupoVenta)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        art.fecha, articuloFinal, art.cantidad, art.precio, art.descuento,
+        art.categoria || '', art.factura || 'A', art.tipoPago || '',
+        art.comentarios || '', 'A', grupoVenta
+      ]);
+
+      // Descontar stock
+      if (articuloFinal) {
+        await dbRun(db, 'UPDATE productos SET stock = stock - ? WHERE codigo = ?', [art.cantidad, articuloFinal]);
+      }
+    }
+
+    await dbRun(db, "COMMIT");
+
+    crearBackup(usuario, 'Venta múltiple registrada', `${articulos.length} artículos, Grupo: ${grupoVenta}`);
+    res.json({ ok: true, mensaje: `Venta registrada: ${articulos.length} artículos` });
+
+  } catch (error) {
+    console.error("Error en transacción venta múltiple:", error);
+    await dbRun(db, "ROLLBACK");
+    res.status(500).json({ error: 'Error registrando venta múltiple: ' + error.message });
+  }
+});
+
 // 4. OBTENER VENTAS (CON AUTO-LIMPIEZA Y CORRECCIÓN DE DESCRIPCIÓN)
 app.get('/api/ventas', requireAuth, async (req, res) => {
   const db = req.db;
@@ -705,23 +773,24 @@ app.get('/api/ventas', requireAuth, async (req, res) => {
       }
 
       const ventas = (rows || []).map(r => {
-        // CORRECCIÓN DEFINITIVA: 
+        // CORRECCIÓN DEFINITIVA:
         // La descripción es SOLO la del producto. Si no hay producto, va vacío.
         // NUNCA usamos r.detalles aquí, así evitamos que el comentario aparezca en la columna de producto.
-        const descFinal = r.descripcionProducto || ''; 
-        
+        const descFinal = r.descripcionProducto || '';
+
         return {
           id: r.id,
           fecha: r.fecha,
           articulo: r.codigoArticulo,
-          descripcion: descFinal, 
+          descripcion: descFinal,
           cantidad: r.cantidad,
           precio: r.precio,
           descuento: r.descuento || 0,
           categoria: r.categoria || '',
           factura: r.factura || '',
           tipoPago: r.tipoPago || '',
-          comentarios: r.detalles || ''
+          comentarios: r.detalles || '',
+          grupoVenta: r.grupoVenta || null
         };
       });
 

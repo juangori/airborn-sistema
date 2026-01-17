@@ -330,7 +330,27 @@
     </div>
 </div>
 
-        <button class="btn-registrar-dark" onclick="registrarVenta(event)">✓ Registrar Venta</button>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button class="btn-agregar-articulo" onclick="agregarArticuloALista(event)">+ Agregar Artículo</button>
+            <button class="btn-registrar-dark" onclick="registrarVentaRapida(event)">✓ Venta Rápida (1 art.)</button>
+        </div>
+    </div>
+
+    <!-- Contenedor de artículos pendientes para venta múltiple -->
+    <div id="articulosPendientes" class="articulos-pendientes" style="display:none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; color: #27ae60;">Artículos en esta venta:</h4>
+            <span id="contadorArticulos" style="background: #27ae60; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.85em;">0 artículos</span>
+        </div>
+        <div id="listaArticulosPendientes"></div>
+        <div class="total-grupo" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 2px solid #27ae60;">
+            <span style="font-size: 1.1em; font-weight: bold;">TOTAL DE LA VENTA:</span>
+            <span id="totalGrupo" style="font-size: 1.3em; font-weight: bold; color: #27ae60;">$0</span>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <button class="btn-registrar-dark" onclick="registrarVentaCompleta()" style="flex: 1;">✓ Registrar Venta Completa</button>
+            <button class="btn-cancelar-venta" onclick="limpiarArticulosPendientes()">✕ Cancelar</button>
+        </div>
     </div>
 
     <!-- Lista de ventas del día seleccionado -->
