@@ -1,6 +1,7 @@
 // ==================== VARIABLES GLOBALES ====================
 let ventasDelMes = [];
 let productosCache = [];
+let fechaSeleccionada = new Date().toISOString().split('T')[0];
 window.productosCache = productosCache;
 
 // ==================== PANEL ADMIN ====================
@@ -1618,7 +1619,6 @@ async function borrarVenta(id) {
 }
 
 // ==================== SELECTOR DE DÍAS DEL MES ====================
-let fechaSeleccionada = new Date().toISOString().split('T')[0];
 
 async function cargarVentasDelMes() {
     const hoy = new Date();
