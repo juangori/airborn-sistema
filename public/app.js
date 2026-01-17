@@ -385,17 +385,24 @@ document.getElementById('esCambio').addEventListener('change', function() {
     
     if (this.checked) {
         // Modo Devolución activado
-        precioInput.dataset.oldValue = precioInput.value; 
-        
+        precioInput.dataset.oldValue = precioInput.value;
+
         // Poner Precio en 0 y bloquear
         precioInput.value = 0;
         precioInput.readOnly = true;
         precioInput.style.backgroundColor = '#f0f0f0';
-        
+
         // Poner Cantidad en -1 (para que sea visual)
         cantidadInput.value = -1;
-        
-        totalDisplay.innerHTML = '<span style="color:#e74c3c; font-size: 0.9em;">DEVOLUCIÓN</span>';
+
+        // Total en $0 con estilo rojo
+        totalDisplay.value = '$0';
+        totalDisplay.style.background = '#dc3545';
+        totalDisplay.style.color = 'white';
+
+        // Ocultar total exacto si estaba visible
+        const totalExacto = document.getElementById('totalExacto');
+        if (totalExacto) totalExacto.classList.remove('visible');
     } else {
         // Volver a normal
         precioInput.value = precioInput.dataset.oldValue || '';
