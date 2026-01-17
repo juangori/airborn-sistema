@@ -1265,6 +1265,19 @@ function actualizarTotalACobrar() {
   const cantidad = isNaN(cantidadValor) ? 0 : cantidadValor;
   const descuento = parseInt(descuentoField.value) || 0;
 
+  // Verificar si el checkbox de devolución está marcado
+  const esCambioCheckbox = document.getElementById('esCambio');
+  const esCambio = esCambioCheckbox && esCambioCheckbox.checked;
+
+  // Si es devolución (checkbox marcado O cantidad es -1), total siempre es 0
+  if (esCambio || cantidad === -1) {
+    totalInput.value = '$0';
+    totalInput.style.background = '#dc3545'; // Rojo para devolución
+    totalInput.style.color = 'white';
+    totalExacto.classList.remove('visible');
+    return;
+  }
+
   if (precio === 0) {
     totalInput.value = '$0';
     totalInput.style.background = '#6c757d';
@@ -1272,14 +1285,8 @@ function actualizarTotalACobrar() {
     return;
   }
 
-  // Si cantidad es -1 (devolución), total siempre es 0
-  if (cantidad === -1) {
-    totalInput.value = '$0';
-    totalInput.style.background = '#dc3545'; // Rojo para devolución
-    totalInput.style.color = 'white';
-    totalExacto.classList.remove('visible');
-    return;
-  }
+  // Resetear estilo si no es devolución
+  totalInput.style.color = 'white';
 
   const precioConDescuento = precio * (1 - (descuento / 100));
 
