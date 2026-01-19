@@ -5008,3 +5008,52 @@ async function editarMovimientoCuenta(id, textoActual) {
         console.error(e);
     }
 }
+
+// ==================== MIGRACIÓN DE DB ====================
+
+function descargarBaseDatos() {
+    window.location.href = '/api/admin/db/download';
+}
+
+async function subirBaseDatos() {
+    const input = document.getElementById('inputDbUpload');
+    const file = input.files[0];
+    if (!file) return;
+
+    if (!confirm('⚠️ ¡ATENCIÓN!\n\nEstás a punto de reemplazar TODA la base de datos de este entorno con el archivo seleccionado.\n\nSe perderán los datos actuales (aunque se hará un backup automático antes).\n\n¿Estás seguro de continuar?')) {
+        input.value = ''; // Limpiar
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Feedback visual
+    const btn = input.previousElementSibling; // El botón "Subir"
+    const txtOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Subiendo...';
+
+    try {
+        const resp = await fetch('/api/admin/db/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await resp.json();
+
+        if (resp.ok) {
+            alert('✅ ' + data.mensaje);
+            location.reload(); // Recargar para ver los datos nuevos
+        } else {
+            showToast('❌ Error: ' + data.error, 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('❌ Error de conexión', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = txtOriginal;
+        input.value = '';
+    }
+}

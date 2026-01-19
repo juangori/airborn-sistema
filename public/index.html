@@ -155,6 +155,29 @@
                         <div id="resultadoLimpiarMes" style="margin-top: 10px;"></div>
                     </div>
 
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9; margin-bottom: 20px;">
+    <h4 style="margin-bottom: 10px; color: #0d47a1;">💾 Migración de Datos (Producción ↔ Staging)</h4>
+    <p style="font-size: 0.9em; color: #555; margin-bottom: 15px;">
+        Descargá tu base de datos actual para llevarla a otro entorno o guardarla en tu PC.
+    </p>
+    
+    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+        <button onclick="descargarBaseDatos()" style="background: #1976d2; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+            ⬇️ Descargar mi DB
+        </button>
+
+        <div style="height: 30px; width: 1px; background: #ccc;"></div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button onclick="document.getElementById('inputDbUpload').click()" style="background: #f39c12; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                ⬆️ Subir/Restaurar DB
+            </button>
+            <input type="file" id="inputDbUpload" accept=".db" style="display: none;" onchange="subirBaseDatos()">
+            <span style="font-size: 0.8em; color: #e67e22; max-width: 200px;">⚠️ Esto reemplazará todos los datos actuales.</span>
+        </div>
+    </div>
+</div>
+
                     <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffc107;">
                         <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Zona de peligro</h4>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">

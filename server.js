@@ -2184,3 +2184,60 @@ app.put('/api/cuentas/movimiento/:id', requireAuth, (req, res) => {
         res.json({ ok: true });
     });
 });
+
+// ==================== GESTIÓN DE BASE DE DATOS (IMPORTAR/EXPORTAR) ====================
+
+// 1. DESCARGAR MI BASE DE DATOS (Backup Local)
+app.get('/api/admin/db/download', requireAuth, (req, res) => {
+    const usuario = req.session.usuario;
+    const rutaDb = path.join(DATOS_DIR, `${usuario}.db`);
+
+    if (fs.existsSync(rutaDb)) {
+        res.download(rutaDb, `${usuario}_backup_${Date.now()}.db`);
+    } else {
+        res.status(404).send('Base de datos no encontrada');
+    }
+});
+
+// 2. SUBIR BASE DE DATOS (Reemplazo total - PELIGROSO)
+app.post('/api/admin/db/upload', requireAuth, upload.single('file'), async (req, res) => {
+    const usuario = req.session.usuario;
+    const rutaDb = path.join(DATOS_DIR, `${usuario}.db`);
+
+    if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
+
+    try {
+        // 1. Cerrar conexión actual si existe para poder sobrescribir el archivo
+        if (conexionesDb[usuario]) {
+            await new Promise((resolve, reject) => {
+                conexionesDb[usuario].close((err) => {
+                    if (err) console.error("Error cerrando DB:", err);
+                    delete conexionesDb[usuario]; // Borramos referencia
+                    resolve();
+                });
+            });
+        }
+
+        // 2. Hacer un backup de seguridad automático de lo que había antes
+        if (fs.existsSync(rutaDb)) {
+            const backupPath = path.join(BACKUPS_DIR, usuario, `PRE_IMPORT_${Date.now()}.db`);
+            // Asegurar que carpeta exista
+            const dirUser = path.join(BACKUPS_DIR, usuario);
+            if (!fs.existsSync(dirUser)) fs.mkdirSync(dirUser, { recursive: true });
+            
+            fs.copyFileSync(rutaDb, backupPath);
+        }
+
+        // 3. Sobrescribir con el archivo subido
+        fs.writeFileSync(rutaDb, req.file.buffer);
+
+        // 4. Reabrir conexión (se hará automático en la próxima petición, o forzamos ahora)
+        // No hace falta forzar, el `obtenerDbUsuario` lo hará solo.
+
+        res.json({ ok: true, mensaje: 'Base de datos restaurada correctamente. Recargá la página.' });
+
+    } catch (error) {
+        console.error("Error subiendo DB:", error);
+        res.status(500).json({ error: 'Error crítico al reemplazar la base de datos: ' + error.message });
+    }
+});
