@@ -2457,9 +2457,68 @@ async function cargarStockCompleto() {
         renderStockResumen();
         renderStockTabla();
         llenarFiltroCategorias();
+        renderWidgetsStockBajo();
     } catch (error) {
         console.error('Error cargando productos:', error);
     }
+}
+
+// Widgets de stock bajo (1 y 2 unidades)
+function renderWidgetsStockBajo() {
+    const lista1 = document.getElementById('listaStock1');
+    const lista2 = document.getElementById('listaStock2');
+    const badge1 = document.getElementById('badgeStock1');
+    const badge2 = document.getElementById('badgeStock2');
+
+    if (!lista1 || !lista2) return;
+
+    const stock1 = productosCache.filter(p => Number(p.stock) === 1);
+    const stock2 = productosCache.filter(p => Number(p.stock) === 2);
+
+    // Actualizar badges
+    if (badge1) badge1.textContent = stock1.length;
+    if (badge2) badge2.textContent = stock2.length;
+
+    // Renderizar lista de 1 unidad
+    if (stock1.length === 0) {
+        lista1.innerHTML = '<div class="stock-alerta-empty">Sin artículos con 1 unidad</div>';
+    } else {
+        lista1.innerHTML = stock1.map(p => `
+            <div class="stock-alerta-item" onclick="buscarProductoEnStock('${p.codigo}')">
+                <div class="stock-alerta-item-info">
+                    <div class="stock-alerta-item-codigo">${p.codigo}</div>
+                    <div class="stock-alerta-item-desc">${p.descripcion || ''}</div>
+                </div>
+                <div class="stock-alerta-item-precio">${formatMoney(p.precioPublico || 0)}</div>
+            </div>
+        `).join('');
+    }
+
+    // Renderizar lista de 2 unidades
+    if (stock2.length === 0) {
+        lista2.innerHTML = '<div class="stock-alerta-empty">Sin artículos con 2 unidades</div>';
+    } else {
+        lista2.innerHTML = stock2.map(p => `
+            <div class="stock-alerta-item" onclick="buscarProductoEnStock('${p.codigo}')">
+                <div class="stock-alerta-item-info">
+                    <div class="stock-alerta-item-codigo">${p.codigo}</div>
+                    <div class="stock-alerta-item-desc">${p.descripcion || ''}</div>
+                </div>
+                <div class="stock-alerta-item-precio">${formatMoney(p.precioPublico || 0)}</div>
+            </div>
+        `).join('');
+    }
+}
+
+// Buscar producto desde widget y abrir editor
+function buscarProductoEnStock(codigo) {
+    const inputBusqueda = document.getElementById('stockBusquedaCodigo');
+    if (inputBusqueda) {
+        inputBusqueda.value = codigo;
+        inputBusqueda.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    // Scroll al editor
+    document.querySelector('.stock-box-dark')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderStockResumen() {
@@ -2530,10 +2589,24 @@ function renderStockTabla() {
     if (!tbody) return;
 
     const catFiltro = document.getElementById('filtroCategoria')?.value || '';
+    const stockFiltro = document.getElementById('filtroStock')?.value || '';
     const texto = (document.getElementById('filtroTexto')?.value || '').toLowerCase().trim();
 
     const filtrados = productosCache.filter(p => {
+        // Filtro por categoría
         if (catFiltro && p.categoria !== catFiltro) return false;
+
+        // Filtro por stock
+        const stock = Number(p.stock) || 0;
+        if (stockFiltro) {
+            if (stockFiltro === '0' && stock !== 0) return false;
+            if (stockFiltro === '1' && stock !== 1) return false;
+            if (stockFiltro === '2' && stock !== 2) return false;
+            if (stockFiltro === '1-5' && (stock < 1 || stock > 5)) return false;
+            if (stockFiltro === '6+' && stock < 6) return false;
+        }
+
+        // Filtro por texto
         if (!texto) return true;
         return (p.descripcion || '').toLowerCase().includes(texto) ||
                (p.codigo || '').toLowerCase().includes(texto);
@@ -2581,6 +2654,7 @@ function renderStockTabla() {
 
 // Filtros en tiempo real
 document.getElementById('filtroCategoria')?.addEventListener('change', renderStockTabla);
+document.getElementById('filtroStock')?.addEventListener('change', renderStockTabla);
 document.getElementById('filtroTexto')?.addEventListener('input', renderStockTabla);
 
 

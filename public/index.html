@@ -425,6 +425,30 @@
             </div>
         </div> <!-- /stock-box-dark -->
 
+        <!-- WIDGETS DE STOCK BAJO -->
+        <div class="stock-alertas-container">
+            <div class="stock-alerta-widget stock-alerta-critico">
+                <div class="stock-alerta-header">
+                    <span class="stock-alerta-icon">🚨</span>
+                    <h4>Última unidad</h4>
+                    <span class="stock-alerta-badge" id="badgeStock1">0</span>
+                </div>
+                <div class="stock-alerta-list" id="listaStock1">
+                    <div class="stock-alerta-empty">Cargando...</div>
+                </div>
+            </div>
+            <div class="stock-alerta-widget stock-alerta-bajo">
+                <div class="stock-alerta-header">
+                    <span class="stock-alerta-icon">⚠️</span>
+                    <h4>Quedan 2 unidades</h4>
+                    <span class="stock-alerta-badge" id="badgeStock2">0</span>
+                </div>
+                <div class="stock-alerta-list" id="listaStock2">
+                    <div class="stock-alerta-empty">Cargando...</div>
+                </div>
+            </div>
+        </div>
+
         <hr style="margin: 30px 0;">
 
         <!-- BOX CLARO: resumen + listado -->
@@ -442,6 +466,14 @@
                 <div class="stock-filtros">
                     <select id="filtroCategoria">
                         <option value="">Todas las categorías</option>
+                    </select>
+                    <select id="filtroStock">
+                        <option value="">Todo el stock</option>
+                        <option value="0">Sin stock (0)</option>
+                        <option value="1">1 unidad</option>
+                        <option value="2">2 unidades</option>
+                        <option value="1-5">1 a 5 unidades</option>
+                        <option value="6+">6 o más</option>
                     </select>
                     <input type="text" id="filtroTexto" placeholder="Filtrar por descripción o código...">
                 </div>
