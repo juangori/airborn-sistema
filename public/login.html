@@ -135,6 +135,110 @@
             font-size: 0.85em;
         }
 
+        .forgot-password {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .forgot-password a {
+            color: #208090;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-content h2 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .modal-content p {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: #208090;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: #186070;
+        }
+
+        .step-hidden {
+            display: none;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .codigo-display {
+            background: #f8f9fa;
+            border: 2px dashed #208090;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .codigo-display .codigo {
+            font-size: 2em;
+            font-weight: bold;
+            color: #208090;
+            letter-spacing: 5px;
+        }
+
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -177,9 +281,80 @@
             </button>
         </form>
 
+        <div class="forgot-password">
+            <a href="#" onclick="abrirRecuperacion(); return false;">¿Olvidaste tu contraseña?</a>
+        </div>
+
         <p class="footer-text">
             Sistema de Gestión de Inventario
         </p>
+    </div>
+
+    <!-- Modal Recuperar Contraseña -->
+    <div id="modalRecuperar" class="modal-overlay">
+        <div class="modal-content">
+            <!-- Paso 1: Solicitar código -->
+            <div id="paso1">
+                <h2>🔑 Recuperar Contraseña</h2>
+                <p>Ingresá tu nombre de usuario para generar un código de recuperación.</p>
+
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="recuperarUsuario" placeholder="Tu nombre de usuario">
+                </div>
+
+                <div id="errorRecuperar" class="error-message"></div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button class="modal-close" onclick="cerrarRecuperacion()">Cancelar</button>
+                    <button class="btn-primary" onclick="solicitarCodigo()">Solicitar Código</button>
+                </div>
+            </div>
+
+            <!-- Paso 2: Ingresar código y nueva contraseña -->
+            <div id="paso2" class="step-hidden">
+                <h2>🔐 Ingresá el código</h2>
+
+                <div id="codigoGenerado" class="codigo-display">
+                    <p style="margin: 0 0 5px 0; font-size: 0.85em; color: #666;">Tu código de recuperación:</p>
+                    <div class="codigo" id="mostrarCodigo"></div>
+                    <p style="margin: 10px 0 0 0; font-size: 0.8em; color: #888;">Válido por 30 minutos</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Código de recuperación</label>
+                    <input type="text" id="codigoRecuperacion" placeholder="6 dígitos" maxlength="6" style="text-align: center; font-size: 1.3em; letter-spacing: 3px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Nueva contraseña</label>
+                    <input type="password" id="nuevaPassword" placeholder="Mínimo 6 caracteres">
+                </div>
+
+                <div class="form-group">
+                    <label>Confirmar contraseña</label>
+                    <input type="password" id="confirmarPassword" placeholder="Repetir contraseña">
+                </div>
+
+                <div id="errorPaso2" class="error-message"></div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button class="modal-close" onclick="cerrarRecuperacion()">Cancelar</button>
+                    <button class="btn-primary" onclick="cambiarPasswordRecuperacion()">Cambiar Contraseña</button>
+                </div>
+            </div>
+
+            <!-- Paso 3: Éxito -->
+            <div id="paso3" class="step-hidden">
+                <div class="success-message">
+                    ✅ Contraseña actualizada correctamente
+                </div>
+                <p style="text-align: center; margin-bottom: 20px;">Ya podés iniciar sesión con tu nueva contraseña.</p>
+                <div style="text-align: center;">
+                    <button class="btn-primary" onclick="cerrarRecuperacion()">Cerrar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -230,6 +405,121 @@
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.classList.add('show');
+        }
+
+        // ==================== RECUPERACIÓN DE CONTRASEÑA ====================
+        let usuarioRecuperacion = '';
+
+        function abrirRecuperacion() {
+            document.getElementById('modalRecuperar').classList.add('active');
+            document.getElementById('paso1').classList.remove('step-hidden');
+            document.getElementById('paso2').classList.add('step-hidden');
+            document.getElementById('paso3').classList.add('step-hidden');
+            document.getElementById('recuperarUsuario').value = '';
+            document.getElementById('errorRecuperar').classList.remove('show');
+        }
+
+        function cerrarRecuperacion() {
+            document.getElementById('modalRecuperar').classList.remove('active');
+            usuarioRecuperacion = '';
+        }
+
+        async function solicitarCodigo() {
+            const usuario = document.getElementById('recuperarUsuario').value.trim();
+            const errorDiv = document.getElementById('errorRecuperar');
+
+            if (!usuario) {
+                errorDiv.textContent = 'Ingresá tu nombre de usuario';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            errorDiv.classList.remove('show');
+
+            try {
+                const resp = await fetch('/api/usuarios/solicitar-reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario })
+                });
+
+                const data = await resp.json();
+
+                if (resp.ok) {
+                    usuarioRecuperacion = usuario;
+
+                    // Mostrar paso 2
+                    document.getElementById('paso1').classList.add('step-hidden');
+                    document.getElementById('paso2').classList.remove('step-hidden');
+
+                    // Mostrar código (temporal - en producción se enviaría por email)
+                    if (data.codigoTemporal) {
+                        document.getElementById('mostrarCodigo').textContent = data.codigoTemporal;
+                        document.getElementById('codigoGenerado').style.display = 'block';
+                    } else {
+                        document.getElementById('codigoGenerado').style.display = 'none';
+                    }
+                } else {
+                    errorDiv.textContent = data.error || 'Error al solicitar código';
+                    errorDiv.classList.add('show');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error de conexión';
+                errorDiv.classList.add('show');
+            }
+        }
+
+        async function cambiarPasswordRecuperacion() {
+            const codigo = document.getElementById('codigoRecuperacion').value.trim();
+            const passwordNuevo = document.getElementById('nuevaPassword').value;
+            const confirmar = document.getElementById('confirmarPassword').value;
+            const errorDiv = document.getElementById('errorPaso2');
+
+            if (!codigo || codigo.length !== 6) {
+                errorDiv.textContent = 'El código debe tener 6 dígitos';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            if (!passwordNuevo || passwordNuevo.length < 6) {
+                errorDiv.textContent = 'La contraseña debe tener al menos 6 caracteres';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            if (passwordNuevo !== confirmar) {
+                errorDiv.textContent = 'Las contraseñas no coinciden';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            errorDiv.classList.remove('show');
+
+            try {
+                const resp = await fetch('/api/usuarios/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        usuario: usuarioRecuperacion,
+                        codigo,
+                        passwordNuevo
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (resp.ok) {
+                    // Mostrar paso 3 (éxito)
+                    document.getElementById('paso2').classList.add('step-hidden');
+                    document.getElementById('paso3').classList.remove('step-hidden');
+                } else {
+                    errorDiv.textContent = data.error || 'Error al cambiar contraseña';
+                    errorDiv.classList.add('show');
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Error de conexión';
+                errorDiv.classList.add('show');
+            }
         }
 
         // Si ya está logueado, redirigir

@@ -64,6 +64,7 @@
                     <button class="admin-tab active" onclick="switchAdminTab('config', event)">🏷️ Configuración</button>
                     <button class="admin-tab" onclick="switchAdminTab('datos', event)">🗃️ Datos</button>
                     <button class="admin-tab" onclick="switchAdminTab('backups', event)">💾 Backups</button>
+                    <button class="admin-tab" id="tabUsuarios" onclick="switchAdminTab('usuarios', event)" style="display: none;">👥 Usuarios</button>
                 </div>
 
                 <!-- Tab Configuración -->
@@ -110,6 +111,30 @@
         <button onclick="guardarNombreApp()" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">
             💾 Guardar nombre
         </button>
+    </div>
+
+    <!-- Sección Cambiar Contraseña -->
+    <div class="config-section" style="background: #fff3e0; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #ffcc80;">
+        <h4 style="margin: 0 0 15px 0; color: #e65100;">🔐 Cambiar Contraseña</h4>
+
+        <div style="display: grid; gap: 12px; max-width: 350px;">
+            <div>
+                <label style="display: block; font-size: 0.85em; margin-bottom: 5px; color: #555;">Contraseña actual</label>
+                <input type="password" id="passwordActual" placeholder="Tu contraseña actual" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.85em; margin-bottom: 5px; color: #555;">Nueva contraseña</label>
+                <input type="password" id="passwordNuevo" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.85em; margin-bottom: 5px; color: #555;">Confirmar nueva contraseña</label>
+                <input type="password" id="passwordConfirmar" placeholder="Repetir nueva contraseña" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+            <button onclick="cambiarPassword()" style="background: #e65100; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 5px;">
+                🔒 Cambiar Contraseña
+            </button>
+            <div id="resultadoCambioPassword"></div>
+        </div>
     </div>
 </div>
 
@@ -216,6 +241,53 @@
                     </div>
                     <div id="backupLog" class="backup-log">
                         <div class="backup-empty">Cargando backups...</div>
+                    </div>
+                </div>
+
+                <!-- Tab Usuarios (solo admin) -->
+                <div id="adminUsuarios" class="admin-tab-content">
+                    <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>👥 Gestión de Usuarios</strong>
+                            <p style="color: #666; font-size: 0.9em; margin-top: 4px;">Administrá todos los usuarios registrados en el sistema</p>
+                        </div>
+                        <button onclick="cargarUsuariosAdmin()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
+                            🔄 Actualizar
+                        </button>
+                    </div>
+
+                    <div id="tablaUsuariosAdmin" style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                            <thead>
+                                <tr style="background: #f5f5f5; text-align: left;">
+                                    <th style="padding: 12px 8px; border-bottom: 2px solid #ddd;">Usuario</th>
+                                    <th style="padding: 12px 8px; border-bottom: 2px solid #ddd;">Comercio</th>
+                                    <th style="padding: 12px 8px; border-bottom: 2px solid #ddd;">Último Login</th>
+                                    <th style="padding: 12px 8px; border-bottom: 2px solid #ddd; text-align: center;">Errores</th>
+                                    <th style="padding: 12px 8px; border-bottom: 2px solid #ddd; text-align: center;">Estado</th>
+                                    <th style="padding: 12px 8px; border-bottom: 2px solid #ddd; text-align: center;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usuariosAdminBody">
+                                <tr><td colspan="6" style="text-align: center; padding: 20px; color: #999;">Cargando usuarios...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Modal para resetear contraseña -->
+                    <div id="modalResetPassword" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+                        <div style="background: white; padding: 25px; border-radius: 12px; max-width: 400px; width: 90%;">
+                            <h3 style="margin: 0 0 20px 0;">🔑 Resetear Contraseña</h3>
+                            <p style="margin-bottom: 15px; color: #666;">Usuario: <strong id="resetPasswordUsuario"></strong></p>
+                            <div style="margin-bottom: 15px;">
+                                <label style="display: block; font-size: 0.85em; margin-bottom: 5px;">Nueva contraseña</label>
+                                <input type="password" id="adminNuevoPassword" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                            </div>
+                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <button onclick="cerrarModalResetPassword()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Cancelar</button>
+                                <button onclick="confirmarResetPassword()" style="background: #e65100; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">Resetear</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

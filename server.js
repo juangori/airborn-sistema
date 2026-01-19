@@ -210,16 +210,29 @@ usuariosDb.serialize(() => {
       logo TEXT,
       email TEXT,
       activo INTEGER DEFAULT 1,
-      fechaCreacion TEXT DEFAULT CURRENT_TIMESTAMP
+      fechaCreacion TEXT DEFAULT CURRENT_TIMESTAMP,
+      ultimoLogin TEXT,
+      intentosFallidos INTEGER DEFAULT 0,
+      ultimoIntentoFallido TEXT,
+      resetToken TEXT,
+      resetTokenExpira TEXT,
+      esAdmin INTEGER DEFAULT 0
     )
   `, (err) => {
     if (err) console.error('❌ Error creando tabla usuarios:', err);
   });
 
-  // Migración: agregar columna logo si no existe (para BDs existentes)
-  usuariosDb.run('ALTER TABLE usuarios ADD COLUMN logo TEXT', (err) => {
-    // Ignorar error si ya existe
-  });
+  // Migraciones para BDs existentes
+  usuariosDb.run('ALTER TABLE usuarios ADD COLUMN logo TEXT', (err) => {});
+  usuariosDb.run('ALTER TABLE usuarios ADD COLUMN ultimoLogin TEXT', (err) => {});
+  usuariosDb.run('ALTER TABLE usuarios ADD COLUMN intentosFallidos INTEGER DEFAULT 0', (err) => {});
+  usuariosDb.run('ALTER TABLE usuarios ADD COLUMN ultimoIntentoFallido TEXT', (err) => {});
+  usuariosDb.run('ALTER TABLE usuarios ADD COLUMN resetToken TEXT', (err) => {});
+  usuariosDb.run('ALTER TABLE usuarios ADD COLUMN resetTokenExpira TEXT', (err) => {});
+  usuariosDb.run('ALTER TABLE usuarios ADD COLUMN esAdmin INTEGER DEFAULT 0', (err) => {});
+
+  // Marcar admin como admin
+  usuariosDb.run('UPDATE usuarios SET esAdmin = 1 WHERE usuario = ?', ['admin'], (err) => {});
 
   const passwordAdmin = bcrypt.hashSync('admin123', 10);
   usuariosDb.run(
@@ -530,18 +543,32 @@ app.post('/api/login', loginLimiter, (req, res) => {
         const ok = bcrypt.compareSync(password, row.password);
         if (!ok) {
           console.log('Login: Password incorrecto para:', usuario);
+          // Registrar intento fallido
+          const ahora = new Date().toISOString();
+          usuariosDb.run(
+            'UPDATE usuarios SET intentosFallidos = intentosFallidos + 1, ultimoIntentoFallido = ? WHERE usuario = ?',
+            [ahora, usuario]
+          );
           return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
+        // Login exitoso: actualizar último login y resetear intentos fallidos
+        const ahora = new Date().toISOString();
+        usuariosDb.run(
+          'UPDATE usuarios SET ultimoLogin = ?, intentosFallidos = 0 WHERE usuario = ?',
+          [ahora, usuario]
+        );
+
         req.session.usuario = row.usuario;
         req.session.nombreComercio = row.nombreComercio || '';
+        req.session.esAdmin = row.esAdmin === 1;
         // Forzar carga de DB
         obtenerDbUsuario(row.usuario);
 
         // Asegurar que la sesión se guarde antes de responder
         req.session.save(() => {
           console.log('Login: Éxito para:', usuario);
-          res.json({ ok: true, usuario: row.usuario, nombreComercio: row.nombreComercio || '' });
+          res.json({ ok: true, usuario: row.usuario, nombreComercio: row.nombreComercio || '', esAdmin: row.esAdmin === 1 });
         });
       }
     );
@@ -559,14 +586,14 @@ app.post('/api/logout', (req, res) => {
 // Sesión actual
 app.get('/api/session', (req, res) => {
   const logueado = !!(req.session && req.session.usuario);
-  
+
   if (!logueado) {
     return res.json({ ok: false, logueado: false, usuario: null });
   }
 
   // Traer datos frescos de la BD
   usuariosDb.get(
-    'SELECT nombreComercio, logo FROM usuarios WHERE usuario = ?',
+    'SELECT nombreComercio, logo, esAdmin FROM usuarios WHERE usuario = ?',
     [req.session.usuario],
     (err, row) => {
       res.json({
@@ -574,7 +601,8 @@ app.get('/api/session', (req, res) => {
         logueado: true,
         usuario: req.session.usuario,
         nombreComercio: row?.nombreComercio || '',
-        logo: row?.logo || null
+        logo: row?.logo || null,
+        esAdmin: row?.esAdmin === 1
       });
     }
   );
@@ -600,6 +628,209 @@ app.post('/api/usuarios', (req, res) => {
         return res.status(500).json({ error: err.message });
       }
       res.json({ ok: true, id: this.lastID });
+    }
+  );
+});
+
+// Cambiar contraseña (usuario logueado)
+app.post('/api/usuarios/cambiar-password', requireAuth, (req, res) => {
+  const { passwordActual, passwordNuevo } = req.body;
+  const usuario = req.session.usuario;
+
+  if (!passwordActual || !passwordNuevo) {
+    return res.status(400).json({ error: 'Faltan campos requeridos' });
+  }
+
+  if (passwordNuevo.length < 6) {
+    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+  }
+
+  usuariosDb.get('SELECT password FROM usuarios WHERE usuario = ?', [usuario], (err, row) => {
+    if (err || !row) {
+      return res.status(500).json({ error: 'Error al verificar usuario' });
+    }
+
+    if (!bcrypt.compareSync(passwordActual, row.password)) {
+      return res.status(401).json({ error: 'La contraseña actual es incorrecta' });
+    }
+
+    const nuevoHash = bcrypt.hashSync(passwordNuevo, 10);
+    usuariosDb.run('UPDATE usuarios SET password = ? WHERE usuario = ?', [nuevoHash, usuario], (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Error al actualizar contraseña' });
+      }
+      res.json({ ok: true, mensaje: 'Contraseña actualizada correctamente' });
+    });
+  });
+});
+
+// Solicitar recuperación de contraseña (genera token)
+app.post('/api/usuarios/solicitar-reset', (req, res) => {
+  const { usuario } = req.body;
+
+  if (!usuario) {
+    return res.status(400).json({ error: 'Usuario requerido' });
+  }
+
+  usuariosDb.get('SELECT id, email FROM usuarios WHERE usuario = ? AND activo = 1', [usuario], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error de base de datos' });
+    }
+
+    // Por seguridad, siempre responder igual aunque no exista el usuario
+    if (!row) {
+      return res.json({ ok: true, mensaje: 'Si el usuario existe, se generó un código de recuperación' });
+    }
+
+    // Generar token de 6 dígitos
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    const expira = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 minutos
+
+    usuariosDb.run(
+      'UPDATE usuarios SET resetToken = ?, resetTokenExpira = ? WHERE usuario = ?',
+      [token, expira, usuario],
+      (err) => {
+        if (err) {
+          return res.status(500).json({ error: 'Error al generar código' });
+        }
+
+        // En producción aquí enviarías el email
+        // Por ahora, mostramos el código en consola (para testing)
+        console.log(`🔑 Código de recuperación para ${usuario}: ${token}`);
+
+        res.json({
+          ok: true,
+          mensaje: 'Código de recuperación generado',
+          // TEMPORAL: En producción quitar esto y enviar por email
+          codigoTemporal: token,
+          nota: 'En producción este código se enviaría por email'
+        });
+      }
+    );
+  });
+});
+
+// Verificar código y cambiar contraseña
+app.post('/api/usuarios/reset-password', (req, res) => {
+  const { usuario, codigo, passwordNuevo } = req.body;
+
+  if (!usuario || !codigo || !passwordNuevo) {
+    return res.status(400).json({ error: 'Faltan campos requeridos' });
+  }
+
+  if (passwordNuevo.length < 6) {
+    return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+  }
+
+  usuariosDb.get(
+    'SELECT resetToken, resetTokenExpira FROM usuarios WHERE usuario = ? AND activo = 1',
+    [usuario],
+    (err, row) => {
+      if (err || !row) {
+        return res.status(400).json({ error: 'Usuario no válido' });
+      }
+
+      if (!row.resetToken || row.resetToken !== codigo) {
+        return res.status(400).json({ error: 'Código incorrecto' });
+      }
+
+      if (new Date(row.resetTokenExpira) < new Date()) {
+        return res.status(400).json({ error: 'El código ha expirado. Solicitá uno nuevo.' });
+      }
+
+      const nuevoHash = bcrypt.hashSync(passwordNuevo, 10);
+      usuariosDb.run(
+        'UPDATE usuarios SET password = ?, resetToken = NULL, resetTokenExpira = NULL WHERE usuario = ?',
+        [nuevoHash, usuario],
+        (err) => {
+          if (err) {
+            return res.status(500).json({ error: 'Error al actualizar contraseña' });
+          }
+          console.log(`✅ Contraseña reseteada para usuario: ${usuario}`);
+          res.json({ ok: true, mensaje: 'Contraseña actualizada correctamente' });
+        }
+      );
+    }
+  );
+});
+
+// Panel Admin: Listar todos los usuarios (solo admin)
+app.get('/api/admin/usuarios', requireAuth, (req, res) => {
+  if (!req.session.esAdmin) {
+    return res.status(403).json({ error: 'Acceso denegado. Solo administradores.' });
+  }
+
+  usuariosDb.all(
+    `SELECT id, usuario, nombreComercio, email, activo, fechaCreacion,
+            ultimoLogin, intentosFallidos, ultimoIntentoFallido, esAdmin
+     FROM usuarios ORDER BY fechaCreacion DESC`,
+    [],
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: 'Error al obtener usuarios' });
+      }
+      res.json({ ok: true, usuarios: rows });
+    }
+  );
+});
+
+// Panel Admin: Activar/Desactivar usuario
+app.post('/api/admin/usuarios/:id/toggle-activo', requireAuth, (req, res) => {
+  if (!req.session.esAdmin) {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const { id } = req.params;
+
+  // No permitir desactivar al admin principal
+  usuariosDb.get('SELECT usuario FROM usuarios WHERE id = ?', [id], (err, row) => {
+    if (err || !row) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    if (row.usuario === 'admin') {
+      return res.status(400).json({ error: 'No se puede desactivar al administrador principal' });
+    }
+
+    usuariosDb.run(
+      'UPDATE usuarios SET activo = CASE WHEN activo = 1 THEN 0 ELSE 1 END WHERE id = ?',
+      [id],
+      function (err) {
+        if (err) {
+          return res.status(500).json({ error: 'Error al actualizar usuario' });
+        }
+        res.json({ ok: true, mensaje: 'Estado del usuario actualizado' });
+      }
+    );
+  });
+});
+
+// Panel Admin: Resetear contraseña de un usuario (solo admin)
+app.post('/api/admin/usuarios/:id/reset-password', requireAuth, (req, res) => {
+  if (!req.session.esAdmin) {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const { id } = req.params;
+  const { passwordNuevo } = req.body;
+
+  if (!passwordNuevo || passwordNuevo.length < 6) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+  }
+
+  const nuevoHash = bcrypt.hashSync(passwordNuevo, 10);
+
+  usuariosDb.run(
+    'UPDATE usuarios SET password = ?, intentosFallidos = 0 WHERE id = ?',
+    [nuevoHash, id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error al actualizar contraseña' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+      res.json({ ok: true, mensaje: 'Contraseña actualizada' });
     }
   );
 });
