@@ -144,6 +144,49 @@
             <div id="resultadoCambioPassword"></div>
         </div>
     </div>
+
+    <!-- Sección Scanner de Códigos de Barras -->
+    <div class="config-section" style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #a5d6a7;">
+        <h4 style="margin: 0 0 15px 0; color: #2e7d32;">🔫 Scanner de Códigos de Barras</h4>
+        <p style="font-size: 0.85em; color: #555; margin-bottom: 15px;">
+            Conectá una pistola lectora de códigos de barras USB. El sistema detecta automáticamente el escaneo y lo procesa según la pestaña activa.
+        </p>
+
+        <div style="display: grid; gap: 15px;">
+            <!-- Toggle Scanner -->
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="scannerEnabled" checked onchange="BarcodeScanner.toggle()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span style="font-weight: 500;">Scanner activado</span>
+            </div>
+
+            <!-- Toggle Modo Continuo -->
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="scannerModoContinuo" onchange="BarcodeScanner.toggleModoContinuo()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <span style="font-weight: 500;">Modo continuo en Ventas</span>
+                    <p style="font-size: 0.8em; color: #666; margin: 2px 0 0 0;">
+                        Cada escaneo agrega automáticamente el artículo a un nuevo formulario
+                    </p>
+                </div>
+            </div>
+
+            <!-- Info de uso -->
+            <div style="background: white; padding: 12px; border-radius: 6px; margin-top: 5px;">
+                <strong style="font-size: 0.9em;">📋 Cómo funciona:</strong>
+                <ul style="margin: 8px 0 0 20px; font-size: 0.85em; color: #555;">
+                    <li><strong>Buscar:</strong> Escanea → busca el producto</li>
+                    <li><strong>Ventas:</strong> Escanea → completa el formulario con el artículo</li>
+                    <li><strong>Stock:</strong> Escanea → muestra info del producto</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 </div>
 
                 <!-- Tab Gestión de Datos -->

@@ -4,6 +4,346 @@ let productosCache = [];
 let fechaSeleccionada = new Date().toISOString().split('T')[0];
 window.productosCache = productosCache;
 
+// ==================== SCANNER DE CÓDIGOS DE BARRAS ====================
+const BarcodeScanner = {
+    buffer: '',
+    lastKeyTime: 0,
+    timeoutId: null,
+    enabled: true,
+
+    // Configuración
+    config: {
+        maxTimeBetweenKeys: 50,  // ms máximo entre teclas (pistola es muy rápida)
+        minCodeLength: 8,        // largo mínimo de código válido
+        maxCodeLength: 20,       // largo máximo
+        timeoutDelay: 100        // ms para considerar fin de escaneo
+    },
+
+    // Modo continuo para ventas rápidas
+    modoContinuo: false,
+
+    // Audio context para sonidos
+    audioCtx: null,
+
+    initAudio() {
+        if (!this.audioCtx) {
+            this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    },
+
+    playBeep(frequency, duration, type = 'sine') {
+        try {
+            this.initAudio();
+            const oscillator = this.audioCtx.createOscillator();
+            const gainNode = this.audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioCtx.destination);
+
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            gainNode.gain.setValueAtTime(0.3, this.audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
+
+            oscillator.start(this.audioCtx.currentTime);
+            oscillator.stop(this.audioCtx.currentTime + duration);
+        } catch (e) {
+            console.log('Audio no disponible');
+        }
+    },
+
+    beepSuccess() {
+        this.playBeep(1200, 0.1);
+        setTimeout(() => this.playBeep(1600, 0.15), 100);
+    },
+
+    beepError() {
+        this.playBeep(300, 0.3, 'square');
+    },
+
+    // Indicador visual
+    showIndicator(success, message) {
+        // Remover indicador anterior si existe
+        const existing = document.getElementById('scannerIndicator');
+        if (existing) existing.remove();
+
+        const indicator = document.createElement('div');
+        indicator.id = 'scannerIndicator';
+        indicator.innerHTML = `
+            <span class="scanner-icon">${success ? '✅' : '❌'}</span>
+            <span class="scanner-message">${message}</span>
+        `;
+        indicator.className = `scanner-indicator ${success ? 'success' : 'error'}`;
+        document.body.appendChild(indicator);
+
+        // Animar entrada
+        setTimeout(() => indicator.classList.add('show'), 10);
+
+        // Remover después de 2 segundos
+        setTimeout(() => {
+            indicator.classList.remove('show');
+            setTimeout(() => indicator.remove(), 300);
+        }, 2000);
+    },
+
+    init() {
+        document.addEventListener('keydown', (e) => this.handleKeydown(e));
+        console.log('🔫 Scanner de códigos de barras inicializado');
+    },
+
+    handleKeydown(e) {
+        if (!this.enabled) return;
+
+        // Ignorar si está en un input de texto que no sea búsqueda/código
+        const activeEl = document.activeElement;
+        const isTextInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+        const isSearchField = activeEl && (
+            activeEl.id === 'busquedaInput' ||
+            activeEl.id === 'stockBusquedaCodigo' ||
+            activeEl.classList.contains('campo-articulo')
+        );
+
+        // Si está escribiendo en un campo que NO es de búsqueda, no interferir
+        if (isTextInput && !isSearchField) {
+            // Pero igual detectamos si parece escaneo por la velocidad
+            const now = Date.now();
+            const timeDiff = now - this.lastKeyTime;
+
+            // Si es tipeo lento (humano), ignorar completamente
+            if (timeDiff > this.config.maxTimeBetweenKeys && this.buffer.length > 0) {
+                this.resetBuffer();
+            }
+            this.lastKeyTime = now;
+            return;
+        }
+
+        const now = Date.now();
+        const timeDiff = now - this.lastKeyTime;
+
+        // Si pasó mucho tiempo, resetear buffer
+        if (timeDiff > this.config.maxTimeBetweenKeys && this.buffer.length > 0) {
+            this.resetBuffer();
+        }
+
+        this.lastKeyTime = now;
+
+        // Enter = fin de escaneo
+        if (e.key === 'Enter') {
+            if (this.buffer.length >= this.config.minCodeLength) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.processCode(this.buffer);
+            }
+            this.resetBuffer();
+            return;
+        }
+
+        // Solo aceptar dígitos y algunos caracteres válidos en códigos
+        if (/^[0-9a-zA-Z\-]$/.test(e.key)) {
+            // Si es el primer caracter y viene muy rápido después de nada,
+            // probablemente es escaneo
+            this.buffer += e.key;
+
+            // Prevenir que escriba en otros campos si parece escaneo
+            if (this.buffer.length > 3 && !isSearchField) {
+                e.preventDefault();
+            }
+
+            // Limpiar timeout anterior y poner uno nuevo
+            if (this.timeoutId) clearTimeout(this.timeoutId);
+            this.timeoutId = setTimeout(() => {
+                if (this.buffer.length >= this.config.minCodeLength) {
+                    this.processCode(this.buffer);
+                }
+                this.resetBuffer();
+            }, this.config.timeoutDelay);
+        }
+    },
+
+    resetBuffer() {
+        this.buffer = '';
+        if (this.timeoutId) {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = null;
+        }
+    },
+
+    processCode(code) {
+        console.log('📦 Código escaneado:', code);
+
+        // Detectar en qué pestaña estamos
+        const tabActiva = document.querySelector('.tab-content.active');
+        if (!tabActiva) return;
+
+        const tabId = tabActiva.id;
+
+        switch (tabId) {
+            case 'busqueda':
+                this.procesarEnBusqueda(code);
+                break;
+            case 'cajas':
+                this.procesarEnVentas(code);
+                break;
+            case 'stock':
+                this.procesarEnStock(code);
+                break;
+            default:
+                // En otras pestañas, intentar buscar igual
+                this.procesarEnBusqueda(code);
+        }
+    },
+
+    procesarEnBusqueda(code) {
+        const input = document.getElementById('busquedaInput');
+        if (input) {
+            input.value = code;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+
+            // Verificar si el producto existe
+            const producto = productosCache.find(p =>
+                p.codigo === code || p.codigoBarras === code
+            );
+
+            if (producto) {
+                this.beepSuccess();
+                this.showIndicator(true, `${producto.codigo} - ${producto.descripcion || 'Encontrado'}`);
+            } else {
+                this.beepError();
+                this.showIndicator(false, `Código ${code} no encontrado`);
+            }
+        }
+    },
+
+    procesarEnVentas(code) {
+        // Verificar si el producto existe primero
+        const producto = productosCache.find(p =>
+            p.codigo === code || p.codigoBarras === code
+        );
+
+        if (!producto) {
+            this.beepError();
+            this.showIndicator(false, `Código ${code} no encontrado`);
+            return;
+        }
+
+        // En modo continuo, buscar un formulario vacío o crear uno nuevo
+        let formDestino;
+        if (this.modoContinuo) {
+            // Buscar el primer formulario que esté vacío (sin código de artículo)
+            const formularios = document.querySelectorAll('#contenedorArticulos .articulo-form');
+            formDestino = Array.from(formularios).find(form => {
+                const campoArticulo = form.querySelector('.campo-articulo');
+                return !campoArticulo.value || campoArticulo.value.trim() === '';
+            });
+
+            // Si todos están ocupados, agregar uno nuevo
+            if (!formDestino) {
+                if (typeof agregarOtroArticulo === 'function') {
+                    agregarOtroArticulo();
+                    const formulariosActualizados = document.querySelectorAll('#contenedorArticulos .articulo-form');
+                    formDestino = formulariosActualizados[formulariosActualizados.length - 1];
+                } else {
+                    formDestino = document.querySelector('.articulo-form');
+                }
+            }
+        } else {
+            // Modo normal: usar el primer formulario
+            formDestino = document.querySelector('.articulo-form');
+        }
+
+        if (formDestino) {
+            // Llenar el formulario con los datos del producto
+            formDestino.querySelector('.campo-articulo').value = producto.codigo;
+            formDestino.querySelector('.campo-precio').value = producto.precioPublico || 0;
+            formDestino.querySelector('.campo-precio').dataset.original = producto.precioPublico || 0;
+            formDestino.querySelector('.campo-categoria').value = producto.categoria || '';
+            formDestino.querySelector('.campo-cantidad').value = 1;
+            formDestino.querySelector('.campo-descuento').value = 0;
+
+            // Limpiar búsqueda rápida si existe
+            const busquedaRapida = formDestino.querySelector('.busqueda-rapida');
+            const resultadoRapido = formDestino.querySelector('.resultado-rapido');
+            if (busquedaRapida) busquedaRapida.value = '';
+            if (resultadoRapido) resultadoRapido.innerHTML = '';
+
+            // Actualizar totales
+            if (typeof actualizarTotalFormulario === 'function') {
+                actualizarTotalFormulario(formDestino);
+            }
+            if (typeof actualizarBotonRegistro === 'function') {
+                actualizarBotonRegistro();
+            }
+
+            this.beepSuccess();
+            const precioMostrar = producto.precioPublico ? `$${producto.precioPublico}` : 'Sin precio';
+            this.showIndicator(true, `${producto.codigo} - ${precioMostrar}`);
+        }
+    },
+
+    procesarEnStock(code) {
+        const input = document.getElementById('stockBusquedaCodigo');
+        if (input) {
+            input.value = code;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+
+            // Verificar si el producto existe
+            const producto = productosCache.find(p =>
+                p.codigo === code || p.codigoBarras === code
+            );
+
+            if (producto) {
+                this.beepSuccess();
+                this.showIndicator(true, `${producto.codigo} - Stock: ${producto.stock || 0}`);
+            } else {
+                this.beepError();
+                this.showIndicator(false, `Código ${code} no encontrado`);
+            }
+        }
+    },
+
+    // Métodos públicos para control
+    enable() {
+        this.enabled = true;
+        console.log('🔫 Scanner activado');
+    },
+
+    disable() {
+        this.enabled = false;
+        this.resetBuffer();
+        console.log('🔫 Scanner desactivado');
+    },
+
+    toggle() {
+        this.enabled ? this.disable() : this.enable();
+        return this.enabled;
+    },
+
+    toggleModoContinuo() {
+        this.modoContinuo = !this.modoContinuo;
+        console.log(`🔫 Modo continuo ${this.modoContinuo ? 'activado' : 'desactivado'}`);
+        this.showIndicator(true, `Modo continuo ${this.modoContinuo ? 'ACTIVADO' : 'desactivado'}`);
+        this.actualizarIndicadorUI();
+        return this.modoContinuo;
+    },
+
+    actualizarIndicadorUI() {
+        // Actualizar el checkbox en la UI si existe
+        const checkbox = document.getElementById('scannerModoContinuo');
+        if (checkbox) {
+            checkbox.checked = this.modoContinuo;
+        }
+        const toggleBtn = document.getElementById('scannerEnabled');
+        if (toggleBtn) {
+            toggleBtn.checked = this.enabled;
+        }
+    }
+};
+
+// Inicializar scanner cuando carga la página
+document.addEventListener('DOMContentLoaded', () => {
+    BarcodeScanner.init();
+});
+
 // ==================== PANEL ADMIN ====================
     function abrirAdmin() {
         document.getElementById('adminModal').classList.add('active');
