@@ -651,12 +651,20 @@ function togglePassword(inputId, btn) {
     const input = document.getElementById(inputId);
     if (!input) return;
 
+    const icon = btn.querySelector('i');
+
     if (input.type === 'password') {
         input.type = 'text';
-        btn.textContent = '🙈';
+        if (icon) {
+            icon.setAttribute('data-lucide', 'eye-off');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
     } else {
         input.type = 'password';
-        btn.textContent = '👁️';
+        if (icon) {
+            icon.setAttribute('data-lucide', 'eye');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
     }
 }
 

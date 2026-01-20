@@ -19,7 +19,17 @@
     <link rel="icon" type="image/svg+xml" href="/icons/icon-32.svg">
     <link rel="apple-touch-icon" href="/icons/icon-192.svg">
 
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
+        /* Lucide icon styles */
+        .lucide-icon-sm {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2;
+            vertical-align: middle;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -305,7 +315,7 @@
                 <label for="password">Contraseña</label>
                 <div class="password-wrapper">
                     <input type="password" id="password" name="password" placeholder="Tu contraseña" required>
-                    <button type="button" class="password-toggle" onclick="togglePassword('password', this)">👁️</button>
+                    <button type="button" class="password-toggle" onclick="togglePassword('password', this)"><i data-lucide="eye" class="lucide-icon-sm"></i></button>
                 </div>
             </div>
 
@@ -363,7 +373,7 @@
                     <label>Nueva contraseña</label>
                     <div class="password-wrapper">
                         <input type="password" id="nuevaPassword" placeholder="Mínimo 6 caracteres">
-                        <button type="button" class="password-toggle" onclick="togglePassword('nuevaPassword', this)">👁️</button>
+                        <button type="button" class="password-toggle" onclick="togglePassword('nuevaPassword', this)"><i data-lucide="eye" class="lucide-icon-sm"></i></button>
                     </div>
                 </div>
 
@@ -371,7 +381,7 @@
                     <label>Confirmar contraseña</label>
                     <div class="password-wrapper">
                         <input type="password" id="confirmarPassword" placeholder="Repetir contraseña">
-                        <button type="button" class="password-toggle" onclick="togglePassword('confirmarPassword', this)">👁️</button>
+                        <button type="button" class="password-toggle" onclick="togglePassword('confirmarPassword', this)"><i data-lucide="eye" class="lucide-icon-sm"></i></button>
                     </div>
                 </div>
 
@@ -451,12 +461,20 @@
             const input = document.getElementById(inputId);
             if (!input) return;
 
+            const icon = btn.querySelector('i');
+
             if (input.type === 'password') {
                 input.type = 'text';
-                btn.textContent = '🙈';
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'eye-off');
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
             } else {
                 input.type = 'password';
-                btn.textContent = '👁️';
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'eye');
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
             }
         }
 
@@ -590,6 +608,11 @@
             navigator.serviceWorker.register('/sw.js')
                 .then((reg) => console.log('SW registrado:', reg.scope))
                 .catch((err) => console.error('Error SW:', err));
+        }
+
+        // Inicializar Lucide icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
         }
     </script>
 </body>
