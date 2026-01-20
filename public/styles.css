@@ -109,6 +109,27 @@ body {
     font-family: inherit;
 }
 
+/* ==================== LUCIDE ICONS ==================== */
+.lucide-icon {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+    vertical-align: middle;
+}
+
+.lucide-icon-sm {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+    vertical-align: middle;
+}
+
+.lucide-icon-lg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 1.5;
+}
+
 .container {
     max-width: 1400px;
     margin: 0 auto;

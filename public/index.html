@@ -19,6 +19,9 @@
     <link rel="icon" type="image/svg+xml" href="/icons/icon-32.svg">
     <link rel="apple-touch-icon" href="/icons/icon-192.svg">
 
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -36,18 +39,18 @@
                 </div>
                 <div class="header-buttons">
                     <div class="header-user-info">
-                        <span class="user-icon">👤</span>
+                        <i data-lucide="user" class="lucide-icon"></i>
                         <span class="user-name" id="usuarioActual"></span>
                     </div>
                     <button class="admin-btn" id="btnSuperAdmin" onclick="abrirSuperAdmin()"
                             style="display: none; background: #f1c40f; color: #2c3e50;">
-                        👑 Clientes
+                        <i data-lucide="crown" class="lucide-icon"></i> Clientes
                     </button>
                     <button class="admin-btn btn-admin-primary" onclick="abrirAdmin()">
-                        ⚙️ Admin
+                        <i data-lucide="settings" class="lucide-icon"></i> Admin
                     </button>
                     <button class="admin-btn btn-salir" onclick="cerrarSesion()">
-                        🚪 Salir
+                        <i data-lucide="log-out" class="lucide-icon"></i> Salir
                     </button>
                 </div>
             </div>
@@ -58,15 +61,15 @@
     <div id="adminModal" class="admin-modal">
         <div class="admin-modal-content">
             <div class="admin-modal-header">
-                <h2>⚙️ Panel de Administración</h2>
+                <h2><i data-lucide="settings" class="lucide-icon"></i> Panel de Administración</h2>
                 <button class="admin-modal-close" onclick="cerrarAdmin()">×</button>
             </div>
             <div class="admin-modal-body">
                 <div class="admin-tabs">
-                    <button class="admin-tab active" onclick="switchAdminTab('config', event)">🏷️ Configuración</button>
-                    <button class="admin-tab" onclick="switchAdminTab('scanner', event)">🔫 Scanner</button>
-                    <button class="admin-tab" onclick="switchAdminTab('datos', event)">🗃️ Datos</button>
-                    <button class="admin-tab" onclick="switchAdminTab('backups', event)">💾 Backups</button>
+                    <button class="admin-tab active" onclick="switchAdminTab('config', event)"><i data-lucide="sliders-horizontal" class="lucide-icon-sm"></i> Configuración</button>
+                    <button class="admin-tab" onclick="switchAdminTab('scanner', event)"><i data-lucide="scan-barcode" class="lucide-icon-sm"></i> Scanner</button>
+                    <button class="admin-tab" onclick="switchAdminTab('datos', event)"><i data-lucide="database" class="lucide-icon-sm"></i> Datos</button>
+                    <button class="admin-tab" onclick="switchAdminTab('backups', event)"><i data-lucide="hard-drive" class="lucide-icon-sm"></i> Backups</button>
                 </div>
 
                 <!-- Tab Configuración -->
@@ -272,22 +275,22 @@
 </div>
 
                     <div class="danger-zone">
-                        <h4>⚠️ Zona de peligro</h4>
+                        <h4><i data-lucide="alert-triangle" class="lucide-icon-sm"></i> Zona de peligro</h4>
                         <div class="danger-zone-buttons">
                             <button class="danger-btn danger-btn-warning" onclick="resetearStockCero()">
-                                📉 Poner Stock en 0
+                                <i data-lucide="trending-down" class="lucide-icon-sm"></i> Poner Stock en 0
                             </button>
                             <button class="danger-btn danger-btn-critical" onclick="eliminarCatalogoCompleto()">
-                                🗑️ Eliminar Productos
+                                <i data-lucide="trash-2" class="lucide-icon-sm"></i> Eliminar Productos
                             </button>
                             <button class="danger-btn" onclick="limpiarTabla('ventas')">
-                                Borrar Ventas
+                                <i data-lucide="x" class="lucide-icon-sm"></i> Borrar Ventas
                             </button>
                             <button class="danger-btn" onclick="limpiarTabla('cambios')">
-                                Borrar Cambios
+                                <i data-lucide="x" class="lucide-icon-sm"></i> Borrar Cambios
                             </button>
                             <button class="danger-btn" onclick="limpiarTabla('cuentas')">
-                                Borrar Cuentas Ctes.
+                                <i data-lucide="x" class="lucide-icon-sm"></i> Borrar Cuentas Ctes.
                             </button>
                         </div>
                         <p class="danger-zone-note">
@@ -319,12 +322,12 @@
     <div class="container">
         <!-- NAVEGACIÓN TABS -->
         <div class="tabs">
-            <button class="tab-btn" onclick="switchTab('busqueda', event)">🔍 Buscar Precios</button>
-            <button class="tab-btn active" onclick="switchTab('cajas', event)">📊 Cajas Diarias</button>
-            <button class="tab-btn" onclick="switchTab('stock', event)">📦 Stock</button>
-            <button class="tab-btn" onclick="switchTab('cuentas', event)">💰 Cuentas Corrientes</button>
-            <button class="tab-btn" onclick="switchTab('promedios', event)">📈 Promedios</button>
-            <button class="tab-btn" onclick="switchTab('historico', event)">Histórico de Ventas</button>
+            <button class="tab-btn" onclick="switchTab('busqueda', event)"><i data-lucide="search" class="lucide-icon"></i> Buscar Precios</button>
+            <button class="tab-btn active" onclick="switchTab('cajas', event)"><i data-lucide="calculator" class="lucide-icon"></i> Cajas Diarias</button>
+            <button class="tab-btn" onclick="switchTab('stock', event)"><i data-lucide="package" class="lucide-icon"></i> Stock</button>
+            <button class="tab-btn" onclick="switchTab('cuentas', event)"><i data-lucide="wallet" class="lucide-icon"></i> Cuentas Corrientes</button>
+            <button class="tab-btn" onclick="switchTab('promedios', event)"><i data-lucide="trending-up" class="lucide-icon"></i> Promedios</button>
+            <button class="tab-btn" onclick="switchTab('historico', event)"><i data-lucide="history" class="lucide-icon"></i> Histórico de Ventas</button>
         </div>
 
         <!-- ==================== TAB 1: BÚSQUEDA ====================-->

@@ -394,9 +394,14 @@ const BarcodeScanner = {
     }
 };
 
-// Inicializar scanner cuando carga la página
+// Inicializar scanner y Lucide icons cuando carga la página
 document.addEventListener('DOMContentLoaded', () => {
     BarcodeScanner.init();
+
+    // Inicializar Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 });
 
 // ==================== PANEL ADMIN ====================
@@ -404,6 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('adminModal').classList.add('active');
         cargarConfigAdmin();
         cargarBackups();
+        // Refrescar iconos Lucide
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function cerrarAdmin() {
@@ -803,7 +810,7 @@ async function cambiarPassword() {
             }
             
             // Mostrar usuario actual
-            document.getElementById('usuarioActual').textContent = `👤 ${sessionData.usuario}`;
+            document.getElementById('usuarioActual').textContent = sessionData.usuario;
 
             if (sessionData.usuario === 'admin') {
         const btn = document.getElementById('btnSuperAdmin');
