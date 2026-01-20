@@ -119,15 +119,24 @@
         <div style="display: grid; gap: 12px; max-width: 350px;">
             <div>
                 <label style="display: block; font-size: 0.85em; margin-bottom: 5px; color: #555;">Contraseña actual</label>
-                <input type="password" id="passwordActual" placeholder="Tu contraseña actual" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                <div class="password-wrapper">
+                    <input type="password" id="passwordActual" placeholder="Tu contraseña actual" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    <button type="button" class="password-toggle" onclick="togglePassword('passwordActual', this)">👁️</button>
+                </div>
             </div>
             <div>
                 <label style="display: block; font-size: 0.85em; margin-bottom: 5px; color: #555;">Nueva contraseña</label>
-                <input type="password" id="passwordNuevo" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                <div class="password-wrapper">
+                    <input type="password" id="passwordNuevo" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    <button type="button" class="password-toggle" onclick="togglePassword('passwordNuevo', this)">👁️</button>
+                </div>
             </div>
             <div>
                 <label style="display: block; font-size: 0.85em; margin-bottom: 5px; color: #555;">Confirmar nueva contraseña</label>
-                <input type="password" id="passwordConfirmar" placeholder="Repetir nueva contraseña" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                <div class="password-wrapper">
+                    <input type="password" id="passwordConfirmar" placeholder="Repetir nueva contraseña" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    <button type="button" class="password-toggle" onclick="togglePassword('passwordConfirmar', this)">👁️</button>
+                </div>
             </div>
             <button onclick="cambiarPassword()" style="background: #e65100; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 5px;">
                 🔒 Cambiar Contraseña
@@ -1103,7 +1112,10 @@
         <p style="margin-bottom: 15px; color: #666;">Usuario: <strong id="resetPasswordUsuarioSaas"></strong></p>
         <div style="margin-bottom: 15px;">
             <label style="display: block; font-size: 0.85em; margin-bottom: 5px;">Nueva contraseña</label>
-            <input type="password" id="adminNuevoPasswordSaas" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+            <div class="password-wrapper">
+                <input type="password" id="adminNuevoPasswordSaas" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                <button type="button" class="password-toggle" onclick="togglePassword('adminNuevoPasswordSaas', this)">👁️</button>
+            </div>
         </div>
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
             <button onclick="cerrarModalResetPasswordSaas()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Cancelar</button>
