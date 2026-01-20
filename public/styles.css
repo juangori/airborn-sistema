@@ -79,6 +79,12 @@
     border-left: 4px solid #e74c3c;
 }
 
+.scanner-indicator.scanner-crear {
+    border-left: 4px solid #f39c12;
+    flex-direction: column;
+    align-items: stretch;
+}
+
 .scanner-icon {
     font-size: 1.5em;
 }

@@ -209,7 +209,7 @@ const BarcodeScanner = {
                 this.showIndicator(true, `${producto.codigo} - ${producto.descripcion || 'Encontrado'}`);
             } else {
                 this.beepError();
-                this.showIndicator(false, `Código ${code} no encontrado`);
+                this.ofrecerCrearProducto(code);
             }
         }
     },
@@ -222,7 +222,7 @@ const BarcodeScanner = {
 
         if (!producto) {
             this.beepError();
-            this.showIndicator(false, `Código ${code} no encontrado`);
+            this.ofrecerCrearProducto(code);
             return;
         }
 
@@ -296,8 +296,63 @@ const BarcodeScanner = {
                 this.showIndicator(true, `${producto.codigo} - Stock: ${producto.stock || 0}`);
             } else {
                 this.beepError();
-                this.showIndicator(false, `Código ${code} no encontrado`);
+                this.ofrecerCrearProducto(code);
             }
+        }
+    },
+
+    // Ofrecer crear producto nuevo cuando no se encuentra
+    ofrecerCrearProducto(codigoBarras) {
+        // Remover indicador anterior si existe
+        const existing = document.getElementById('scannerIndicator');
+        if (existing) existing.remove();
+
+        const indicator = document.createElement('div');
+        indicator.id = 'scannerIndicator';
+        indicator.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 1.5em;">❓</span>
+                <div>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Código no encontrado</div>
+                    <div style="font-size: 0.9em; color: #666;">${codigoBarras}</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button onclick="BarcodeScanner.crearProductoDesdeEscaneo('${codigoBarras}')" style="flex: 1; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                    ✨ Crear Producto
+                </button>
+                <button onclick="document.getElementById('scannerIndicator').remove()" style="padding: 10px 15px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer;">
+                    ✕
+                </button>
+            </div>
+        `;
+        indicator.className = 'scanner-indicator scanner-crear';
+        indicator.style.maxWidth = '300px';
+        document.body.appendChild(indicator);
+
+        // Animar entrada
+        setTimeout(() => indicator.classList.add('show'), 10);
+
+        // Auto-cerrar después de 10 segundos
+        setTimeout(() => {
+            if (document.getElementById('scannerIndicator')) {
+                indicator.classList.remove('show');
+                setTimeout(() => indicator.remove(), 300);
+            }
+        }, 10000);
+    },
+
+    crearProductoDesdeEscaneo(codigoBarras) {
+        // Cerrar indicador
+        const indicator = document.getElementById('scannerIndicator');
+        if (indicator) indicator.remove();
+
+        // Abrir modal de nuevo producto con el código de barras pre-cargado
+        if (typeof abrirModalProducto === 'function') {
+            abrirModalProducto('', codigoBarras);
+            this.beepSuccess();
+        } else {
+            console.error('Función abrirModalProducto no encontrada');
         }
     },
 
@@ -1306,15 +1361,19 @@ document.getElementById('busquedaInput')?.addEventListener('keyup', (e) => {
     // 2. FILTRAR (Lógica ajustada)
     let encontrados = productosCache.filter(p => {
         const codigo = (p.codigo || '').toLowerCase();
+        const codigoBarras = (p.codigoBarras || '').toLowerCase();
         const desc = (p.descripcion || '').toLowerCase();
-        
+
         // A. CÓDIGO: Debe EMPEZAR con el texto (Estricto)
         const coincideCodigo = codigo.startsWith(texto);
-        
-        // B. DESCRIPCIÓN: Puede CONTENER el texto (Flexible)
+
+        // B. CÓDIGO DE BARRAS: Debe EMPEZAR o ser igual al texto
+        const coincideCodigoBarras = codigoBarras.startsWith(texto) || codigoBarras === texto;
+
+        // C. DESCRIPCIÓN: Puede CONTENER el texto (Flexible)
         const coincideDesc = desc.includes(texto);
 
-        return coincideCodigo || coincideDesc;
+        return coincideCodigo || coincideCodigoBarras || coincideDesc;
     });
 
     // 3. ORDENAR RESULTADOS (Para que sea más intuitivo)
@@ -3018,10 +3077,11 @@ function renderStockTabla() {
             if (stockFiltro === '6+' && stock < 6) return false;
         }
 
-        // Filtro por texto
+        // Filtro por texto (incluye código de barras)
         if (!texto) return true;
         return (p.descripcion || '').toLowerCase().includes(texto) ||
-               (p.codigo || '').toLowerCase().includes(texto);
+               (p.codigo || '').toLowerCase().includes(texto) ||
+               (p.codigoBarras || '').toLowerCase().includes(texto);
     });
 
     if (filtrados.length === 0) {
@@ -4964,30 +5024,37 @@ function editarStock(td, codigo) {
 
 // ==================== FUNCIONES NUEVO PRODUCTO (FALTABAN ESTAS) ====================
 
-function abrirModalProducto(codigoSugerido = '') {
+function abrirModalProducto(codigoSugerido = '', codigoBarrasSugerido = '') {
     const modal = document.getElementById('modalNuevoProducto');
     if (!modal) return;
 
     modal.classList.add('active');
-    
+
     const inputCodigo = document.getElementById('npCodigo');
+    const inputCodigoBarras = document.getElementById('npCodigoBarras');
+
     inputCodigo.value = codigoSugerido.toUpperCase();
-    
+    if (inputCodigoBarras) inputCodigoBarras.value = codigoBarrasSugerido;
+
     // Resetear resto
     document.getElementById('npDescripcion').value = '';
     document.getElementById('npCategoria').value = '';
     document.getElementById('npPrecio').value = 0;
     document.getElementById('npCosto').value = 0;
     document.getElementById('npStock').value = 0;
-    
+
     // INTELIGENCIA DE FOCO:
     setTimeout(() => {
-        if (codigoSugerido) {
-            // Si ya hay código, vamos a la descripción
+        if (codigoBarrasSugerido) {
+            // Si viene de escaneo, el código de barras ya está, ir al código de artículo
+            inputCodigo.focus();
+        } else if (codigoSugerido) {
+            // Si ya hay código artículo, vamos a la descripción
             document.getElementById('npDescripcion').focus();
         } else {
-            // Si está vacío, foco en el código para escribir
-            inputCodigo.focus();
+            // Si está vacío, foco en el código de barras
+            if (inputCodigoBarras) inputCodigoBarras.focus();
+            else inputCodigo.focus();
         }
     }, 100);
 }
@@ -5005,12 +5072,20 @@ async function guardarNuevoProducto() {
 
     const producto = {
         codigo: document.getElementById('npCodigo').value.trim(),
+        codigoBarras: document.getElementById('npCodigoBarras')?.value.trim() || '',
         descripcion: document.getElementById('npDescripcion').value.trim(),
         categoria: document.getElementById('npCategoria').value.trim(),
         precio: parseFloat(document.getElementById('npPrecio').value) || 0,
         costo: parseFloat(document.getElementById('npCosto').value) || 0,
         stock: parseInt(document.getElementById('npStock').value) || 0
     };
+
+    if (!producto.codigo) {
+        showToast('⚠️ El código de artículo es obligatorio', 'error');
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = txtOriginal;
+        return;
+    }
 
     if (!producto.descripcion) {
         showToast('⚠️ La descripción es obligatoria', 'error');

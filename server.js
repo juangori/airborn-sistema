@@ -172,6 +172,7 @@ const schemas = {
   }),
   productoNuevo: Joi.object({
     codigo: Joi.string().max(50).required(),
+    codigoBarras: Joi.string().max(50).allow('').optional(),
     descripcion: Joi.string().max(200).required(),
     categoria: Joi.string().max(50).allow('').optional(),
     precio: Joi.number().min(0).default(0),
@@ -261,6 +262,7 @@ function inicializarBdCliente(db) {
       CREATE TABLE IF NOT EXISTS productos (
         id INTEGER PRIMARY KEY,
         codigo TEXT UNIQUE NOT NULL,
+        codigoBarras TEXT,
         descripcion TEXT,
         categoria TEXT,
         precioPublico REAL,
@@ -268,6 +270,11 @@ function inicializarBdCliente(db) {
         stock INTEGER DEFAULT 0
       )
     `);
+
+    // Migración: agregar columna codigoBarras si no existe (para BDs existentes)
+    db.run(`ALTER TABLE productos ADD COLUMN codigoBarras TEXT`, () => {
+      // Ignorar error si la columna ya existe
+    });
 
     db.run(`
       CREATE TABLE IF NOT EXISTS ventas (
@@ -878,15 +885,17 @@ app.get('/api/productos/buscar', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'Búsqueda muy corta' });
   }
 
-  // Buscar por código O descripción
+  // Buscar por código, código de barras O descripción
   db.all(
-    `SELECT * FROM productos 
-     WHERE codigo LIKE ? OR descripcion LIKE ? 
-     ORDER BY 
-       CASE WHEN codigo LIKE ? THEN 0 ELSE 1 END,
+    `SELECT * FROM productos
+     WHERE codigo LIKE ? OR codigoBarras LIKE ? OR descripcion LIKE ?
+     ORDER BY
+       CASE WHEN codigo LIKE ? THEN 0
+            WHEN codigoBarras = ? THEN 0
+            ELSE 1 END,
        descripcion
      LIMIT 20`,
-    [`%${busqueda}%`, `%${busqueda}%`, `${busqueda}%`],
+    [`%${busqueda}%`, `%${busqueda}%`, `%${busqueda}%`, `${busqueda}%`, busqueda],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       if (!rows || rows.length === 0) {
@@ -1310,8 +1319,8 @@ app.get('/api/productos/stock/:codigo', requireAuth, (req, res) => {
   const { codigo } = req.params;
 
   db.get(
-    'SELECT codigo, descripcion, stock FROM productos WHERE codigo = ?',
-    [codigo],
+    'SELECT codigo, codigoBarras, descripcion, stock FROM productos WHERE codigo = ? OR codigoBarras = ?',
+    [codigo, codigo],
     (err, row) => {
       if (err) return res.status(500).json({ error: err.message });
       if (!row) return res.status(404).json({ error: 'Producto no encontrado' });
@@ -1780,13 +1789,13 @@ app.post('/api/productos/nuevo', requireAuth, async (req, res) => {
         return res.status(400).json({ error });
     }
 
-    const { codigo, descripcion, categoria, precio, costo, stock } = value;
+    const { codigo, codigoBarras, descripcion, categoria, precio, costo, stock } = value;
 
     try {
         await dbRun(db,
-            `INSERT INTO productos (codigo, descripcion, categoria, precioPublico, costo, stock)
-             VALUES (?, ?, ?, ?, ?, ?)`,
-            [codigo, descripcion, categoria || 'General', precio, costo, stock]
+            `INSERT INTO productos (codigo, codigoBarras, descripcion, categoria, precioPublico, costo, stock)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [codigo, codigoBarras || null, descripcion, categoria || 'General', precio, costo, stock]
         );
 
         crearBackup(req.session.usuario, 'Producto Creado', `Alta: ${codigo} (${descripcion})`);
@@ -1827,6 +1836,40 @@ app.delete('/api/productos/:codigo', requireAuth, async (req, res) => {
         await dbRun(db, "DELETE FROM productos WHERE codigo = ?", [codigo]);
         crearBackup(req.session.usuario, 'Producto Eliminado', `Código: ${codigo}`);
         res.json({ ok: true, mensaje: 'Producto eliminado' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// ACTUALIZAR CÓDIGO DE BARRAS DE UN PRODUCTO
+app.put('/api/productos/:codigo/codigoBarras', requireAuth, async (req, res) => {
+    const db = req.db;
+    const { codigo } = req.params;
+    const { codigoBarras } = req.body;
+
+    try {
+        await dbRun(db, "UPDATE productos SET codigoBarras = ? WHERE codigo = ?", [codigoBarras || null, codigo]);
+        res.json({ ok: true, mensaje: 'Código de barras actualizado' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// EDITAR PRODUCTO COMPLETO
+app.put('/api/productos/:codigo', requireAuth, async (req, res) => {
+    const db = req.db;
+    const { codigo } = req.params;
+    const { codigoBarras, descripcion, categoria, precioPublico, costo, stock } = req.body;
+
+    try {
+        await dbRun(db, `
+            UPDATE productos
+            SET codigoBarras = ?, descripcion = ?, categoria = ?, precioPublico = ?, costo = ?, stock = ?
+            WHERE codigo = ?
+        `, [codigoBarras || null, descripcion, categoria, precioPublico, costo, stock, codigo]);
+
+        crearBackup(req.session.usuario, 'Producto Editado', `Código: ${codigo}`);
+        res.json({ ok: true, mensaje: 'Producto actualizado' });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
