@@ -26,28 +26,30 @@
         <div class="container">
             <div class="header-content">
                 <div class="header-left">
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <img id="logoComercio" src="" alt="" style="display: none; height: 50px; max-width: 80px; object-fit: contain; border-radius: 8px;">
-        <div>
-            <h1 id="appName">MI COMERCIO</h1>
-            <p>Sistema de Gestión de Inventario</p>
-        </div>
-    </div>
-</div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-    <span id="usuarioActual" style="color: rgba(255,255,255,0.8); font-size: 0.9em;"></span>
-    
-    <button class="admin-btn" id="btnSuperAdmin" onclick="abrirSuperAdmin()" 
-            style="display: none; background: #f1c40f; color: #2c3e50; border-color: #f39c12; font-weight: bold;">
-        👑 Clientes
-    </button>
-    <button class="admin-btn" onclick="abrirAdmin()">
-        ⚙️ Admin
-    </button>
-    <button class="admin-btn" onclick="cerrarSesion()" ...>
-        🚪 Salir
-    </button>
-</div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <img id="logoComercio" src="" alt="" style="display: none; height: 55px; max-width: 80px; object-fit: contain; border-radius: 8px;">
+                        <div>
+                            <h1 id="appName">MI COMERCIO</h1>
+                            <p>by StockMate Pro</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-buttons">
+                    <div class="header-user-info">
+                        <span class="user-icon">👤</span>
+                        <span class="user-name" id="usuarioActual"></span>
+                    </div>
+                    <button class="admin-btn" id="btnSuperAdmin" onclick="abrirSuperAdmin()"
+                            style="display: none; background: #f1c40f; color: #2c3e50;">
+                        👑 Clientes
+                    </button>
+                    <button class="admin-btn btn-admin-primary" onclick="abrirAdmin()">
+                        ⚙️ Admin
+                    </button>
+                    <button class="admin-btn btn-salir" onclick="cerrarSesion()">
+                        🚪 Salir
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -269,28 +271,28 @@
     </div>
 </div>
 
-                    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffc107;">
-                        <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Zona de peligro</h4>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button onclick="resetearStockCero()" style="background: #f39c12; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-        📉 Poner todo el Stock en 0
-    </button>
-    <button class="btn-danger" onclick="eliminarCatalogoCompleto()" style="background: #721c24; border: 1px solid #721c24;">
-            🗑️ Eliminar TODOS los Productos
-        </button>
-                            <button onclick="limpiarTabla('ventas')" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
-                                Borrar TODAS las ventas
+                    <div class="danger-zone">
+                        <h4>⚠️ Zona de peligro</h4>
+                        <div class="danger-zone-buttons">
+                            <button class="danger-btn danger-btn-warning" onclick="resetearStockCero()">
+                                📉 Poner Stock en 0
                             </button>
-                            <button onclick="limpiarTabla('cambios')" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
-                                Borrar TODOS los cambios
+                            <button class="danger-btn danger-btn-critical" onclick="eliminarCatalogoCompleto()">
+                                🗑️ Eliminar Productos
                             </button>
-                            <button onclick="limpiarTabla('cuentas')" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
-                                Borrar TODAS las cuentas corrientes
+                            <button class="danger-btn" onclick="limpiarTabla('ventas')">
+                                Borrar Ventas
+                            </button>
+                            <button class="danger-btn" onclick="limpiarTabla('cambios')">
+                                Borrar Cambios
+                            </button>
+                            <button class="danger-btn" onclick="limpiarTabla('cuentas')">
+                                Borrar Cuentas Ctes.
                             </button>
                         </div>
-                        <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
-        "Eliminar TODOS" borra los productos para siempre. Usalo antes de importar un CSV limpio.
-    </p>
+                        <p class="danger-zone-note">
+                            Estas acciones son irreversibles. Se crea un backup automático antes de cada operación.
+                        </p>
                     </div>
                 </div>
 

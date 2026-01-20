@@ -96,10 +96,17 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
+}
+
+/* Importar fuente Inter para uniformidad */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+    font-family: inherit;
 }
 
 .container {
@@ -109,22 +116,24 @@ body {
 }
 
 header {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    background: #2c3e50;
     color: white;
-    padding: 30px 0;
+    padding: 25px 0;
     margin-bottom: 30px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }
 
 header h1 {
-    font-size: 2.5em;
-    margin-bottom: 5px;
+    font-size: 2.2em;
+    margin-bottom: 3px;
     font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 header p {
-    font-size: 0.95em;
-    opacity: 0.9;
+    font-size: 0.85em;
+    opacity: 0.7;
+    font-weight: 400;
 }
 
 /* Header con flex para nombre + admin */
@@ -135,37 +144,82 @@ header p {
 }
 
 .header-left h1 {
-    font-size: 2.5em;
-    margin-bottom: 5px;
+    font-size: 2.2em;
+    margin-bottom: 3px;
     font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 .header-left p {
-    font-size: 0.95em;
-    opacity: 0.9;
+    font-size: 0.85em;
+    opacity: 0.7;
+    font-weight: 400;
+    font-style: italic;
 }
 
 img#logoComercio {
-    margin-bottom: 25px;
+    margin-bottom: 0;
 }
 
-/* Botón Admin */
+/* Botones del header (User, Admin, Salir) */
+.header-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.1);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.9em;
+}
+
+.header-user-info .user-icon {
+    opacity: 0.8;
+}
+
+.header-user-info .user-name {
+    font-weight: 500;
+}
+
 .admin-btn {
-    background: rgba(255,255,255,0.2);
-    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.15);
+    border: none;
     color: white;
-    padding: 10px 20px;
+    padding: 10px 18px;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 0.95em;
-    transition: all 0.3s;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
 .admin-btn:hover {
-    background: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.25);
+    transform: translateY(-1px);
+}
+
+.admin-btn.btn-admin-primary {
+    background: #3498db;
+}
+
+.admin-btn.btn-admin-primary:hover {
+    background: #2980b9;
+}
+
+.admin-btn.btn-salir {
+    background: rgba(231, 76, 60, 0.8);
+}
+
+.admin-btn.btn-salir:hover {
+    background: #e74c3c;
 }
 
 /* Modal Admin */
@@ -354,58 +408,51 @@ img#logoComercio {
     color: #888;
 }
 
+/* ==================== NAVEGACIÓN TABS PRINCIPAL ==================== */
 .tabs {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 30px;
-    flex-wrap: wrap;
-    border-bottom: 2px solid var(--border);
-    padding-bottom: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    background: white;
+    padding: 8px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
-/* ==================== NAVEGACIÓN TABS MEJORADA ==================== */
-.tabs {
-    display: flex;
-    gap: 5px; /* Reducimos el espacio entre botones (antes era 10px) */
-    margin-bottom: 30px;
-    flex-wrap: nowrap; /* CLAVE: Esto obliga a que no bajen de línea */
-    overflow-x: auto; /* Si la pantalla es diminuta, permite scrollear horizontalmente en vez de romper */
-    border-bottom: 2px solid var(--border);
-    padding-bottom: 0;
-    
-    /* Opcional: Ocultar la barra de scroll para que quede más limpio */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none;  /* IE and Edge */
-}
-
-/* Ocultar barra de scroll en Chrome/Safari/Opera */
 .tabs::-webkit-scrollbar {
     display: none;
 }
 
 .tab-btn {
-    padding: 12px 15px; /* Reducimos el padding lateral (antes era 24px) */
+    padding: 12px 20px;
     border: none;
     background: transparent;
-    color: var(--text);
+    color: #666;
     cursor: pointer;
-    font-size: 0.95em; /* Un pelín más chico para ganar espacio */
-    font-weight: 600;
-    border-bottom: 3px solid transparent;
-    transition: all 0.3s ease;
-    margin-bottom: -2px;
-    white-space: nowrap; /* Asegura que el texto del botón no se parta en dos líneas */
-    flex-shrink: 0; /* Asegura que los botones mantengan su tamaño ideal */
+    font-size: 0.9em;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .tab-btn:hover {
-    color: var(--primary);
-    background-color: rgba(0,0,0,0.02); /* Un efecto sutil al pasar el mouse */
+    color: #333;
+    background: #f5f5f5;
 }
 
 .tab-btn.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
+    color: white;
+    background: #2c3e50;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.3);
 }
 
 .tab-content {
@@ -3768,4 +3815,72 @@ flex-direction: column;
 
 .toggle-switch input:checked + .toggle-slider:before {
     transform: translateX(24px);
+}
+
+/* ==================== ZONA DE PELIGRO ==================== */
+.danger-zone {
+    background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #ffca28;
+    margin-top: 20px;
+}
+
+.danger-zone h4 {
+    margin: 0 0 15px 0;
+    color: #e65100;
+    font-size: 1em;
+    font-weight: 600;
+}
+
+.danger-zone-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.danger-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.danger-btn:hover {
+    background: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.danger-btn-warning {
+    background: #f39c12;
+}
+
+.danger-btn-warning:hover {
+    background: #d68910;
+    box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+}
+
+.danger-btn-critical {
+    background: #8e44ad;
+}
+
+.danger-btn-critical:hover {
+    background: #7d3c98;
+    box-shadow: 0 4px 12px rgba(142, 68, 173, 0.3);
+}
+
+.danger-zone-note {
+    font-size: 0.8em;
+    color: #666;
+    margin: 12px 0 0 0;
+    font-style: italic;
 }
