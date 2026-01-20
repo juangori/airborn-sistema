@@ -835,6 +835,37 @@ app.post('/api/admin/usuarios/:id/reset-password', requireAuth, (req, res) => {
   );
 });
 
+// Panel Admin: Eliminar usuario (solo admin)
+app.delete('/api/admin/usuarios/:id', requireAuth, (req, res) => {
+  if (!req.session.esAdmin) {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const { id } = req.params;
+
+  // Verificar que no sea el admin principal
+  usuariosDb.get('SELECT usuario FROM usuarios WHERE id = ?', [id], (err, row) => {
+    if (err || !row) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    if (row.usuario === 'admin') {
+      return res.status(400).json({ error: 'No se puede eliminar al administrador principal' });
+    }
+
+    usuariosDb.run('DELETE FROM usuarios WHERE id = ?', [id], function (err) {
+      if (err) {
+        return res.status(500).json({ error: 'Error al eliminar usuario' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+      console.log(`🗑️ Usuario eliminado: ${row.usuario}`);
+      res.json({ ok: true, mensaje: 'Usuario eliminado correctamente' });
+    });
+  });
+});
+
 // ==================== ENDPOINTS (PROTEGIDOS) ====================
 
 // 1. BÚSQUEDA DE PRODUCTOS

@@ -9,7 +9,6 @@ window.productosCache = productosCache;
         document.getElementById('adminModal').classList.add('active');
         cargarConfigAdmin();
         cargarBackups();
-        verificarPermisoAdmin();
     }
 
     function cerrarAdmin() {
@@ -34,16 +33,13 @@ window.productosCache = productosCache;
         const tabMap = {
             'config': 'adminConfig',
             'datos': 'adminDatos',
-            'backups': 'adminBackups',
-            'usuarios': 'adminUsuarios'
+            'backups': 'adminBackups'
         };
         const contenedor = document.getElementById(tabMap[tab]);
         if (contenedor) contenedor.classList.add('active');
 
         if (tab === 'backups') {
             cargarBackups();
-        } else if (tab === 'usuarios') {
-            cargarUsuariosAdmin();
         }
     }
 
@@ -294,162 +290,6 @@ async function cambiarPassword() {
     } catch (error) {
         resultado.innerHTML = '<span style="color: #e74c3c;">Error de conexión</span>';
     }
-}
-
-// ==================== PANEL ADMIN: GESTIÓN DE USUARIOS ====================
-
-let usuarioResetId = null;
-
-async function cargarUsuariosAdmin() {
-    const tbody = document.getElementById('usuariosAdminBody');
-    if (!tbody) return;
-
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #999;">Cargando...</td></tr>';
-
-    try {
-        const resp = await fetch('/api/admin/usuarios');
-
-        if (resp.status === 403) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #e74c3c;">No tenés permisos de administrador</td></tr>';
-            return;
-        }
-
-        if (!resp.ok) throw new Error('Error al cargar usuarios');
-
-        const data = await resp.json();
-        const usuarios = data.usuarios || [];
-
-        if (usuarios.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #999;">No hay usuarios registrados</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = usuarios.map(u => {
-            const ultimoLogin = u.ultimoLogin ? formatearFechaHora(u.ultimoLogin) : 'Nunca';
-            const esAdmin = u.esAdmin === 1;
-            const activo = u.activo === 1;
-
-            return `
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 12px 8px;">
-                        <strong>${u.usuario}</strong>
-                        ${esAdmin ? '<span style="background: #9c27b0; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; margin-left: 5px;">ADMIN</span>' : ''}
-                    </td>
-                    <td style="padding: 12px 8px;">${u.nombreComercio || '-'}</td>
-                    <td style="padding: 12px 8px; font-size: 0.85em; color: #666;">${ultimoLogin}</td>
-                    <td style="padding: 12px 8px; text-align: center;">
-                        ${u.intentosFallidos > 0
-                            ? `<span style="background: #ffebee; color: #c62828; padding: 3px 8px; border-radius: 10px; font-size: 0.85em;">${u.intentosFallidos}</span>`
-                            : '<span style="color: #999;">0</span>'}
-                    </td>
-                    <td style="padding: 12px 8px; text-align: center;">
-                        ${activo
-                            ? '<span style="background: #e8f5e9; color: #2e7d32; padding: 3px 10px; border-radius: 10px; font-size: 0.85em;">Activo</span>'
-                            : '<span style="background: #ffebee; color: #c62828; padding: 3px 10px; border-radius: 10px; font-size: 0.85em;">Inactivo</span>'}
-                    </td>
-                    <td style="padding: 12px 8px; text-align: center;">
-                        <div style="display: flex; gap: 5px; justify-content: center;">
-                            ${!esAdmin ? `
-                                <button onclick="toggleUsuarioActivo(${u.id})" style="background: ${activo ? '#ff9800' : '#4caf50'}; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;" title="${activo ? 'Desactivar' : 'Activar'}">
-                                    ${activo ? '⏸️' : '▶️'}
-                                </button>
-                            ` : ''}
-                            <button onclick="abrirModalResetPassword(${u.id}, '${u.usuario}')" style="background: #e65100; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;" title="Resetear contraseña">
-                                🔑
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-
-    } catch (error) {
-        console.error('Error cargando usuarios:', error);
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #e74c3c;">Error al cargar usuarios</td></tr>';
-    }
-}
-
-function formatearFechaHora(fechaISO) {
-    const fecha = new Date(fechaISO);
-    return fecha.toLocaleString('es-AR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-async function toggleUsuarioActivo(id) {
-    if (!confirm('¿Cambiar el estado de este usuario?')) return;
-
-    try {
-        const resp = await fetch(`/api/admin/usuarios/${id}/toggle-activo`, { method: 'POST' });
-        const data = await resp.json();
-
-        if (resp.ok) {
-            showToast('✅ Estado actualizado', 'success');
-            cargarUsuariosAdmin();
-        } else {
-            showToast(`❌ ${data.error}`, 'error');
-        }
-    } catch (error) {
-        showToast('❌ Error de conexión', 'error');
-    }
-}
-
-function abrirModalResetPassword(id, usuario) {
-    usuarioResetId = id;
-    document.getElementById('resetPasswordUsuario').textContent = usuario;
-    document.getElementById('adminNuevoPassword').value = '';
-    document.getElementById('modalResetPassword').style.display = 'flex';
-}
-
-function cerrarModalResetPassword() {
-    document.getElementById('modalResetPassword').style.display = 'none';
-    usuarioResetId = null;
-}
-
-async function confirmarResetPassword() {
-    const passwordNuevo = document.getElementById('adminNuevoPassword').value;
-
-    if (!passwordNuevo || passwordNuevo.length < 6) {
-        showToast('⚠️ La contraseña debe tener al menos 6 caracteres', 'error');
-        return;
-    }
-
-    try {
-        const resp = await fetch(`/api/admin/usuarios/${usuarioResetId}/reset-password`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ passwordNuevo })
-        });
-
-        const data = await resp.json();
-
-        if (resp.ok) {
-            showToast('✅ Contraseña reseteada', 'success');
-            cerrarModalResetPassword();
-            cargarUsuariosAdmin();
-        } else {
-            showToast(`❌ ${data.error}`, 'error');
-        }
-    } catch (error) {
-        showToast('❌ Error de conexión', 'error');
-    }
-}
-
-// Mostrar tab de usuarios solo si es admin
-function verificarPermisoAdmin() {
-    fetch('/api/session')
-        .then(resp => resp.json())
-        .then(data => {
-            if (data.esAdmin) {
-                const tabUsuarios = document.getElementById('tabUsuarios');
-                if (tabUsuarios) tabUsuarios.style.display = 'inline-block';
-            }
-        })
-        .catch(() => {});
 }
 
     async function cargarBackups() {
@@ -5045,33 +4885,158 @@ function cerrarSuperAdmin() {
     document.getElementById('modalSuperAdmin').classList.remove('active');
 }
 
+let usuarioResetIdSaas = null;
+
 async function cargarUsuariosSaas() {
     const tbody = document.getElementById('listaUsuariosBody');
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">Cargando...</td></tr>';
 
     try {
         const resp = await fetch('/api/admin/usuarios');
         if (!resp.ok) throw new Error('Error de permisos');
-        const usuarios = await resp.json();
+        const data = await resp.json();
+        const usuarios = data.usuarios || data; // Compatibilidad con ambos formatos
 
-        if (usuarios.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">No hay clientes aún.</td></tr>';
+        if (!usuarios || usuarios.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No hay clientes aún.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = usuarios.map(u => `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding:10px; font-weight:bold; color:#2c3e50;">${u.usuario}</td>
-                <td style="padding:10px;">${u.nombreComercio || '-'}</td>
-                <td style="padding:10px; color:#666;">${new Date(u.fechaCreacion).toLocaleDateString()}</td>
-                <td style="padding:10px; text-align:center;">
-                    <span style="background:#d4edda; color:#155724; padding:2px 8px; border-radius:12px; font-size:0.8em; font-weight:bold;">Activo</span>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = usuarios.map(u => {
+            const esAdmin = u.esAdmin === 1;
+            const activo = u.activo === 1;
+            const ultimoLogin = u.ultimoLogin ? formatearFechaHoraSaas(u.ultimoLogin) : 'Nunca';
+
+            return `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding:10px 8px;">
+                        <strong style="color:#2c3e50;">${u.usuario}</strong>
+                        ${esAdmin ? '<span style="background: #9c27b0; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 10px; margin-left: 5px;">ADMIN</span>' : ''}
+                    </td>
+                    <td style="padding:10px 8px;">${u.nombreComercio || '-'}</td>
+                    <td style="padding:10px 8px; color:#666; font-size: 0.85em;">${ultimoLogin}</td>
+                    <td style="padding:10px 8px; text-align:center;">
+                        ${u.intentosFallidos > 0
+                            ? `<span style="background: #ffebee; color: #c62828; padding: 3px 8px; border-radius: 10px; font-size: 0.85em;">${u.intentosFallidos}</span>`
+                            : '<span style="color: #999;">0</span>'}
+                    </td>
+                    <td style="padding:10px 8px; text-align:center;">
+                        ${activo
+                            ? '<span style="background:#d4edda; color:#155724; padding:3px 10px; border-radius:12px; font-size:0.8em; font-weight:bold;">Activo</span>'
+                            : '<span style="background:#ffebee; color:#c62828; padding:3px 10px; border-radius:12px; font-size:0.8em; font-weight:bold;">Inactivo</span>'}
+                    </td>
+                    <td style="padding:10px 8px; text-align:center;">
+                        <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap;">
+                            ${!esAdmin ? `
+                                <button onclick="toggleUsuarioActivoSaas(${u.id})" style="background: ${activo ? '#ff9800' : '#4caf50'}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em;" title="${activo ? 'Desactivar' : 'Activar'}">
+                                    ${activo ? '⏸️' : '▶️'}
+                                </button>
+                            ` : ''}
+                            <button onclick="abrirModalResetPasswordSaas(${u.id}, '${u.usuario}')" style="background: #e65100; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em;" title="Resetear contraseña">
+                                🔑
+                            </button>
+                            ${!esAdmin ? `
+                                <button onclick="eliminarUsuarioSaas(${u.id}, '${u.usuario}')" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em;" title="Eliminar usuario">
+                                    🗑️
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
 
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red; padding:20px;">Error: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red; padding:20px;">Error: ${e.message}</td></tr>`;
+    }
+}
+
+function formatearFechaHoraSaas(fechaISO) {
+    const fecha = new Date(fechaISO);
+    return fecha.toLocaleString('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+async function toggleUsuarioActivoSaas(id) {
+    if (!confirm('¿Cambiar el estado de este usuario?')) return;
+
+    try {
+        const resp = await fetch(`/api/admin/usuarios/${id}/toggle-activo`, { method: 'POST' });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            showToast('✅ Estado actualizado', 'success');
+            cargarUsuariosSaas();
+        } else {
+            showToast(`❌ ${data.error}`, 'error');
+        }
+    } catch (error) {
+        showToast('❌ Error de conexión', 'error');
+    }
+}
+
+function abrirModalResetPasswordSaas(id, usuario) {
+    usuarioResetIdSaas = id;
+    document.getElementById('resetPasswordUsuarioSaas').textContent = usuario;
+    document.getElementById('adminNuevoPasswordSaas').value = '';
+    document.getElementById('modalResetPasswordSaas').style.display = 'flex';
+}
+
+function cerrarModalResetPasswordSaas() {
+    document.getElementById('modalResetPasswordSaas').style.display = 'none';
+    usuarioResetIdSaas = null;
+}
+
+async function confirmarResetPasswordSaas() {
+    const passwordNuevo = document.getElementById('adminNuevoPasswordSaas').value;
+
+    if (!passwordNuevo || passwordNuevo.length < 6) {
+        showToast('⚠️ La contraseña debe tener al menos 6 caracteres', 'error');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/admin/usuarios/${usuarioResetIdSaas}/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ passwordNuevo })
+        });
+
+        const data = await resp.json();
+
+        if (resp.ok) {
+            showToast('✅ Contraseña reseteada', 'success');
+            cerrarModalResetPasswordSaas();
+            cargarUsuariosSaas();
+        } else {
+            showToast(`❌ ${data.error}`, 'error');
+        }
+    } catch (error) {
+        showToast('❌ Error de conexión', 'error');
+    }
+}
+
+async function eliminarUsuarioSaas(id, usuario) {
+    if (!confirm(`¿Estás seguro de eliminar al usuario "${usuario}"?\n\nEsta acción no se puede deshacer.`)) return;
+    if (!confirm(`Confirmá una vez más: ¿Eliminar a "${usuario}"?`)) return;
+
+    try {
+        const resp = await fetch(`/api/admin/usuarios/${id}`, { method: 'DELETE' });
+        const data = await resp.json();
+
+        if (resp.ok) {
+            showToast('✅ Usuario eliminado', 'success');
+            cargarUsuariosSaas();
+        } else {
+            showToast(`❌ ${data.error}`, 'error');
+        }
+    } catch (error) {
+        showToast('❌ Error de conexión', 'error');
     }
 }
 
