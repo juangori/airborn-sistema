@@ -311,7 +311,7 @@ const BarcodeScanner = {
         indicator.id = 'scannerIndicator';
         indicator.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 1.5em;">❓</span>
+                <span style="font-size: 1.5em;"><i data-lucide="help-circle" class="lucide-icon-lg"></i></span>
                 <div>
                     <div style="font-weight: 600; margin-bottom: 4px;">Código no encontrado</div>
                     <div style="font-size: 0.9em; color: #666;">${codigoBarras}</div>
@@ -319,13 +319,15 @@ const BarcodeScanner = {
             </div>
             <div style="display: flex; gap: 8px; margin-top: 12px;">
                 <button onclick="BarcodeScanner.crearProductoDesdeEscaneo('${codigoBarras}')" style="flex: 1; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                    ✨ Crear Producto
+                    <i data-lucide="sparkles" class="lucide-icon-sm"></i> Crear Producto
                 </button>
                 <button onclick="document.getElementById('scannerIndicator').remove()" style="padding: 10px 15px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer;">
-                    ✕
+                    <i data-lucide="x" class="lucide-icon-sm"></i>
                 </button>
             </div>
         `;
+        // Re-inicializar iconos Lucide
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         indicator.className = 'scanner-indicator scanner-crear';
         indicator.style.maxWidth = '300px';
         document.body.appendChild(indicator);
@@ -735,15 +737,17 @@ async function cambiarPassword() {
             logDiv.innerHTML = backups.map(b => `
                 <div class="backup-item">
                     <div class="backup-info">
-                        <div class="backup-date">📅 ${formatBackupDate(b.fecha)}</div>
+                        <div class="backup-date"><i data-lucide="calendar" class="lucide-icon-sm"></i> ${formatBackupDate(b.fecha)}</div>
                         <div class="backup-action">${b.accion}</div>
                         ${b.detalle ? `<div class="backup-detail">${b.detalle}</div>` : ''}
                     </div>
                     <button class="backup-restore-btn" onclick="restaurarBackup('${b.archivo}', '${b.accion.replace(/'/g, "\\'")}')">
-                        🔄 Restaurar
+                        <i data-lucide="rotate-ccw" class="lucide-icon-sm"></i> Restaurar
                     </button>
                 </div>
             `).join('');
+            // Re-inicializar iconos Lucide
+            if (typeof lucide !== 'undefined') lucide.createIcons();
 
         } catch (error) {
             console.error('Error cargando backups:', error);
@@ -1225,15 +1229,15 @@ async function cargarCambios() {
                     ${c.diferencia < 0 ? `
                         <button onclick="crearCCdesdeCambio(${c.id}, ${Math.abs(c.diferencia)}, '${c.fecha}', '${c.articuloDevuelto}', '${c.articuloNuevo}')" 
                                 style="background: #f39c12; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;"
-                                title="Crear cuenta corriente con saldo a favor">💰</button>
+                                title="Crear cuenta corriente con saldo a favor"><i data-lucide="wallet" class="lucide-icon-sm"></i></button>
                     ` : ''}
                     <button onclick="eliminarCambio(${c.id}, '${c.articuloDevuelto}', '${c.articuloNuevo}')" 
                             style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;"
-                            title="Eliminar cambio">🗑️</button>
+                            title="Eliminar cambio"><i data-lucide="trash-2" class="lucide-icon-sm"></i></button>
                 </td>
             </tr>
         `).join('');
-        
+
         // Mostrar estadísticas si hay
         if (stats) {
             document.getElementById('statTotalCambios').textContent = stats.totalCambios;
@@ -1241,7 +1245,10 @@ async function cargarCambios() {
             document.getElementById('statDiferenciaNegativa').textContent = formatMoney(stats.diferenciaNegativa);
             document.getElementById('cambiosStats').style.display = 'block';
         }
-        
+
+        // Re-inicializar iconos Lucide
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
     } catch (error) {
         console.error('Error cargando cambios:', error);
         document.getElementById('tablaCambiosBody').innerHTML = '<tr><td colspan="8" style="padding: 20px; text-align: center; color: #e74c3c;">Error al cargar cambios</td></tr>';
@@ -1416,7 +1423,8 @@ document.getElementById('busquedaInput')?.addEventListener('keyup', (e) => {
 
     // 4. RENDERIZAR
     if (encontrados.length === 0) {
-        contenedor.innerHTML = `<div class="alert alert-warning">❌ No se encontraron productos comenzando con "${texto}"</div>`;
+        contenedor.innerHTML = `<div class="alert alert-warning"><i data-lucide="x-circle" class="lucide-icon-sm"></i> No se encontraron productos comenzando con "${texto}"</div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     } 
     else if (encontrados.length === 1) {
         mostrarProductoDetalle(encontrados[0], contenedor);
@@ -1551,7 +1559,8 @@ function initEventosFormulario(form) {
             try {
                 const response = await fetch(`/api/productos/buscar?q=${encodeURIComponent(busqueda)}`);
                 if (!response.ok) {
-                    resultadoDiv.innerHTML = `<div class="alert alert-danger show">❌ No se encontraron productos</div>`;
+                    resultadoDiv.innerHTML = `<div class="alert alert-danger show"><i data-lucide="x-circle" class="lucide-icon-sm"></i> No se encontraron productos</div>`;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                     return;
                 }
 
@@ -1577,7 +1586,8 @@ function initEventosFormulario(form) {
                     mostrarProductoEnForm(form, data, resultadoDiv);
                 }
             } catch (error) {
-                resultadoDiv.innerHTML = `<div class="alert alert-danger show">⚠️ Error: ${error.message}</div>`;
+                resultadoDiv.innerHTML = `<div class="alert alert-danger show"><i data-lucide="alert-triangle" class="lucide-icon-sm"></i> Error: ${error.message}</div>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
             }
         });
     }
@@ -1853,7 +1863,8 @@ function actualizarBotonRegistro() {
     });
 
     const cantidad = articulosConPrecio > 0 ? articulosConPrecio : formularios.length;
-    btn.textContent = `✓ Registrar Venta (${cantidad} artículo${cantidad > 1 ? 's' : ''}) - ${formatMoney(totalGeneral)}`;
+    btn.innerHTML = `<i data-lucide="check" class="lucide-icon-sm"></i> Registrar Venta (${cantidad} artículo${cantidad > 1 ? 's' : ''}) - ${formatMoney(totalGeneral)}`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function obtenerDatosFormularios() {
@@ -2819,7 +2830,8 @@ document.getElementById('stockBusquedaCodigo')?.addEventListener('keyup', async 
         }
     } catch (error) {
         resultado.style.display = 'block';
-        resultado.innerHTML = '⚠️ Error: ' + error.message;
+        resultado.innerHTML = '<i data-lucide="alert-triangle" class="lucide-icon-sm"></i> Error: ' + error.message;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         editor.style.display = 'none';
         productoStockActual = null;
     }
@@ -3255,7 +3267,8 @@ async function cargarCuentas() {
     }
 
         if (!cuentas || cuentas.length === 0) {
-            gridActivas.innerHTML = `<div class="empty-state"><p>📭 Sin cuentas registradas</p></div>`;
+            gridActivas.innerHTML = `<div class="empty-state"><p><i data-lucide="inbox" class="lucide-icon"></i> Sin cuentas registradas</p></div>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
             gridSaldadas.innerHTML = '';
             document.getElementById('totalesCuentas').innerHTML = '';
             return;
@@ -3386,15 +3399,16 @@ async function cargarCuentas() {
         if (activas.length > 0) {
             gridActivas.innerHTML = `<div class="cuentas-grid">` + activas.map(generarCuentaHTML).join('') + `</div>`;
         } else {
-            gridActivas.innerHTML = `<div class="empty-state"><p>✅ No hay cuentas activas</p></div>`;
+            gridActivas.innerHTML = `<div class="empty-state"><p><i data-lucide="check-circle" class="lucide-icon"></i> No hay cuentas activas</p></div>`;
         }
 
         // Renderizar saldadas
         if (saldadas.length > 0) {
             gridSaldadas.innerHTML = `<div class="cuentas-grid">` + saldadas.map(generarCuentaHTML).join('') + `</div>`;
         } else {
-            gridSaldadas.innerHTML = `<div class="empty-state"><p>📭 No hay cuentas saldadas</p></div>`;
+            gridSaldadas.innerHTML = `<div class="empty-state"><p><i data-lucide="inbox" class="lucide-icon"></i> No hay cuentas saldadas</p></div>`;
         }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
         // Totales generales (se siguen calculando con todas)
         const saldoTotal = totalDeuda - totalPagos;
@@ -3683,11 +3697,13 @@ function toggleFiltrosTabla() {
     
     if (panel.style.display === 'none') {
         panel.style.display = 'block';
-        btn.innerHTML = '<span class="icono">🔍</span> Ocultar filtros';
+        btn.innerHTML = '<i data-lucide="filter" class="lucide-icon-sm"></i> Ocultar filtros';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         cargarOpcionesFiltros();
     } else {
         panel.style.display = 'none';
-        btn.innerHTML = '<span class="icono">🔍</span> Filtros';
+        btn.innerHTML = '<i data-lucide="filter" class="lucide-icon-sm"></i> Filtros';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 }
 
@@ -4252,13 +4268,16 @@ async function limpiarVentasMes() {
         const result = await response.json();
         
         if (response.ok) {
-            document.getElementById('resultadoLimpiarMes').innerHTML = `<span style="color: green;">✅ ${result.eliminadas} ventas de ${nombreMes} ${anio} eliminadas</span>`;
+            document.getElementById('resultadoLimpiarMes').innerHTML = `<span style="color: green;"><i data-lucide="check-circle" class="lucide-icon-sm"></i> ${result.eliminadas} ventas de ${nombreMes} ${anio} eliminadas</span>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
             cargarEstadisticasDatos();
         } else {
-            document.getElementById('resultadoLimpiarMes').innerHTML = `<span style="color: red;">❌ ${result.error}</span>`;
+            document.getElementById('resultadoLimpiarMes').innerHTML = `<span style="color: red;"><i data-lucide="x-circle" class="lucide-icon-sm"></i> ${result.error}</span>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     } catch (error) {
-        document.getElementById('resultadoLimpiarMes').innerHTML = `<span style="color: red;">❌ ${error.message}</span>`;
+        document.getElementById('resultadoLimpiarMes').innerHTML = `<span style="color: red;"><i data-lucide="x-circle" class="lucide-icon-sm"></i> ${error.message}</span>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 }
 

@@ -77,50 +77,50 @@
     
     <!-- Sección Logo -->
     <div class="config-section" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-        <h4 style="margin: 0 0 15px 0; color: #333;">🖼️ Logo del Comercio</h4>
-        
+        <h4 style="margin: 0 0 15px 0; color: #333;"><i data-lucide="image" class="lucide-icon-sm"></i> Logo del Comercio</h4>
+
         <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
             <!-- Preview del logo -->
             <div id="logoPreviewContainer" style="width: 100px; height: 100px; border: 2px dashed #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: white; overflow: hidden;">
                 <img id="logoPreview" src="" alt="" style="display: none; max-width: 100%; max-height: 100%; object-fit: contain;">
-                <span id="logoPlaceholder" style="color: #aaa; font-size: 2em;">📷</span>
+                <span id="logoPlaceholder" style="color: #aaa;"><i data-lucide="camera" class="lucide-icon-lg"></i></span>
             </div>
-            
+
             <!-- Controles -->
             <div style="flex: 1; min-width: 200px;">
                 <input type="file" id="inputLogo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" style="display: none;" onchange="previewLogo(this)">
-                
+
                 <button onclick="document.getElementById('inputLogo').click()" style="background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 10px;">
-                    📁 Seleccionar Imagen
+                    <i data-lucide="folder-open" class="lucide-icon-sm"></i> Seleccionar Imagen
                 </button>
-                
+
                 <button onclick="eliminarLogo()" id="btnEliminarLogo" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; display: none;">
-                    🗑️ Quitar Logo
+                    <i data-lucide="trash-2" class="lucide-icon-sm"></i> Quitar Logo
                 </button>
-                
+
                 <p style="margin-top: 10px; font-size: 0.85em; color: #666;">
                     Formatos: PNG, JPG, GIF, WEBP, SVG. Tamaño recomendado: 200x200px
                 </p>
             </div>
         </div>
-        
+
         <button onclick="guardarLogo()" id="btnGuardarLogo" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 15px; display: none;">
-            💾 Guardar Logo
+            <i data-lucide="save" class="lucide-icon-sm"></i> Guardar Logo
         </button>
     </div>
-    
+
     <!-- Sección Nombre (la que ya existía) -->
     <div class="app-name-section">
         <label>Nombre de la aplicación</label>
         <input type="text" id="inputAppName" placeholder="Ej: Mi Tienda">
         <button onclick="guardarNombreApp()" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">
-            💾 Guardar nombre
+            <i data-lucide="save" class="lucide-icon-sm"></i> Guardar nombre
         </button>
     </div>
 
     <!-- Sección Cambiar Contraseña -->
     <div class="config-section" style="background: #fff3e0; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #ffcc80;">
-        <h4 style="margin: 0 0 15px 0; color: #e65100;">🔐 Cambiar Contraseña</h4>
+        <h4 style="margin: 0 0 15px 0; color: #e65100;"><i data-lucide="key-round" class="lucide-icon-sm"></i> Cambiar Contraseña</h4>
 
         <div style="display: grid; gap: 12px; max-width: 350px;">
             <div>
@@ -155,7 +155,7 @@
                 <!-- Tab Scanner de Códigos de Barras -->
                 <div id="adminScanner" class="admin-tab-content">
                     <div style="text-align: center; margin-bottom: 25px;">
-                        <span style="font-size: 3em;">🔫</span>
+                        <span style="font-size: 3em;"><i data-lucide="scan-barcode" style="width: 48px; height: 48px;"></i></span>
                         <h3 style="margin: 10px 0 5px 0; color: #2e7d32;">Scanner de Códigos de Barras</h3>
                         <p style="color: #666; font-size: 0.9em;">Conectá una pistola lectora USB y empezá a escanear</p>
                     </div>
@@ -191,7 +191,7 @@
 
                         <!-- Info de uso -->
                         <div style="background: #e8f5e9; padding: 20px; border-radius: 10px; border: 1px solid #a5d6a7;">
-                            <strong style="font-size: 1em; color: #2e7d32;">📋 Cómo funciona:</strong>
+                            <strong style="font-size: 1em; color: #2e7d32;"><i data-lucide="list" class="lucide-icon-sm"></i> Cómo funciona:</strong>
                             <ul style="margin: 12px 0 0 0; padding-left: 20px; font-size: 0.9em; color: #333; line-height: 1.8;">
                                 <li><strong>Buscar:</strong> Escanea → busca el producto en el catálogo</li>
                                 <li><strong>Ventas:</strong> Escanea → completa el formulario de venta</li>
@@ -201,7 +201,7 @@
 
                         <!-- Producto no encontrado -->
                         <div style="background: #fce4ec; padding: 20px; border-radius: 10px; border: 1px solid #f8bbd9;">
-                            <strong style="font-size: 1em; color: #c2185b;">✨ Producto nuevo:</strong>
+                            <strong style="font-size: 1em; color: #c2185b;"><i data-lucide="sparkles" class="lucide-icon-sm"></i> Producto nuevo:</strong>
                             <p style="margin: 8px 0 0 0; font-size: 0.9em; color: #333;">
                                 Si escaneás un código que no existe, el sistema te ofrece crear el producto con el código de barras ya cargado.
                             </p>
@@ -221,7 +221,7 @@
                     </div>
 
                     <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
-                        <h4 style="margin-bottom: 15px; color: #333;">🗑️ Limpiar Ventas por Período</h4>
+                        <h4 style="margin-bottom: 15px; color: #333;"><i data-lucide="calendar-x" class="lucide-icon-sm"></i> Limpiar Ventas por Período</h4>
                         <div style="display: flex; gap: 10px; align-items: end; flex-wrap: wrap;">
                             <div>
                                 <label style="display: block; font-size: 0.85em; margin-bottom: 5px;">Mes</label>
@@ -245,31 +245,31 @@
                                 <input type="number" id="limpiarAnio" value="2025" min="2020" max="2030" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd; width: 80px;">
                             </div>
                             <button onclick="limpiarVentasMes()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                                🗑️ Eliminar ventas del mes
+                                <i data-lucide="trash-2" class="lucide-icon-sm"></i> Eliminar ventas del mes
                             </button>
                         </div>
                         <div id="resultadoLimpiarMes" style="margin-top: 10px;"></div>
                     </div>
 
                     <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9; margin-bottom: 20px;">
-    <h4 style="margin-bottom: 10px; color: #0d47a1;">💾 Migración de Datos (Producción ↔ Staging)</h4>
+    <h4 style="margin-bottom: 10px; color: #0d47a1;"><i data-lucide="database" class="lucide-icon-sm"></i> Migración de Datos</h4>
     <p style="font-size: 0.9em; color: #555; margin-bottom: 15px;">
         Descargá tu base de datos actual para llevarla a otro entorno o guardarla en tu PC.
     </p>
-    
+
     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
         <button onclick="descargarBaseDatos()" style="background: #1976d2; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-            ⬇️ Descargar mi DB
+            <i data-lucide="download" class="lucide-icon-sm"></i> Descargar mi DB
         </button>
 
         <div style="height: 30px; width: 1px; background: #ccc;"></div>
 
         <div style="display: flex; align-items: center; gap: 10px;">
             <button onclick="document.getElementById('inputDbUpload').click()" style="background: #f39c12; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                ⬆️ Subir/Restaurar DB
+                <i data-lucide="upload" class="lucide-icon-sm"></i> Subir/Restaurar DB
             </button>
             <input type="file" id="inputDbUpload" accept=".db" style="display: none;" onchange="subirBaseDatos()">
-            <span style="font-size: 0.8em; color: #e67e22; max-width: 200px;">⚠️ Esto reemplazará todos los datos actuales.</span>
+            <span style="font-size: 0.8em; color: #e67e22; max-width: 200px;"><i data-lucide="alert-triangle" class="lucide-icon-sm"></i> Reemplazará todos los datos.</span>
         </div>
     </div>
 </div>
@@ -307,7 +307,7 @@
                             <p style="color: #666; font-size: 0.9em; margin-top: 4px;">Cada acción genera un backup automático. Podés restaurar a cualquier punto anterior.</p>
                         </div>
                         <button onclick="cargarBackups()" style="background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer;">
-                            🔄 Actualizar
+                            <i data-lucide="refresh-cw" class="lucide-icon-sm"></i> Actualizar
                         </button>
                     </div>
                     <div id="backupLog" class="backup-log">
@@ -336,7 +336,7 @@
                 <h2>Buscar Producto por Código</h2>
                 <div class="form-group input-search">
                     <input type="text" id="busquedaInput" placeholder="Buscar por código o descripción..." autofocus>
-                    <span class="search-icon">🔍</span>
+                    <span class="search-icon"><i data-lucide="search" class="lucide-icon-sm"></i></span>
                 </div>
                 <div id="busquedaResultado"></div>
             </div>
@@ -353,7 +353,7 @@
 
   <!-- BOX MODO OSCURO: Registro de Venta -->
     <div class="venta-box-dark">
-        <h3 class="venta-box-title">💼 Registrar Nueva Venta</h3>
+        <h3 class="venta-box-title"><i data-lucide="shopping-bag" class="lucide-icon"></i> Registrar Nueva Venta</h3>
 
         <!-- Contenedor de formularios de artículos -->
         <div id="contenedorArticulos">
@@ -361,7 +361,7 @@
             <div class="articulo-form" data-index="0">
                 <!-- Búsqueda rápida -->
                 <div class="search-box">
-                    <input type="text" class="search-input-dark busqueda-rapida" placeholder="🔍 Buscar por código o descripción...">
+                    <input type="text" class="search-input-dark busqueda-rapida" placeholder="Buscar por código o descripción...">
                     <div class="resultado-rapido"></div>
                 </div>
 
@@ -462,7 +462,7 @@
 
         <!-- Botón registrar venta -->
         <button id="btnRegistrarVenta" class="btn-registrar-dark" onclick="registrarVenta(event)" style="margin-top: 15px;">
-            ✓ Registrar Venta (1 artículo) - $0
+            <i data-lucide="check" class="lucide-icon-sm"></i> Registrar Venta (1 artículo) - $0
         </button>
     </div>
 
@@ -488,7 +488,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2 style="margin: 0;">Actualizar Stock y Precios</h2>
             <button onclick="abrirModalProducto('')" style="background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                ✨ Agregar Artículo Nuevo
+                <i data-lucide="sparkles" class="lucide-icon-sm"></i> Agregar Artículo Nuevo
             </button>
         </div>
 
@@ -500,7 +500,7 @@
                 <label>Buscar por código de artículo</label>
                 <div class="input-search">
                     <input type="text" id="stockBusquedaCodigo" placeholder="Buscar por código o descripción...">
-                    <span class="search-icon">🔍</span>
+                    <span class="search-icon"><i data-lucide="search" class="lucide-icon-sm"></i></span>
                 </div>
                 <div id="stockBusquedaResultado" class="error-text" style="display:none;"></div>
             </div>
@@ -540,7 +540,7 @@
                     </div>
                 </div>
 
-                <button class="btn btn-success" onclick="guardarStockYPrecios()">💾 Guardar cambios</button>
+                <button class="btn btn-success" onclick="guardarStockYPrecios()"><i data-lucide="save" class="lucide-icon-sm"></i> Guardar cambios</button>
                 <div id="stockEditorMensaje" class="error-text" style="margin-top:10px; display:none;"></div>
             </div>
         </div> <!-- /stock-box-dark -->
@@ -549,7 +549,7 @@
         <div class="stock-alertas-container">
             <div class="stock-alerta-widget stock-alerta-critico">
                 <div class="stock-alerta-header">
-                    <span class="stock-alerta-icon">🚨</span>
+                    <span class="stock-alerta-icon"><i data-lucide="alert-circle" class="lucide-icon"></i></span>
                     <h4>Última unidad</h4>
                     <span class="stock-alerta-badge" id="badgeStock1">0</span>
                 </div>
@@ -559,7 +559,7 @@
             </div>
             <div class="stock-alerta-widget stock-alerta-bajo">
                 <div class="stock-alerta-header">
-                    <span class="stock-alerta-icon">⚠️</span>
+                    <span class="stock-alerta-icon"><i data-lucide="alert-triangle" class="lucide-icon"></i></span>
                     <h4>Quedan 2 unidades</h4>
                     <span class="stock-alerta-badge" id="badgeStock2">0</span>
                 </div>
@@ -620,14 +620,14 @@
 
         <!-- BOX PEQUEÑO: importar/actualizar productos por CSV -->
         <div class="stock-box-csv">
-            <h3>📦 Importar Productos CSV</h3>
+            <h3><i data-lucide="package" class="lucide-icon"></i> Importar Productos CSV</h3>
             <p class="stock-csv-text">
                 <strong>Primera vez:</strong> Cargá tu archivo con todos los productos.<br>
                 Formato: <code>codigo,descripcion,categoria,precioPublico,costo,stock</code>
             </p>
 
             <div class="upload-area" onclick="document.getElementById('csvProductos').click()">
-                <div class="icon">📁</div>
+                <div class="icon"><i data-lucide="folder-open" class="lucide-icon-lg"></i></div>
                 <p><strong>Click para importar productos</strong></p>
                 <p style="font-size: 0.9em; color: #999; margin-top: 10px;">
                     Crea productos nuevos o actualiza existentes
@@ -638,7 +638,7 @@
 
             <hr style="margin: 20px 0; border: none; border-top: 1px dashed #ddd;">
 
-            <h3>🔄 Actualizar Solo Stock</h3>
+            <h3><i data-lucide="refresh-cw" class="lucide-icon"></i> Actualizar Solo Stock</h3>
             <p class="stock-csv-text">
                 Usa esta opción para actualizar cantidades. Formato: <code>codigo,cantidad</code>
             </p>
@@ -647,18 +647,18 @@
                 <label style="font-weight: bold; margin-bottom: 5px; display: block;">¿Qué debe hacer el sistema?</label>
                 <div style="display: flex; gap: 15px;">
                     <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                        <input type="radio" name="modoStock" value="replace" checked> 
-                        📝 Corregir (Reemplazar stock)
+                        <input type="radio" name="modoStock" value="replace" checked>
+                        <i data-lucide="file-edit" class="lucide-icon-sm"></i> Corregir (Reemplazar stock)
                     </label>
                     <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                        <input type="radio" name="modoStock" value="add"> 
-                        ➕ Sumar (Agregar al actual)
+                        <input type="radio" name="modoStock" value="add">
+                        <i data-lucide="plus" class="lucide-icon-sm"></i> Sumar (Agregar al actual)
                     </label>
                 </div>
             </div>
 
             <div class="upload-area" onclick="document.getElementById('csvFile').click()">
-                <div class="icon">📊</div>
+                <div class="icon"><i data-lucide="bar-chart-3" class="lucide-icon-lg"></i></div>
                 <p><strong>Click para subir CSV</strong></p>
                 <input type="file" id="csvFile" accept=".csv" onchange="uploadCSV()" style="display:none;">
             </div>
@@ -677,7 +677,7 @@
         
         <!-- Formulario para nueva cuenta -->
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-            <h3 style="margin-bottom: 15px; font-size: 1.2em;">➕ Nueva Cuenta</h3>
+            <h3 style="margin-bottom: 15px; font-size: 1.2em;"><i data-lucide="plus-circle" class="lucide-icon"></i> Nueva Cuenta</h3>
             <div style="display: flex; gap: 10px; align-items: end; flex-wrap: wrap;">
                 <div class="form-field" style="flex: 1; min-width: 200px;">
                     <label>Nombre del Cliente *</label>
@@ -735,7 +735,7 @@
                     <option value="11">Noviembre</option>
                     <option value="12">Diciembre</option>
                 </select>
-                <button onclick="cargarPromedios()" class="btn" style="background: #208090; color: white;">🔄</button>
+                <button onclick="cargarPromedios()" class="btn" style="background: #208090; color: white;"><i data-lucide="refresh-cw" class="lucide-icon-sm"></i></button>
             </div>
         </div>
 
@@ -807,16 +807,16 @@
         <div id="seccionGraficos" class="graficos-container" style="display: none; margin-bottom: 30px;">
             <div class="graficos-selector">
                 <button class="grafico-tab active" data-chart="categorias" onclick="cambiarGrafico('categorias')">
-                    🏷️ Por categoría
+                    <i data-lucide="tag" class="lucide-icon-sm"></i> Por categoría
                 </button>
                 <button class="grafico-tab" data-chart="comparativa-periodo" onclick="cambiarGrafico('comparativa-periodo')">
-        🆚 Vs. Año Anterior
+        <i data-lucide="scale" class="lucide-icon-sm"></i> Vs. Año Anterior
     </button>
                 <button class="grafico-tab" data-chart="pagos" onclick="cambiarGrafico('pagos')">
-                    💳 Métodos de pago
+                    <i data-lucide="credit-card" class="lucide-icon-sm"></i> Métodos de pago
                 </button>
                 <button class="grafico-tab" data-chart="productos" onclick="cambiarGrafico('productos')">
-                    🏆 Top productos
+                    <i data-lucide="trophy" class="lucide-icon-sm"></i> Top productos
                 </button>
             </div>
             <div class="grafico-wrapper">
@@ -866,13 +866,13 @@
                 <h3>Detalle de operaciones <span class="hist-periodo-label" id="histPeriodoLabel">-</span></h3>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-export" onclick="exportarHistorico('csv')" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                        <span>📥</span> CSV
+                        <i data-lucide="download" class="lucide-icon-sm"></i> CSV
                     </button>
                     <button class="btn-export" onclick="exportarHistorico('excel')" style="background: #217346; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                        <span>📊</span> Excel
+                        <i data-lucide="file-spreadsheet" class="lucide-icon-sm"></i> Excel
                     </button>
                     <button id="btnFiltrosTabla" class="btn-toggle-filtros" onclick="toggleFiltrosTabla()">
-                        <span class="icono">🔍</span> Filtros
+                        <i data-lucide="filter" class="lucide-icon-sm"></i> Filtros
                     </button>
                 </div>
             </div>
@@ -939,12 +939,12 @@
 
         <div class="ventas-import-mini">
             <div class="ventas-import-info">
-                <h4>📥 Importar histórico</h4>
+                <h4><i data-lucide="upload" class="lucide-icon-sm"></i> Importar histórico</h4>
                 <p>Cargá ventas antiguas desde un archivo CSV (Formato: Fecha, Articulo, Cantidad...)</p>
             </div>
             <div>
                 <button class="btn-importar-mini" onclick="document.getElementById('csvVentas').click()">
-                    <span>📂</span> Seleccionar Archivo
+                    <i data-lucide="folder-open" class="lucide-icon-sm"></i> Seleccionar Archivo
                 </button>
                 <input type="file" id="csvVentas" accept=".csv" onchange="uploadVentasCSV()" style="display:none;">
             </div>
@@ -952,7 +952,7 @@
         <div id="alertaVentasCSV" class="alert"></div>
 
         <div class="comparativa-seccion-integrada">
-            <h3 class="titulo-seccion">📅 Comparativa Anual de Rendimiento</h3>
+            <h3 class="titulo-seccion"><i data-lucide="calendar-range" class="lucide-icon"></i> Comparativa Anual de Rendimiento</h3>
             
             <div class="comparativa-controles">
                 <div class="select-group">
@@ -965,7 +965,7 @@
                     <select id="compAnio2" class="form-control-lg"></select>
                 </div>
                 <button onclick="cargarDataComparativa()" class="btn-comparar">
-                    📊 Comparar Rendimiento
+                    <i data-lucide="bar-chart-2" class="lucide-icon-sm"></i> Comparar Rendimiento
                 </button>
             </div>
 
@@ -1052,7 +1052,7 @@
 <div id="modalCtaCte" class="admin-modal" style="z-index: 2000;">
     <div class="admin-modal-content" style="max-width: 400px;">
         <div class="admin-modal-header" style="background: #e67e22;">
-            <h2>👤 Datos del Cliente</h2>
+            <h2><i data-lucide="user" class="lucide-icon"></i> Datos del Cliente</h2>
             <button class="admin-modal-close" onclick="cerrarModalCtaCte()">×</button>
         </div>
         <div class="admin-modal-body">
@@ -1082,7 +1082,7 @@
 <div id="modalNuevoProducto" class="admin-modal" style="z-index: 2000;">
     <div class="admin-modal-content">
         <div class="admin-modal-header" style="background: #27ae60;">
-            <h2>✨ Nuevo Artículo</h2>
+            <h2><i data-lucide="sparkles" class="lucide-icon"></i> Nuevo Artículo</h2>
             <button class="admin-modal-close" onclick="cerrarModalProducto()">×</button>
         </div>
         <div class="admin-modal-body">
@@ -1090,7 +1090,7 @@
                 <label>Código de Barras</label>
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="npCodigoBarras" placeholder="Escaneá o escribí el código de barras" style="flex: 1;">
-                    <button type="button" onclick="document.getElementById('npCodigoBarras').focus(); BarcodeScanner.showIndicator(true, 'Escaneá el código...');" style="padding: 8px 12px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;" title="Escanear">🔫</button>
+                    <button type="button" onclick="document.getElementById('npCodigoBarras').focus(); BarcodeScanner.showIndicator(true, 'Escaneá el código...');" style="padding: 8px 12px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;" title="Escanear"><i data-lucide="scan-barcode" class="lucide-icon-sm"></i></button>
                 </div>
             </div>
             <div class="form-group">
@@ -1121,7 +1121,7 @@
             </div>
 
             <button class="btn-guardar-modal" onclick="guardarNuevoProducto()">
-                💾 Guardar Producto
+                <i data-lucide="save" class="lucide-icon-sm"></i> Guardar Producto
             </button>
         </div>
     </div>
@@ -1130,13 +1130,13 @@
 <div id="modalSuperAdmin" class="admin-modal">
     <div class="admin-modal-content" style="max-width: 950px;">
         <div class="admin-modal-header" style="background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);">
-            <h2 style="color: #2c3e50;">👑 Gestión de Clientes</h2>
+            <h2 style="color: #2c3e50;"><i data-lucide="crown" class="lucide-icon"></i> Gestión de Clientes</h2>
             <button class="close-admin-modal" onclick="cerrarSuperAdmin()" style="color:#2c3e50;">×</button>
         </div>
 
         <div class="admin-modal-body">
             <div style="background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px;">
-                <h4 style="margin-top:0; color:#555;">✨ Dar de Alta Nuevo Comercio</h4>
+                <h4 style="margin-top:0; color:#555;"><i data-lucide="sparkles" class="lucide-icon-sm"></i> Dar de Alta Nuevo Comercio</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end;">
                     <div class="form-group" style="margin:0;">
                         <label>Usuario (Login)</label>
@@ -1154,7 +1154,7 @@
                 </div>
             </div>
 
-            <h4 style="color:#555;">📂 Comercios Registrados</h4>
+            <h4 style="color:#555;"><i data-lucide="folder" class="lucide-icon-sm"></i> Comercios Registrados</h4>
             <div style="overflow-x: auto; max-height: 400px; border: 1px solid #eee; border-radius: 8px;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 0.85em;">
                     <thead style="background: #f8f9fa; position: sticky; top: 0;">
@@ -1178,7 +1178,7 @@
 <!-- Modal para resetear contraseña de usuario -->
 <div id="modalResetPasswordSaas" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;">
     <div style="background: white; padding: 25px; border-radius: 12px; max-width: 400px; width: 90%;">
-        <h3 style="margin: 0 0 20px 0;">🔑 Resetear Contraseña</h3>
+        <h3 style="margin: 0 0 20px 0;"><i data-lucide="key-round" class="lucide-icon"></i> Resetear Contraseña</h3>
         <p style="margin-bottom: 15px; color: #666;">Usuario: <strong id="resetPasswordUsuarioSaas"></strong></p>
         <div style="margin-bottom: 15px;">
             <label style="display: block; font-size: 0.85em; margin-bottom: 5px;">Nueva contraseña</label>

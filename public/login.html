@@ -24,6 +24,12 @@
 
     <style>
         /* Lucide icon styles */
+        .lucide-icon {
+            width: 18px;
+            height: 18px;
+            stroke-width: 2;
+            vertical-align: middle;
+        }
         .lucide-icon-sm {
             width: 16px;
             height: 16px;
@@ -338,7 +344,7 @@
         <div class="modal-content">
             <!-- Paso 1: Solicitar código -->
             <div id="paso1">
-                <h2>🔑 Recuperar Contraseña</h2>
+                <h2><i data-lucide="key-round" class="lucide-icon"></i> Recuperar Contraseña</h2>
                 <p>Ingresá tu nombre de usuario para generar un código de recuperación.</p>
 
                 <div class="form-group">
@@ -356,7 +362,7 @@
 
             <!-- Paso 2: Ingresar código y nueva contraseña -->
             <div id="paso2" class="step-hidden">
-                <h2>🔐 Ingresá el código</h2>
+                <h2><i data-lucide="lock-keyhole" class="lucide-icon"></i> Ingresá el código</h2>
 
                 <div id="codigoGenerado" class="codigo-display">
                     <p style="margin: 0 0 5px 0; font-size: 0.85em; color: #666;">Tu código de recuperación:</p>
@@ -396,7 +402,7 @@
             <!-- Paso 3: Éxito -->
             <div id="paso3" class="step-hidden">
                 <div class="success-message">
-                    ✅ Contraseña actualizada correctamente
+                    <i data-lucide="check-circle" class="lucide-icon"></i> Contraseña actualizada correctamente
                 </div>
                 <p style="text-align: center; margin-bottom: 20px;">Ya podés iniciar sesión con tu nueva contraseña.</p>
                 <div style="text-align: center;">
