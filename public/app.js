@@ -653,21 +653,14 @@ function togglePassword(inputId, btn) {
     const input = document.getElementById(inputId);
     if (!input) return;
 
-    const icon = btn.querySelector('i');
-
     if (input.type === 'password') {
         input.type = 'text';
-        if (icon) {
-            icon.setAttribute('data-lucide', 'eye-off');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
+        btn.innerHTML = '<i data-lucide="eye-off" class="lucide-icon-sm"></i>';
     } else {
         input.type = 'password';
-        if (icon) {
-            icon.setAttribute('data-lucide', 'eye');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
+        btn.innerHTML = '<i data-lucide="eye" class="lucide-icon-sm"></i>';
     }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // ==================== CAMBIAR CONTRASEÑA ====================
