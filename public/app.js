@@ -3149,6 +3149,21 @@ document.getElementById('filtroCategoria')?.addEventListener('change', renderSto
 document.getElementById('filtroStock')?.addEventListener('change', renderStockTabla);
 document.getElementById('filtroTexto')?.addEventListener('input', renderStockTabla);
 
+// Toggle panel de filtros de stock
+function toggleFiltrosStock() {
+    const panel = document.getElementById('panelFiltrosStock');
+    const btn = document.querySelector('.btn-filtros-stock');
+
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        btn.classList.add('activo');
+    } else {
+        panel.style.display = 'none';
+        btn.classList.remove('activo');
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
 
     // ==================== 4. CUENTAS CORRIENTES ====================
 async function crearCuenta() {

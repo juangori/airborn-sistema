@@ -571,32 +571,49 @@
 
         <hr style="margin: 30px 0;">
 
-        <!-- BOX CLARO: resumen + listado -->
+        <!-- BOX 1: Resumen de stock por categoría -->
         <div class="stock-box-light">
-            <!-- Resumen de stock -->
             <div class="stock-resumen-top">
-    <h3>Detalle de stock total</h3>
-    <div id="stockResumenTotal" class="stock-resumen-total"></div>
-</div>
-<div id="stockResumen" class="stock-resumen"></div>
+                <h3>Detalle de stock total</h3>
+                <div id="stockResumenTotal" class="stock-resumen-total"></div>
+            </div>
+            <div id="stockResumen" class="stock-resumen"></div>
+        </div>
 
-            <!-- Filtros y tabla de productos -->
-            <div class="stock-list-section">
+        <!-- BOX 2: Listado completo de artículos -->
+        <div class="stock-box-light" style="margin-top: 20px;">
             <div class="stock-list-header">
                 <h3>Listado completo de artículos</h3>
-                <div class="stock-filtros">
-                    <select id="filtroCategoria">
-                        <option value="">Todas las categorías</option>
-                    </select>
-                    <select id="filtroStock">
-                        <option value="">Todo el stock</option>
-                        <option value="0">Sin stock (0)</option>
-                        <option value="1">1 unidad</option>
-                        <option value="2">2 unidades</option>
-                        <option value="1-5">1 a 5 unidades</option>
-                        <option value="6+">6 o más</option>
-                    </select>
-                    <input type="text" id="filtroTexto" placeholder="Filtrar por descripción o código...">
+                <button type="button" class="btn-filtros-stock" onclick="toggleFiltrosStock()">
+                    <i data-lucide="filter" class="lucide-icon-sm"></i>
+                    <span>Filtros</span>
+                </button>
+            </div>
+
+            <!-- Panel de filtros (oculto por defecto) -->
+            <div id="panelFiltrosStock" class="panel-filtros-stock" style="display: none;">
+                <div class="filtros-stock-grid">
+                    <div class="filtro-grupo">
+                        <label>Categoría</label>
+                        <select id="filtroCategoria">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+                    <div class="filtro-grupo">
+                        <label>Stock</label>
+                        <select id="filtroStock">
+                            <option value="">Todo el stock</option>
+                            <option value="0">Sin stock (0)</option>
+                            <option value="1">1 unidad</option>
+                            <option value="2">2 unidades</option>
+                            <option value="1-5">1 a 5 unidades</option>
+                            <option value="6+">6 o más</option>
+                        </select>
+                    </div>
+                    <div class="filtro-grupo filtro-texto">
+                        <label>Buscar</label>
+                        <input type="text" id="filtroTexto" placeholder="Código o descripción...">
+                    </div>
                 </div>
             </div>
 
@@ -617,8 +634,7 @@
                     </tbody>
                 </table>
             </div>
-            </div> <!-- /stock-list-section -->
-        </div> <!-- /stock-box-light -->
+        </div>
 
         <!-- BOX PEQUEÑO: importar/actualizar productos por CSV -->
         <div class="stock-box-csv">

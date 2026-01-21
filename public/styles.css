@@ -1570,95 +1570,135 @@ input:focus, textarea:focus, select:focus {
 
 /* ==================== SECCIÓN LISTADO DE ARTÍCULOS ==================== */
 
-/* Separador visual entre secciones */
-.stock-list-section {
-    margin-top: 30px;
-    padding-top: 25px;
-    border-top: 2px solid #e5e7eb;
-}
-
 /* Header del listado */
 .stock-list-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     gap: 15px;
-    flex-wrap: wrap;
 }
 
 .stock-list-header h3 {
     margin: 0;
-    font-size: 1.1em;
+    font-size: 1.05em;
     color: #374151;
 }
 
-/* Contenedor de filtros */
-.stock-filtros {
-    display: flex;
-    gap: 10px;
+/* Botón de filtros */
+.btn-filtros-stock {
+    display: inline-flex;
     align-items: center;
-    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 14px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.85em;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
 }
 
-/* Estilos unificados para todos los filtros */
-.stock-filtros select,
-.stock-filtros input[type="text"],
-#filtroCategoria,
-#filtroStock,
-#filtroTexto {
-    padding: 10px 14px;
+.btn-filtros-stock:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.btn-filtros-stock.activo {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+}
+
+/* Panel de filtros desplegable */
+.panel-filtros-stock {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 14px;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filtros-stock-grid {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filtro-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filtro-grupo label {
+    font-size: 0.75em;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.filtro-grupo select,
+.filtro-grupo input[type="text"] {
+    padding: 8px 12px;
+    border-radius: 6px;
     border: 1px solid #d1d5db;
     font-size: 0.9em;
     background: white;
     color: #374151;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     outline: none;
     font-family: inherit;
+    min-width: 150px;
 }
 
-/* Selectores con flecha personalizada */
-.stock-filtros select,
-#filtroCategoria,
-#filtroStock {
+.filtro-grupo select {
     appearance: none;
     -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 10px center;
-    padding-right: 36px;
+    background-position: right 8px center;
+    padding-right: 30px;
     cursor: pointer;
-    min-width: 160px;
 }
 
-/* Campo de texto */
-#filtroTexto {
-    min-width: 240px;
+.filtro-grupo.filtro-texto {
+    flex: 1;
+    min-width: 180px;
 }
 
-/* Estados hover y focus unificados */
-.stock-filtros select:hover,
-.stock-filtros input[type="text"]:hover,
-#filtroCategoria:hover,
-#filtroStock:hover,
-#filtroTexto:hover {
+.filtro-grupo.filtro-texto input {
+    width: 100%;
+}
+
+.filtro-grupo select:hover,
+.filtro-grupo input[type="text"]:hover {
     border-color: #9ca3af;
 }
 
-.stock-filtros select:focus,
-.stock-filtros input[type="text"]:focus,
-#filtroCategoria:focus,
-#filtroStock:focus,
-#filtroTexto:focus {
+.filtro-grupo select:focus,
+.filtro-grupo input[type="text"]:focus {
     border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
-/* Placeholder más sutil */
-.stock-filtros input::placeholder,
-#filtroTexto::placeholder {
+.filtro-grupo input::placeholder {
     color: #9ca3af;
 }
 
