@@ -3144,6 +3144,8 @@ function renderStockTabla() {
             </td>
         </tr>
     `).join('');
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 // Filtros en tiempo real
