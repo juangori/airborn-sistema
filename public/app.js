@@ -70,7 +70,7 @@ const BarcodeScanner = {
         const indicator = document.createElement('div');
         indicator.id = 'scannerIndicator';
         indicator.innerHTML = `
-            <span class="scanner-icon">${success ? '✅' : '❌'}</span>
+            <span class="scanner-icon">${success ? '<i data-lucide="check-circle" class="lucide-icon-sm"></i>' : '<i data-lucide="x-circle" class="lucide-icon-sm"></i>'}</span>
             <span class="scanner-message">${message}</span>
         `;
         indicator.className = `scanner-indicator ${success ? 'success' : 'error'}`;
@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function guardarNombreApp() {
         const nombre = document.getElementById('inputAppName').value.trim();
         if (!nombre) {
-            showToast('⚠️ Ingresá un nombre', 'error');
+            showToast('Ingresá un nombre', 'error');
             return;
         }
 
@@ -479,12 +479,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (resp.ok) {
                 actualizarNombreApp(nombre);
-                showToast('✅ Nombre actualizado', 'success');
+                showToast('Nombre actualizado', 'success');
             } else {
                 throw new Error('Error al guardar');
             }
         } catch (error) {
-            showToast('❌ Error al guardar nombre', 'error');
+            showToast('Error al guardar nombre', 'error');
         }
     }
 
@@ -530,13 +530,13 @@ async function guardarLogo() {
     const file = input.files[0];
     
     if (!file) {
-        showToast('⚠️ Seleccioná una imagen primero', 'error');
+        showToast('Seleccioná una imagen primero', 'error');
         return;
     }
 
     // Validar tamaño (max 500KB para no sobrecargar la BD)
     if (file.size > 500 * 1024) {
-        showToast('⚠️ La imagen es muy grande. Máximo 500KB.', 'error');
+        showToast('La imagen es muy grande. Máximo 500KB.', 'error');
         return;
     }
 
@@ -552,17 +552,17 @@ async function guardarLogo() {
         const data = await resp.json();
 
         if (resp.ok) {
-            showToast('✅ Logo guardado correctamente', 'success');
+            showToast('Logo guardado correctamente', 'success');
             actualizarLogoHeader(data.logo);
             document.getElementById('btnEliminarLogo').style.display = 'inline-block';
             document.getElementById('btnGuardarLogo').style.display = 'none';
             input.value = ''; // Limpiar input
         } else {
-            showToast('❌ ' + (data.error || 'Error al guardar'), 'error');
+            showToast('' + (data.error || 'Error al guardar'), 'error');
         }
     } catch (e) {
         console.error(e);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -574,7 +574,7 @@ async function eliminarLogo() {
         const resp = await fetch('/api/config/logo', { method: 'DELETE' });
 
         if (resp.ok) {
-            showToast('🗑️ Logo eliminado', 'success');
+            showToast('Logo eliminado', 'success');
             
             // Resetear preview
             document.getElementById('logoPreview').style.display = 'none';
@@ -585,7 +585,7 @@ async function eliminarLogo() {
             actualizarLogoHeader(null);
         }
     } catch (e) {
-        showToast('❌ Error al eliminar', 'error');
+        showToast('Error al eliminar', 'error');
     }
 }
 
@@ -703,7 +703,7 @@ async function cambiarPassword() {
             document.getElementById('passwordActual').value = '';
             document.getElementById('passwordNuevo').value = '';
             document.getElementById('passwordConfirmar').value = '';
-            showToast('✅ Contraseña cambiada', 'success');
+            showToast('Contraseña cambiada', 'success');
         } else {
             resultado.innerHTML = `<span style="color: #e74c3c;">${data.error || 'Error al cambiar contraseña'}</span>`;
         }
@@ -757,7 +757,7 @@ async function cambiarPassword() {
     }
 
     async function restaurarBackup(archivo, accion) {
-        if (!confirm(`¿Restaurar al punto anterior?\n\n"${accion}"\n\n⚠️ Esto revertirá todos los cambios realizados después de este punto.\n\n📌 Después deberás reiniciar el servidor.`)) {
+        if (!confirm(`¿Restaurar al punto anterior?\n\n"${accion}"\n\nEsto revertirá todos los cambios realizados después de este punto.\n\nDespués deberás reiniciar el servidor.`)) {
             return;
         }
 
@@ -777,15 +777,15 @@ async function cambiarPassword() {
             if (data.requiereReinicio) {
                 // Mostrar modal de instrucciones
                 cerrarAdmin();
-                alert('✅ Backup preparado para restaurar.\n\n📌 Para completar la restauración:\n\n1. Cerrá esta ventana\n2. Andá a la consola del servidor\n3. Presioná Ctrl+C para detenerlo\n4. Ejecutá: node server.js\n5. Recargá esta página');
+                alert('Backup preparado para restaurar.\n\nPara completar la restauración:\n\n1. Cerrá esta ventana\n2. Andá a la consola del servidor\n3. Presioná Ctrl+C para detenerlo\n4. Ejecutá: node server.js\n5. Recargá esta página');
             } else {
-                showToast('✅ Base de datos restaurada. Recargando...', 'success');
+                showToast('Base de datos restaurada. Recargando...', 'success');
                 setTimeout(() => location.reload(), 1500);
             }
 
         } catch (error) {
             console.error('Error restaurando backup:', error);
-            showToast(`❌ ${error.message}`, 'error');
+            showToast(`${error.message}`, 'error');
         }
     }
 
@@ -1058,13 +1058,13 @@ document.querySelectorAll('.cambio-factura').forEach(btn => {
 
 async function registrarCambio() {
     if (!cambioDevuelto || !cambioNuevo) {
-        showToast('⚠️ Selecciona ambos artículos', 'error');
+        showToast('Selecciona ambos artículos', 'error');
         return;
     }
     
     const fecha = document.getElementById('cambioFecha').value;
     if (!fecha) {
-        showToast('⚠️ Selecciona la fecha', 'error');
+        showToast('Selecciona la fecha', 'error');
         return;
     }
     
@@ -1155,7 +1155,7 @@ async function registrarCambio() {
         }
         
         // Éxito
-        showToast('✅ Cambio registrado correctamente', 'success');
+        showToast('Cambio registrado correctamente', 'success');
         
         // Limpiar formulario
         document.getElementById('cambioArticuloDevuelto').value = '';
@@ -1173,7 +1173,7 @@ async function registrarCambio() {
         
     } catch (error) {
         console.error('Error en registrarCambio:', error);
-        showToast(`❌ ${error.message}`, 'error');
+        showToast(`${error.message}`, 'error');
     } finally {
         btnRegistrar.disabled = false;
         btnRegistrar.innerHTML = textoOriginal;
@@ -1266,7 +1266,7 @@ async function eliminarCambio(id, articuloDevuelto, articuloNuevo) {
         const cambio = cambios.find(c => c.id === id);
         
         if (!cambio) {
-            showToast('❌ No se encontró el cambio', 'error');
+            showToast('No se encontró el cambio', 'error');
             return;
         }
         
@@ -1311,12 +1311,12 @@ async function eliminarCambio(id, articuloDevuelto, articuloNuevo) {
             throw new Error('Error al eliminar el registro');
         }
         
-        showToast('✅ Cambio eliminado y stock revertido', 'success');
+        showToast('Cambio eliminado y stock revertido', 'success');
         cargarCambios();
         
     } catch (error) {
         console.error('Error eliminando cambio:', error);
-        showToast(`❌ ${error.message}`, 'error');
+        showToast(`${error.message}`, 'error');
     }
 }
 
@@ -1353,11 +1353,11 @@ async function crearCCdesdeCambio(cambioId, monto, fecha, artDevuelto, artNuevo)
             throw new Error('Error al registrar el saldo a favor');
         }
         
-        showToast(`✅ Cuenta corriente creada para ${nombreCliente} con saldo a favor de ${formatMoney(monto)}`, 'success');
+        showToast(`Cuenta corriente creada para ${nombreCliente} con saldo a favor de ${formatMoney(monto)}`, 'success');
         
     } catch (error) {
         console.error('Error creando CC:', error);
-        showToast(`❌ ${error.message}`, 'error');
+        showToast(`${error.message}`, 'error');
     }
 }
 
@@ -1477,8 +1477,8 @@ function mostrarProductoDetalle(producto, contenedor) {
         <div class="producto-resultado">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 style="margin: 0;">${producto.descripcion}</h3>
-                <button onclick="document.getElementById('busquedaResultado').innerHTML=''; document.getElementById('busquedaInput').value=''; document.getElementById('busquedaInput').focus();" 
-                        style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: #999;">×</button>
+                <button onclick="document.getElementById('busquedaResultado').innerHTML=''; document.getElementById('busquedaInput').value=''; document.getElementById('busquedaInput').focus();"
+                        style="background: none; border: none; cursor: pointer; color: #999;"><i data-lucide="x" class="lucide-icon"></i></button>
             </div>
             <div class="producto-grid">
                 <div class="producto-item">
@@ -1966,7 +1966,7 @@ async function registrarVenta(event) {
         const articulos = obtenerDatosFormularios();
 
         if (articulos.length === 0) {
-            showToast('⚠️ Completá al menos un artículo con precio', 'error');
+            showToast('Completá al menos un artículo con precio', 'error');
             return;
         }
 
@@ -1982,7 +1982,7 @@ async function registrarVenta(event) {
             const venta = articulos[0];
 
             if (isNaN(venta.precio) && !venta.comentarios.includes('DEVOLUCIÓN')) {
-                showToast('⚠️ Falta el precio', 'error');
+                showToast('Falta el precio', 'error');
                 return;
             }
 
@@ -1994,12 +1994,12 @@ async function registrarVenta(event) {
 
             if (response.ok) {
                 const esDevolucion = venta.cantidad < 0;
-                showToast(esDevolucion ? '✅ Devolución registrada (Stock +1)' : '✅ Venta registrada', 'success');
+                showToast(esDevolucion ? 'Devolución registrada (Stock +1)' : 'Venta registrada', 'success');
                 limpiarTodosLosFormularios();
                 cargarVentasDelMes();
             } else {
                 const data = await response.json();
-                showToast(`❌ Error: ${data.error}`, 'error');
+                showToast(`Error: ${data.error}`, 'error');
             }
         } else {
             // Múltiples artículos - usar endpoint múltiple
@@ -2018,17 +2018,17 @@ async function registrarVenta(event) {
 
             if (response.ok) {
                 const data = await response.json();
-                showToast(`✅ ${data.mensaje}`, 'success');
+                showToast(`${data.mensaje}`, 'success');
                 limpiarTodosLosFormularios();
                 cargarVentasDelMes();
             } else {
                 const data = await response.json();
-                showToast(`❌ Error: ${data.error}`, 'error');
+                showToast(`Error: ${data.error}`, 'error');
             }
         }
     } catch (error) {
         console.error(error);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     } finally {
         if (btnRegistrar) {
             btnRegistrar.disabled = false;
@@ -2056,7 +2056,7 @@ async function editarComentarioVenta(id, textoActual) {
         });
 
         if (response.ok) {
-            showToast('✅ Comentario actualizado', 'success');
+            showToast('Comentario actualizado', 'success');
             
             // Actualizar memoria local para reflejo inmediato
             if (typeof ventasDelMes !== 'undefined') {
@@ -2072,11 +2072,11 @@ async function editarComentarioVenta(id, textoActual) {
             }
         } else {
             const data = await response.json();
-            showToast(`❌ Error: ${data.error}`, 'error');
+            showToast(`Error: ${data.error}`, 'error');
         }
     } catch (error) {
         console.error(error);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -2094,17 +2094,17 @@ async function borrarVenta(id) {
         const data = await response.json();
 
         if (response.ok) {
-            showToast(data.mensaje || '✅ Venta eliminada correctamente', 'success');
+            showToast(data.mensaje || 'Venta eliminada correctamente', 'success');
             if (data.warning) {
                 console.warn(data.warning);
             }
             cargarVentasDelMes();
         } else {
-            showToast(`❌ ${data.error || 'Error al eliminar la venta'}`, 'error');
+            showToast(`${data.error || 'Error al eliminar la venta'}`, 'error');
         }
     } catch (error) {
         console.error('Error en borrarVenta:', error);
-        showToast(`❌ Error de conexión: ${error.message}`, 'error');
+        showToast(`Error de conexión: ${error.message}`, 'error');
     }
 }
 
@@ -2167,12 +2167,13 @@ function generarDiasDelMes() {
                     onclick="seleccionarDia('${fechaStr}')">
                 <span class="dia-numero">${dia}</span>
                 <span class="dia-nombre">${nombreDia}</span>
-                ${cantidadVentas > 0 ? `<span class="dia-ventas">📊 ${cantidadVentas}</span>` : ''}
+                ${cantidadVentas > 0 ? `<span class="dia-ventas"><i data-lucide="bar-chart-3" class="lucide-icon-xs"></i> ${cantidadVentas}</span>` : ''}
             </button>
         `);
     }
     
     document.getElementById('diasDelMes').innerHTML = diasHTML.join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function seleccionarDia(fecha) {
@@ -2264,7 +2265,7 @@ async function cargarVentasDelDia(fecha) {
                     <div style="text-align:right">Total</div>
                     <div>Pago</div>
                     <div style="text-align:center">FC</div>
-                    <div style="text-align:center">🗑️</div>
+                    <div style="text-align:center"><i data-lucide="trash-2" class="lucide-icon-sm"></i></div>
                 </div>
             `;
             // Agrupar ventas por grupoVenta
@@ -2330,9 +2331,9 @@ async function cargarVentasDelDia(fecha) {
                                 onclick="editarComentarioVenta(${v.id}, '${(v.comentarios || '').replace(/'/g, "\\'")}')"
                                 title="${v.comentarios ? 'Editar comentario' : 'Agregar comentario'}"
                                 style="background: ${v.comentarios ? '#3498db' : '#ecf0f1'}; color: ${v.comentarios ? 'white' : '#95a5a6'};">
-                            💬
+                            <i data-lucide="message-circle" class="lucide-icon-xs"></i>
                         </button>
-                        <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})">✕</button>
+                        <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})"><i data-lucide="x" class="lucide-icon-xs"></i></button>
                     </div>
                 </div>`;
 
@@ -2340,7 +2341,7 @@ async function cargarVentasDelDia(fecha) {
                 if (v.comentarios && v.comentarios.trim() !== '') {
                     filaComentario = `
                         <div class="venta-comentario-row ${esParteDeGrupo ? 'grupo-venta' : ''}">
-                            ↳ 💬 <strong>Nota:</strong> ${v.comentarios}
+                            ↳ <i data-lucide="message-circle" class="lucide-icon-xs"></i> <strong>Nota:</strong> ${v.comentarios}
                         </div>
                     `;
                 }
@@ -2395,14 +2396,14 @@ html += `</div>`;
         html += `
             <div class="caja-movimientos-container">
                 <div class="caja-movimientos-header">
-                    <h4>📥 Registro de Movimientos (Caja Chica / Gastos)</h4>
+                    <h4><i data-lucide="inbox" class="lucide-icon-sm"></i> Registro de Movimientos (Caja Chica / Gastos)</h4>
                 </div>
                 
                 <div class="caja-form">
                     <input type="text" id="movDetalle" placeholder="Detalle (ej: Pago Proveedor)" style="flex:2; padding:10px; border:1px solid #ddd; border-radius:6px;">
                     <input type="number" id="movMonto" placeholder="$ Monto" style="flex:1; padding:10px; border:1px solid #ddd; border-radius:6px;">
-                    <button class="btn-movimiento btn-ingreso" onclick="registrarMovimientoCaja('${fecha}', 'ingreso')">➕ Ingreso</button>
-                    <button class="btn-movimiento btn-egreso" onclick="registrarMovimientoCaja('${fecha}', 'egreso')">➖ Egreso</button>
+                    <button class="btn-movimiento btn-ingreso" onclick="registrarMovimientoCaja('${fecha}', 'ingreso')"><i data-lucide="plus" class="lucide-icon-xs"></i> Ingreso</button>
+                    <button class="btn-movimiento btn-egreso" onclick="registrarMovimientoCaja('${fecha}', 'egreso')"><i data-lucide="minus" class="lucide-icon-xs"></i> Egreso</button>
                 </div>
 
                 <div class="movimientos-lista">
@@ -2417,15 +2418,15 @@ html += `</div>`;
                                 <strong style="color:${m.tipo === 'ingreso' ? '#155724' : '#721c24'}">
                                     ${formatMoney(m.monto)}
                                 </strong>
-                                <button onclick="editarMovimientoCaja(${m.id}, '${m.detalle.replace(/'/g, "\\'")}')" 
+                                <button onclick="editarMovimientoCaja(${m.id}, '${m.detalle.replace(/'/g, "\\'")}')"
                     title="Editar detalle"
-                    style="border:none; background:none; cursor:pointer; font-size: 1.1em;">
-                ✎
+                    style="border:none; background:none; cursor:pointer;">
+                <i data-lucide="pencil" class="lucide-icon-xs" style="color:#666;"></i>
             </button>
-                                <button onclick="copiarMovimientoCC('${m.detalle.replace(/'/g, "\\'")}', ${m.monto}, '${m.tipo}', '${fecha}')" 
+                                <button onclick="copiarMovimientoCC('${m.detalle.replace(/'/g, "\\'")}', ${m.monto}, '${m.tipo}', '${fecha}')"
                             title="Crear en Cuenta Corriente"
-                            style="border:none; background:none; cursor:pointer; font-size: 1.1em;">
-                        👤
+                            style="border:none; background:none; cursor:pointer;">
+                        <i data-lucide="user" class="lucide-icon-sm" style="color:#666;"></i>
                     </button>
                                 <button onclick="eliminarMovimientoCaja(${m.id}, '${fecha}')" style="border:none; background:none; cursor:pointer; color:#999;">&times;</button>
                             </div>
@@ -2441,7 +2442,7 @@ html += `</div>`;
         // 3. TOTALES FINALES (Box Oscuro)
         html += `
             <div class="total-final-card" style="background: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
-                <h3 style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:10px; margin-bottom:15px;">🏁 Cierre de Caja (Ventas)</h3>
+                <h3 style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:10px; margin-bottom:15px;"><i data-lucide="calculator" class="lucide-icon-sm"></i> Cierre de Caja (Ventas)</h3>
                 
                 <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:20px; align-items: center;">
                     <div>
@@ -2462,11 +2463,11 @@ html += `</div>`;
 
                 <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.3); display: flex; justify-content: space-between; align-items: center; font-size: 0.9em;">
                     <div style="opacity: 0.9;">
-                        <strong>ℹ️ Movimientos Extra (No suman al total):</strong>
+                        <strong><i data-lucide="info" class="lucide-icon-xs"></i> Movimientos Extra (No suman al total):</strong>
                     </div>
                     <div style="display: flex; gap: 20px;">
-                        <span style="color: #a8e6cf;">⬆ Entradas: ${formatMoney(totalIngresos)}</span>
-                        <span style="color: #ff8b8b;">⬇ Salidas: ${formatMoney(totalEgresos)}</span>
+                        <span style="color: #a8e6cf;"><i data-lucide="arrow-up" class="lucide-icon-xs"></i> Entradas: ${formatMoney(totalIngresos)}</span>
+                        <span style="color: #ff8b8b;"><i data-lucide="arrow-down" class="lucide-icon-xs"></i> Salidas: ${formatMoney(totalEgresos)}</span>
                         <span style="font-weight: bold; color: ${netoMovimientos >= 0 ? '#a8e6cf' : '#ff8b8b'};">
                             Balance: ${netoMovimientos > 0 ? '+' : ''}${formatMoney(netoMovimientos)}
                         </span>
@@ -2480,6 +2481,7 @@ html += `</div>`;
         `;
 
         lista.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
     } catch (e) {
         console.error(e);
@@ -2497,11 +2499,11 @@ async function registrarMovimientoCaja(fecha, tipo) {
     const monto = parseFloat(montoInput.value);
 
     if (!detalle) {
-        showToast('⚠️ Ingresá un detalle', 'error');
+        showToast('Ingresá un detalle', 'error');
         return;
     }
     if (!monto || monto <= 0) {
-        showToast('⚠️ Ingresá un monto válido', 'error');
+        showToast('Ingresá un monto válido', 'error');
         return;
     }
 
@@ -2513,14 +2515,14 @@ async function registrarMovimientoCaja(fecha, tipo) {
         });
 
         if (resp.ok) {
-            showToast(`✅ ${tipo === 'ingreso' ? 'Entrada' : 'Salida'} registrada`, 'success');
+            showToast(`${tipo === 'ingreso' ? 'Entrada' : 'Salida'} registrada`, 'success');
             cargarVentasDelDia(fecha); // Recargamos para ver cambios
         } else {
             throw new Error('Error al guardar');
         }
     } catch (e) {
         console.error(e);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -2530,14 +2532,14 @@ async function eliminarMovimientoCaja(id, fecha) {
     try {
         const resp = await fetch(`/api/caja/movimiento/${id}`, { method: 'DELETE' });
         if(resp.ok) {
-            showToast('🗑️ Movimiento eliminado', 'success');
+            showToast('Movimiento eliminado', 'success');
             cargarVentasDelDia(fecha);
         } else {
-            showToast('❌ Error al eliminar', 'error');
+            showToast('Error al eliminar', 'error');
         }
     } catch(e) {
         console.error(e);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -2647,7 +2649,7 @@ function formatMonedaInput(monto) {
             
             return `
                 <div class="venta-item">
-                    <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})" title="Eliminar venta">✕</button>
+                    <button class="btn-eliminar-venta" onclick="borrarVenta(${v.id})" title="Eliminar venta"><i data-lucide="x" class="lucide-icon-xs"></i></button>
                     <div class="venta-detail"><strong>Fecha</strong> ${v.fecha}</div>
                     <div class="venta-detail"><strong>Artículo</strong> ${v.articulo}</div>
                     <div class="venta-detail"><strong>Cantidad</strong> ${v.cantidad}</div>
@@ -2658,7 +2660,7 @@ function formatMonedaInput(monto) {
                     <div class="venta-detail"><strong>Pago</strong> ${v.tipoPago}</div>
                     ${v.comentarios ? `
                         <div class="venta-comentario">
-                            <strong>💬 Comentario:</strong> ${v.comentarios}
+                            <strong><i data-lucide="message-circle" class="lucide-icon-xs"></i> Comentario:</strong> ${v.comentarios}
                         </div>
                     ` : ''}
                 </div>
@@ -2704,7 +2706,7 @@ function formatMonedaInput(monto) {
 
             const result = await response.json();
 
-            let mensaje = `✅ ${result.procesados} productos actualizados (${modo === 'add' ? 'Sumados' : 'Reemplazados'})`;
+            let mensaje = `${result.procesados} productos actualizados (${modo === 'add' ? 'Sumados' : 'Reemplazados'})`;
             if (result.errores && result.errores.length > 0) {
                 mensaje += ` (${result.errores.length} errores)`;
             }
@@ -2722,7 +2724,7 @@ function formatMonedaInput(monto) {
             cargarStockCompleto();
 
         } catch (error) {
-            showAlert('alertaStock', `❌ ${error.message}`, 'danger');
+            showAlert('alertaStock', `${error.message}`, 'danger');
         } finally {
             // Restaurar el input y el área de carga
             fileInput.value = '';
@@ -2747,15 +2749,15 @@ function formatMonedaInput(monto) {
             const result = await response.json();
 
             if (result.ok) {
-                showAlert('alertaProductos', `✅ ${result.importados} productos importados` + (result.omitidos > 0 ? ` (${result.omitidos} omitidos)` : ''), 'success');
+                showAlert('alertaProductos', `${result.importados} productos importados` + (result.omitidos > 0 ? ` (${result.omitidos} omitidos)` : ''), 'success');
                 cargarStockCompleto(); // Recargar la tabla
             } else {
-                showAlert('alertaProductos', `❌ ${result.error}`, 'danger');
+                showAlert('alertaProductos', `${result.error}`, 'danger');
             }
 
             document.getElementById('csvProductos').value = '';
         } catch (error) {
-            showAlert('alertaProductos', `❌ ${error.message}`, 'danger');
+            showAlert('alertaProductos', `${error.message}`, 'danger');
         }
     }
 
@@ -2782,9 +2784,9 @@ document.getElementById('stockBusquedaCodigo')?.addEventListener('keyup', async 
             // En lugar de solo texto, ponemos el BOTÓN
             resultado.innerHTML = `
                 <div style="padding: 10px; text-align: center;">
-                    <p style="color: #e74c3c; margin-bottom: 10px;">❌ No se encontró el producto "${busqueda}"</p>
+                    <p style="color: #e74c3c; margin-bottom: 10px;"><i data-lucide="x-circle" class="lucide-icon-xs"></i> No se encontró el producto "${busqueda}"</p>
                     <button onclick="abrirModalProducto('${busqueda}')" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;">
-                        ✨ Crear Artículo: ${busqueda.toUpperCase()}
+                        <i data-lucide="sparkles" class="lucide-icon-xs"></i> Crear Artículo: ${busqueda.toUpperCase()}
                     </button>
                 </div>
             `;
@@ -2892,7 +2894,7 @@ async function guardarStockYPrecios(event) {
 
         if (stockFinal < 0) {
             mensaje.style.display = 'block';
-            mensaje.textContent = '⚠️ El stock final no puede ser negativo';
+            mensaje.textContent = 'El stock final no puede ser negativo';
             return;
         }
 
@@ -3111,7 +3113,7 @@ function renderStockTabla() {
                     <td colspan="7" style="text-align: center; padding: 30px;">
                         <p style="color: #666; margin-bottom: 15px;">No se encontró "<strong>${texto}</strong>"</p>
                         <button onclick="abrirModalProducto('${texto}')" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;">
-                            ✨ Agregar Nuevo: ${texto.toUpperCase()}
+                            <i data-lucide="sparkles" class="lucide-icon-xs"></i> Agregar Nuevo: ${texto.toUpperCase()}
                         </button>
                     </td>
                 </tr>`;
@@ -3134,10 +3136,10 @@ function renderStockTabla() {
             </td>
 
             <td style="text-align: center; width: 50px;">
-                <button onclick="eliminarProducto('${p.codigo}', '${p.descripcion}')" 
-                        style="background: transparent; border: none; color: #e74c3c; cursor: pointer; font-size: 1.1em; padding: 5px;" 
+                <button onclick="eliminarProducto('${p.codigo}', '${p.descripcion}')"
+                        style="background: transparent; border: none; color: #e74c3c; cursor: pointer; padding: 5px;"
                         title="Eliminar producto">
-                    🗑️
+                    <i data-lucide="trash-2" class="lucide-icon-sm"></i>
                 </button>
             </td>
         </tr>
@@ -3171,7 +3173,7 @@ async function crearCuenta() {
     const telefono = document.getElementById('cuentasTelefono').value.trim(); // NUEVO
 
     if (!cliente) {
-        showToast('⚠️ Ingresa el nombre del cliente', 'error');
+        showToast('Ingresa el nombre del cliente', 'error');
         return;
     }
 
@@ -3186,13 +3188,13 @@ async function crearCuenta() {
 
         if (!response.ok) throw new Error(data.error || 'Error al crear cuenta');
 
-        showToast('✅ Cuenta creada correctamente', 'success');
+        showToast('Cuenta creada correctamente', 'success');
         document.getElementById('cuentasCliente').value = '';
         document.getElementById('cuentasTelefono').value = ''; // Limpiar
         cargarCuentas();
     } catch (error) {
         console.error('Error en crearCuenta:', error);
-        showToast(`❌ ${error.message}`, 'error');
+        showToast(`${error.message}`, 'error');
     }
 }
 
@@ -3226,12 +3228,12 @@ async function agregarMovimiento(cliente, tipo) {
     const comentario = document.getElementById(inputComentarioId).value.trim();
 
     if (!monto || monto <= 0) {
-        showToast('⚠️ Ingresa un monto válido', 'error');
+        showToast('Ingresa un monto válido', 'error');
         return;
     }
 
     if (!fecha) {
-        showToast('⚠️ Selecciona una fecha', 'error');
+        showToast('Selecciona una fecha', 'error');
         return;
     }
 
@@ -3248,13 +3250,13 @@ async function agregarMovimiento(cliente, tipo) {
             throw new Error(data.error || 'Error al agregar movimiento');
         }
 
-        showToast(`✅ ${tipo === 'deuda' ? 'Deuda' : 'Pago'} registrado correctamente`, 'success');
+        showToast(`${tipo === 'deuda' ? 'Deuda' : 'Pago'} registrado correctamente`, 'success');
         document.getElementById(inputMontoId).value = '';
         document.getElementById(inputComentarioId).value = '';
         cargarCuentas();
     } catch (error) {
         console.error('Error en agregarMovimiento:', error);
-        showToast(`❌ ${error.message}`, 'error');
+        showToast(`${error.message}`, 'error');
     }
 }
 
@@ -3325,25 +3327,25 @@ async function cargarCuentas() {
             const historialHTML = movimientos.length > 0 ? `
                 <div class="cuenta-historial">
                     <button class="historial-toggle" onclick="toggleHistorial('${clienteId}')">
-                        <span>📋 Historial de Movimientos (${movimientos.length})</span>
-                        <span class="arrow">▼</span>
+                        <span><i data-lucide="list" class="lucide-icon-xs"></i> Historial de Movimientos (${movimientos.length})</span>
+                        <span class="arrow"><i data-lucide="chevron-down" class="lucide-icon-xs"></i></span>
                     </button>
                     <div class="historial-content" id="historial-${clienteId}">
                         ${movimientos.map(m => `
                             <div class="movimiento-item ${m.tipo}">
                                 <div class="movimiento-header">
                                     <span class="movimiento-tipo ${m.tipo}">
-                                        ${m.tipo === 'deuda' ? '📈 Deuda' : '💰 A Favor'}
+                                        ${m.tipo === 'deuda' ? '<i data-lucide="trending-up" class="lucide-icon-xs"></i> Deuda' : '<i data-lucide="coins" class="lucide-icon-xs"></i> A Favor'}
                                     </span>
                                     <span class="movimiento-monto">${formatMoney(m.monto)}</span>
                                     <button onclick="editarMovimientoCuenta(${m.id}, '${(m.comentario || '').replace(/'/g, "\\'")}')"
                     title="Editar comentario"
-                    style="border:none; background:none; cursor:pointer; color:#666;">
-                ✎
+                    style="border:none; background:none; cursor:pointer;">
+                <i data-lucide="pencil" class="lucide-icon-xs" style="color:#666;"></i>
             </button>
                                 </div>
-                                <div class="movimiento-fecha">📅 ${m.fecha}</div>
-                                ${m.comentario ? `<div class="movimiento-comentario">💬 ${m.comentario}</div>` : ''}
+                                <div class="movimiento-fecha"><i data-lucide="calendar" class="lucide-icon-xs"></i> ${m.fecha}</div>
+                                ${m.comentario ? `<div class="movimiento-comentario"><i data-lucide="message-circle" class="lucide-icon-xs"></i> ${m.comentario}</div>` : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -3352,14 +3354,14 @@ async function cargarCuentas() {
 
             return `
                 <div class="cuenta-box" style="position: relative;">
-                    <button class="btn-eliminar-cuenta" onclick="eliminarCuenta('${c.cliente}')" title="Eliminar cuenta">✕</button>
+                    <button class="btn-eliminar-cuenta" onclick="eliminarCuenta('${c.cliente}')" title="Eliminar cuenta"><i data-lucide="x-circle" class="lucide-icon-sm"></i></button>
                     
                     <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; padding-right: 40px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px;">
-                            <h3 style="margin: 0; color: #007bff; font-size: 1.25em;">👤 ${c.cliente}</h3>
-                            ${c.telefono ? `<span style="background: #eef; color: #449; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap;">📞 ${c.telefono}</span>` : ''}
+                            <h3 style="margin: 0; color: #007bff; font-size: 1.25em;"><i data-lucide="user" class="lucide-icon-sm"></i> ${c.cliente}</h3>
+                            ${c.telefono ? `<span style="background: #eef; color: #449; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap;"><i data-lucide="phone" class="lucide-icon-xs"></i> ${c.telefono}</span>` : ''}
                         </div>
-                        ${c.articulo ? `<div style="color: #888; font-size: 0.85em; margin-top: 5px; font-style: italic;">🛍️ ${c.articulo}</div>` : ''}
+                        ${c.articulo ? `<div style="color: #888; font-size: 0.85em; margin-top: 5px; font-style: italic;"><i data-lucide="shopping-bag" class="lucide-icon-xs"></i> ${c.articulo}</div>` : ''}
                     </div>
 
                     <div class="cuenta-saldo">
@@ -3461,14 +3463,14 @@ async function eliminarCuenta(cliente) {
         const data = await response.json();
 
         if (response.ok) {
-            showToast('✅ Cuenta eliminada correctamente', 'success');
+            showToast('Cuenta eliminada correctamente', 'success');
             cargarCuentas();
         } else {
-            showToast(`❌ ${data.error || 'Error al eliminar cuenta'}`, 'error');
+            showToast(`${data.error || 'Error al eliminar cuenta'}`, 'error');
         }
     } catch (error) {
         console.error('Error en eliminarCuenta:', error);
-        showToast(`❌ Error de conexión: ${error.message}`, 'error');
+        showToast(`Error de conexión: ${error.message}`, 'error');
     }
 }
 
@@ -3840,11 +3842,13 @@ function toggleSeccionGraficos() {
     
     if (seccion.style.display === 'none') {
         seccion.style.display = 'block';
-        btn.innerHTML = '<span id="iconoGraficos">▲</span> Ocultar gráficos';
+        btn.innerHTML = '<span id="iconoGraficos"><i data-lucide="chevron-up" class="lucide-icon-sm"></i></span> Ocultar gráficos';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         generarGraficos();
     } else {
         seccion.style.display = 'none';
-        btn.innerHTML = '<span id="iconoGraficos">▼</span> Mostrar gráficos';
+        btn.innerHTML = '<span id="iconoGraficos"><i data-lucide="chevron-down" class="lucide-icon-sm"></i></span> Mostrar gráficos';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 }
 
@@ -3921,13 +3925,13 @@ function generarGraficoCategorias() {
                     onclick="cambiarOrdenCategorias('cantidad')" 
                     style="padding: 6px 14px; border: none; border-radius: 6px; font-size: 0.85em; font-weight: 600; cursor: pointer; transition: all 0.2s ease; ${criterioOrden === 'cantidad' ? 'background: #3b82f6; color: white;' : 'background: transparent; color: #6b7280;'}"
                 >
-                    📦 Por unidades
+                    <i data-lucide="package" class="lucide-icon-xs"></i> Por unidades
                 </button>
                 <button 
                     onclick="cambiarOrdenCategorias('total')" 
                     style="padding: 6px 14px; border: none; border-radius: 6px; font-size: 0.85em; font-weight: 600; cursor: pointer; transition: all 0.2s ease; ${criterioOrden === 'total' ? 'background: #3b82f6; color: white;' : 'background: transparent; color: #6b7280;'}"
                 >
-                    💰 Por monto
+                    <i data-lucide="coins" class="lucide-icon-xs"></i> Por monto
                 </button>
             </div>
         </div>
@@ -4006,7 +4010,7 @@ function generarGraficoTiempo() {
             }).join('')}
         </div>
         <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border-left: 4px solid #3b82f6; border-radius: 8px;">
-            <div style="font-size: 0.85em; color: #1e40af; font-weight: 600;">📊 Estadísticas del período</div>
+            <div style="font-size: 0.85em; color: #1e40af; font-weight: 600;"><i data-lucide="bar-chart-3" class="lucide-icon-xs"></i> Estadísticas del período</div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 10px;">
                 <div>
                     <div style="font-size: 0.75em; color: #6b7280;">Día promedio</div>
@@ -4121,13 +4125,13 @@ async function generarGraficoProductos() {
                     onclick="cambiarOrdenProductos('cantidad')" 
                     style="padding: 6px 14px; border: none; border-radius: 6px; font-size: 0.85em; font-weight: 600; cursor: pointer; transition: all 0.2s ease; ${criterioOrden === 'cantidad' ? 'background: #3b82f6; color: white;' : 'background: transparent; color: #6b7280;'}"
                 >
-                    📦 Por unidades
+                    <i data-lucide="package" class="lucide-icon-xs"></i> Por unidades
                 </button>
                 <button 
                     onclick="cambiarOrdenProductos('total')" 
                     style="padding: 6px 14px; border: none; border-radius: 6px; font-size: 0.85em; font-weight: 600; cursor: pointer; transition: all 0.2s ease; ${criterioOrden === 'total' ? 'background: #3b82f6; color: white;' : 'background: transparent; color: #6b7280;'}"
                 >
-                    💰 Por monto
+                    <i data-lucide="coins" class="lucide-icon-xs"></i> Por monto
                 </button>
             </div>
         </div>
@@ -4181,7 +4185,7 @@ async function uploadVentasCSV() {
             return;
         }
 
-        let mensaje = `✅ ${result.importadas} ventas importadas correctamente`;
+        let mensaje = `${result.importadas} ventas importadas correctamente`;
         if (result.omitidas > 0) {
             mensaje += ` (${result.omitidas} filas omitidas)`;
         }
@@ -4211,15 +4215,15 @@ async function limpiarVentasDiciembre() {
     const result = await response.json();
 
     if (response.ok) {
-      document.getElementById('resultadoLimpiar').textContent = `✅ ${result.eliminadas} ventas eliminadas`;
+      document.getElementById('resultadoLimpiar').textContent = `${result.eliminadas} ventas eliminadas`;
       setTimeout(() => {
         cargarHistorico();
       }, 1000);
     } else {
-      document.getElementById('resultadoLimpiar').textContent = `❌ Error: ${result.error}`;
+      document.getElementById('resultadoLimpiar').textContent = `Error: ${result.error}`;
     }
   } catch (error) {
-    document.getElementById('resultadoLimpiar').textContent = `❌ Error: ${error.message}`;
+    document.getElementById('resultadoLimpiar').textContent = `Error: ${error.message}`;
   }
 }
 
@@ -4296,7 +4300,7 @@ async function limpiarTabla(tabla) {
         cuentas: 'TODAS las cuentas corrientes y sus movimientos'
     };
     
-    if (!confirm(`⚠️ ¿Estás SEGURO de que querés borrar ${nombres[tabla]}?\n\nEsta acción no se puede deshacer (aunque podés restaurar desde un backup).`)) {
+    if (!confirm(`¿Estás SEGURO de que querés borrar ${nombres[tabla]}?\n\nEsta acción no se puede deshacer (aunque podés restaurar desde un backup).`)) {
         return;
     }
     
@@ -4313,13 +4317,13 @@ async function limpiarTabla(tabla) {
         const result = await response.json();
         
         if (response.ok) {
-            showToast(`✅ ${result.mensaje}`, 'success');
+            showToast(`${result.mensaje}`, 'success');
             cargarEstadisticasDatos();
         } else {
-            showToast(`❌ ${result.error}`, 'error');
+            showToast(`${result.error}`, 'error');
         }
     } catch (error) {
-        showToast(`❌ ${error.message}`, 'error');
+        showToast(`${error.message}`, 'error');
     }
 }
 
@@ -4392,7 +4396,7 @@ function exportarCSV(ventas, nombreArchivo) {
     const blob = new Blob([bom + contenido], { type: 'text/csv;charset=utf-8;' });
     
     descargarArchivo(blob, nombreArchivo);
-    showToast(`✅ ${ventas.length} ventas exportadas a CSV`, 'success');
+    showToast(`${ventas.length} ventas exportadas a CSV`, 'success');
 }
 
 function exportarExcel(ventas, nombreArchivo) {
@@ -4465,7 +4469,7 @@ function exportarExcel(ventas, nombreArchivo) {
     
     const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     descargarArchivo(blob, nombreArchivo);
-    showToast(`✅ ${ventas.length} ventas exportadas a Excel`, 'success');
+    showToast(`${ventas.length} ventas exportadas a Excel`, 'success');
 }
 
 function descargarArchivo(blob, nombreArchivo) {
@@ -4513,7 +4517,7 @@ async function cargarDataComparativa() {
     const anio2 = document.getElementById('compAnio2').value;
 
     if(anio1 === anio2) {
-        showToast('⚠️ Seleccioná años distintos para comparar', 'error');
+        showToast('Seleccioná años distintos para comparar', 'error');
         return;
     }
 
@@ -4533,12 +4537,12 @@ async function cargarDataComparativa() {
             document.getElementById('tablaComparativaContainer').style.display = 'block';
             document.getElementById('resumenComparativa').style.opacity = '1';
         } else {
-            showToast('❌ Error al cargar datos: ' + data.error, 'error');
+            showToast('Error al cargar datos: ' + data.error, 'error');
         }
 
     } catch(err) {
         console.error(err);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
         document.getElementById('resumenComparativa').style.opacity = '1';
     }
 }
@@ -4617,13 +4621,13 @@ function renderTablaComparativa(filas, a1, a2) {
                 <td class="text-right border-left text-muted">${formatMoney(fila.anio1.facturacion)}</td>
                 <td class="text-right" style="font-weight:600;">${formatMoney(fila.anio2.facturacion)}</td>
                 <td class="text-center" style="color: ${colorDinero}; font-size: 0.9em; font-weight: bold;">
-                    ${varDinero > 0 ? '▲' : varDinero < 0 ? '▼' : ''} ${Math.abs(varDinero)}%
+                    ${varDinero > 0 ? '<i data-lucide="trending-up" class="lucide-icon-xs"></i>' : varDinero < 0 ? '<i data-lucide="trending-down" class="lucide-icon-xs"></i>' : ''} ${Math.abs(varDinero)}%
                 </td>
 
                 <td class="text-right border-left text-muted">${fila.anio1.unidades}</td>
                 <td class="text-right" style="font-weight:600;">${fila.anio2.unidades}</td>
                 <td class="text-center" style="color: ${colorUnid}; font-size: 0.9em; font-weight: bold;">
-                    ${varUnid > 0 ? '▲' : varUnid < 0 ? '▼' : ''} ${Math.abs(varUnid)}%
+                    ${varUnid > 0 ? '<i data-lucide="trending-up" class="lucide-icon-xs"></i>' : varUnid < 0 ? '<i data-lucide="trending-down" class="lucide-icon-xs"></i>' : ''} ${Math.abs(varUnid)}%
                 </td>
             </tr>
         `;
@@ -4631,7 +4635,7 @@ function renderTablaComparativa(filas, a1, a2) {
 }
 
 async function resetearStockCero() {
-    if (!confirm('⚠️ ¿Estás SEGURO de que querés poner el stock de TODOS los productos en 0?\n\nLos precios y descripciones se mantienen, solo se reinicia la cantidad.')) {
+    if (!confirm('¿Estás SEGURO de que querés poner el stock de TODOS los productos en 0?\n\nLos precios y descripciones se mantienen, solo se reinicia la cantidad.')) {
         return;
     }
 
@@ -4643,15 +4647,15 @@ async function resetearStockCero() {
         const result = await response.json();
 
         if (response.ok) {
-            showToast('✅ ' + result.mensaje, 'success');
+            showToast('' + result.mensaje, 'success');
             // Recargamos estadísticas si hace falta
             cargarEstadisticasDatos();
         } else {
-            showToast('❌ Error: ' + result.error, 'error');
+            showToast('Error: ' + result.error, 'error');
         }
     } catch (error) {
         console.error(error);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -4877,14 +4881,14 @@ async function confirmarVentaCtaCte() {
     const comentarioCC = document.getElementById('ccComentarios').value.trim();
 
     if (!nombre) {
-        showToast('⚠️ El nombre es obligatorio', 'error');
+        showToast('El nombre es obligatorio', 'error');
         return;
     }
 
     // Obtener el primer formulario de artículo
     const primerForm = document.querySelector('.articulo-form');
     if (!primerForm) {
-        showToast('⚠️ No hay formulario de venta', 'error');
+        showToast('No hay formulario de venta', 'error');
         return;
     }
 
@@ -4967,7 +4971,7 @@ async function confirmarVentaCtaCte() {
             });
         }
 
-        showToast('✅ Operación registrada en Cta. Cte.', 'success');
+        showToast('Operación registrada en Cta. Cte.', 'success');
         cerrarModalCtaCte();
 
         // Limpieza del formulario (usando clases)
@@ -4990,7 +4994,7 @@ async function confirmarVentaCtaCte() {
 
     } catch (e) {
         console.error(e);
-        showToast('❌ Error: ' + e.message, 'error');
+        showToast('Error: ' + e.message, 'error');
     }
 }
 
@@ -5041,11 +5045,11 @@ function editarStock(td, codigo) {
                 showToast(`Stock actualizado: ${nuevoValor}`, 'success');
             } else {
                 td.innerHTML = valorActual; // Restaurar si falló
-                showToast('❌ Error al guardar', 'error');
+                showToast('Error al guardar', 'error');
             }
         } catch (e) {
             td.innerHTML = valorActual;
-            showToast('❌ Error de conexión', 'error');
+            showToast('Error de conexión', 'error');
         } finally {
             stockEditando = false;
         }
@@ -5123,14 +5127,14 @@ async function guardarNuevoProducto() {
     };
 
     if (!producto.codigo) {
-        showToast('⚠️ El código de artículo es obligatorio', 'error');
+        showToast('El código de artículo es obligatorio', 'error');
         btnGuardar.disabled = false;
         btnGuardar.innerHTML = txtOriginal;
         return;
     }
 
     if (!producto.descripcion) {
-        showToast('⚠️ La descripción es obligatoria', 'error');
+        showToast('La descripción es obligatoria', 'error');
         btnGuardar.disabled = false;
         btnGuardar.innerHTML = txtOriginal;
         return;
@@ -5146,7 +5150,7 @@ async function guardarNuevoProducto() {
         const data = await resp.json();
         
         if (resp.ok) {
-            showToast('✅ Producto creado correctamente', 'success');
+            showToast('Producto creado correctamente', 'success');
             cerrarModalProducto();
             
             // Limpiar buscadores y recargar datos
@@ -5159,11 +5163,11 @@ async function guardarNuevoProducto() {
             
             cargarStockCompleto(); 
         } else {
-            showToast('❌ ' + (data.error || 'Error al crear'), 'error');
+            showToast('' + (data.error || 'Error al crear'), 'error');
         }
     } catch (e) {
         console.error(e);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     } finally {
         btnGuardar.disabled = false;
         btnGuardar.innerHTML = txtOriginal;
@@ -5172,7 +5176,7 @@ async function guardarNuevoProducto() {
 
 async function eliminarProducto(codigo, descripcion) {
     // Confirmación nativa (Rápida y segura)
-    if (!confirm(`⚠️ ¿Estás SEGURO de eliminar este producto?\n\n${codigo} - ${descripcion}\n\nEsta acción no se puede deshacer.`)) {
+    if (!confirm(`¿Estás SEGURO de eliminar este producto?\n\n${codigo} - ${descripcion}\n\nEsta acción no se puede deshacer.`)) {
         return;
     }
 
@@ -5182,18 +5186,18 @@ async function eliminarProducto(codigo, descripcion) {
         });
 
         if (resp.ok) {
-            showToast('🗑️ Producto eliminado', 'success');
+            showToast('Producto eliminado', 'success');
             // Eliminamos del cache local para que desaparezca al instante sin recargar todo
             productosCache = productosCache.filter(p => p.codigo !== codigo);
             renderStockTabla(); // Redibujar tabla
             renderStockResumen(); // Actualizar contadores
         } else {
             const data = await resp.json();
-            showToast('❌ ' + (data.error || 'Error al eliminar'), 'error');
+            showToast('' + (data.error || 'Error al eliminar'), 'error');
         }
     } catch (e) {
         console.error(e);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -5400,16 +5404,16 @@ async function cargarUsuariosSaas() {
                     <td style="padding:10px 8px; text-align:center;">
                         <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap;">
                             ${!esAdmin ? `
-                                <button onclick="toggleUsuarioActivoSaas(${u.id})" style="background: ${activo ? '#ff9800' : '#4caf50'}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em;" title="${activo ? 'Desactivar' : 'Activar'}">
-                                    ${activo ? '⏸️' : '▶️'}
+                                <button onclick="toggleUsuarioActivoSaas(${u.id})" style="background: ${activo ? '#ff9800' : '#4caf50'}; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em; display: flex; align-items: center; justify-content: center;" title="${activo ? 'Desactivar' : 'Activar'}">
+                                    ${activo ? '<i data-lucide="pause" class="lucide-icon-xs"></i>' : '<i data-lucide="play" class="lucide-icon-xs"></i>'}
                                 </button>
                             ` : ''}
-                            <button onclick="abrirModalResetPasswordSaas(${u.id}, '${u.usuario}')" style="background: #e65100; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em;" title="Resetear contraseña">
-                                🔑
+                            <button onclick="abrirModalResetPasswordSaas(${u.id}, '${u.usuario}')" style="background: #e65100; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em; display: flex; align-items: center; justify-content: center;" title="Resetear contraseña">
+                                <i data-lucide="key" class="lucide-icon-xs"></i>
                             </button>
                             ${!esAdmin ? `
-                                <button onclick="eliminarUsuarioSaas(${u.id}, '${u.usuario}')" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em;" title="Eliminar usuario">
-                                    🗑️
+                                <button onclick="eliminarUsuarioSaas(${u.id}, '${u.usuario}')" style="background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.75em; display: flex; align-items: center; justify-content: center;" title="Eliminar usuario">
+                                    <i data-lucide="trash-2" class="lucide-icon-xs"></i>
                                 </button>
                             ` : ''}
                         </div>
@@ -5417,6 +5421,8 @@ async function cargarUsuariosSaas() {
                 </tr>
             `;
         }).join('');
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red; padding:20px;">Error: ${e.message}</td></tr>`;
@@ -5442,13 +5448,13 @@ async function toggleUsuarioActivoSaas(id) {
         const data = await resp.json();
 
         if (resp.ok) {
-            showToast('✅ Estado actualizado', 'success');
+            showToast('Estado actualizado', 'success');
             cargarUsuariosSaas();
         } else {
-            showToast(`❌ ${data.error}`, 'error');
+            showToast(`${data.error}`, 'error');
         }
     } catch (error) {
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -5468,7 +5474,7 @@ async function confirmarResetPasswordSaas() {
     const passwordNuevo = document.getElementById('adminNuevoPasswordSaas').value;
 
     if (!passwordNuevo || passwordNuevo.length < 6) {
-        showToast('⚠️ La contraseña debe tener al menos 6 caracteres', 'error');
+        showToast('La contraseña debe tener al menos 6 caracteres', 'error');
         return;
     }
 
@@ -5482,14 +5488,14 @@ async function confirmarResetPasswordSaas() {
         const data = await resp.json();
 
         if (resp.ok) {
-            showToast('✅ Contraseña reseteada', 'success');
+            showToast('Contraseña reseteada', 'success');
             cerrarModalResetPasswordSaas();
             cargarUsuariosSaas();
         } else {
-            showToast(`❌ ${data.error}`, 'error');
+            showToast(`${data.error}`, 'error');
         }
     } catch (error) {
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -5502,13 +5508,13 @@ async function eliminarUsuarioSaas(id, usuario) {
         const data = await resp.json();
 
         if (resp.ok) {
-            showToast('✅ Usuario eliminado', 'success');
+            showToast('Usuario eliminado', 'success');
             cargarUsuariosSaas();
         } else {
-            showToast(`❌ ${data.error}`, 'error');
+            showToast(`${data.error}`, 'error');
         }
     } catch (error) {
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -5518,7 +5524,7 @@ async function crearUsuarioSaas() {
     const nombreComercio = document.getElementById('saNombre').value.trim();
 
     if (!usuario || !password) {
-        showToast('⚠️ Usuario y contraseña requeridos', 'error'); // Usamos tu sistema de toast existente
+        showToast('Usuario y contraseña requeridos', 'error'); // Usamos tu sistema de toast existente
         return;
     }
 
@@ -5532,7 +5538,7 @@ async function crearUsuarioSaas() {
         const data = await resp.json();
 
         if (resp.ok) {
-            showToast('✅ Cliente creado correctamente', 'success');
+            showToast('Cliente creado correctamente', 'success');
             // Limpiar campos
             document.getElementById('saUser').value = '';
             document.getElementById('saPass').value = '';
@@ -5540,17 +5546,17 @@ async function crearUsuarioSaas() {
             // Recargar lista
             cargarUsuariosSaas();
         } else {
-            showToast('❌ ' + (data.error || 'Error al crear'), 'error');
+            showToast('' + (data.error || 'Error al crear'), 'error');
         }
     } catch (e) {
         console.error(e);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
 async function eliminarCatalogoCompleto() {
     // Doble confirmación para evitar desastres
-    if (!confirm('⚠️ ¡PELIGRO!\n\nEstás a punto de BORRAR TODOS LOS PRODUCTOS del sistema.\n\nEsto no se puede deshacer. ¿Estás 100% seguro?')) return;
+    if (!confirm('¡PELIGRO!\n\nEstás a punto de BORRAR TODOS LOS PRODUCTOS del sistema.\n\nEsto no se puede deshacer. ¿Estás 100% seguro?')) return;
     if (!confirm('¿De verdad? Confirmá una vez más que querés vaciar el catálogo.')) return;
 
     try {
@@ -5562,15 +5568,15 @@ async function eliminarCatalogoCompleto() {
         const data = await resp.json();
 
         if (resp.ok) {
-            showToast('🗑️ Catálogo eliminado correctamente', 'success');
+            showToast('Catálogo eliminado correctamente', 'success');
             // Opcional: Recargar la página o limpiar la tabla visualmente
             setTimeout(() => location.reload(), 1500);
         } else {
-            showToast('❌ Error: ' + data.error, 'error');
+            showToast('Error: ' + data.error, 'error');
         }
     } catch (e) {
         console.error(e);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     }
 }
 
@@ -5606,14 +5612,14 @@ async function copiarMovimientoCC(detalle, monto, tipoCaja, fecha) {
         });
 
         if (resp.ok) {
-            showToast(`✅ Movimiento copiado a ${cliente} (${tipoCC})`, 'success');
+            showToast(`Movimiento copiado a ${cliente} (${tipoCC})`, 'success');
         } else {
             throw new Error('Error al registrar en cuenta');
         }
 
     } catch (e) {
         console.error(e);
-        showToast('❌ Error: ' + e.message, 'error');
+        showToast('Error: ' + e.message, 'error');
     }
 }
 
@@ -5631,7 +5637,7 @@ async function editarMovimientoCaja(id, textoActual) {
         });
 
         if (resp.ok) {
-            showToast('✅ Detalle actualizado', 'success');
+            showToast('Detalle actualizado', 'success');
             if (typeof fechaSeleccionada !== 'undefined') cargarVentasDelDia(fechaSeleccionada);
         } else {
             alert('Error al actualizar');
@@ -5653,7 +5659,7 @@ async function editarMovimientoCuenta(id, textoActual) {
         });
 
         if (resp.ok) {
-            showToast('✅ Comentario actualizado', 'success');
+            showToast('Comentario actualizado', 'success');
             cargarCuentas(); // Recargamos para ver el cambio en el historial
         } else {
             alert('Error al actualizar');
@@ -5674,7 +5680,7 @@ async function subirBaseDatos() {
     const file = input.files[0];
     if (!file) return;
 
-    if (!confirm('⚠️ ¡ATENCIÓN!\n\nEstás a punto de reemplazar TODA la base de datos de este entorno con el archivo seleccionado.\n\nSe perderán los datos actuales (aunque se hará un backup automático antes).\n\n¿Estás seguro de continuar?')) {
+    if (!confirm('¡ATENCIÓN!\n\nEstás a punto de reemplazar TODA la base de datos de este entorno con el archivo seleccionado.\n\nSe perderán los datos actuales (aunque se hará un backup automático antes).\n\n¿Estás seguro de continuar?')) {
         input.value = ''; // Limpiar
         return;
     }
@@ -5697,14 +5703,14 @@ async function subirBaseDatos() {
         const data = await resp.json();
 
         if (resp.ok) {
-            alert('✅ ' + data.mensaje);
+            alert('' + data.mensaje);
             location.reload(); // Recargar para ver los datos nuevos
         } else {
-            showToast('❌ Error: ' + data.error, 'error');
+            showToast('Error: ' + data.error, 'error');
         }
     } catch (e) {
         console.error(e);
-        showToast('❌ Error de conexión', 'error');
+        showToast('Error de conexión', 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = txtOriginal;

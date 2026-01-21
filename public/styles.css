@@ -130,6 +130,13 @@ body {
     stroke-width: 1.5;
 }
 
+.lucide-icon-xs {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
+    vertical-align: middle;
+}
+
 .container {
     max-width: 1400px;
     margin: 0 auto;
