@@ -500,7 +500,7 @@ img#logoComercio {
 
 .card h2 {
     margin-bottom: 20px;
-    color: var(--primary);
+    color: #2c3e50;
     font-size: 1.5em;
 }
 
@@ -1568,36 +1568,98 @@ input:focus, textarea:focus, select:focus {
 }
 
 
-/* Filtros + tabla */
+/* ==================== SECCIÓN LISTADO DE ARTÍCULOS ==================== */
+
+/* Separador visual entre secciones */
+.stock-list-section {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 2px solid #e5e7eb;
+}
+
+/* Header del listado */
 .stock-list-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    gap: 10px;
-    margin-top: 15px;
+    margin-bottom: 16px;
+    gap: 15px;
+    flex-wrap: wrap;
 }
 
 .stock-list-header h3 {
     margin: 0;
+    font-size: 1.1em;
+    color: #374151;
 }
 
+/* Contenedor de filtros */
 .stock-filtros {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
+/* Estilos unificados para todos los filtros */
+.stock-filtros select,
+.stock-filtros input[type="text"],
 #filtroCategoria,
+#filtroStock,
 #filtroTexto {
-    padding: 8px 10px;
-    border-radius: 6px;
+    padding: 10px 14px;
+    border-radius: 8px;
     border: 1px solid #d1d5db;
     font-size: 0.9em;
+    background: white;
+    color: #374151;
+    transition: all 0.2s ease;
+    outline: none;
+    font-family: inherit;
 }
 
+/* Selectores con flecha personalizada */
+.stock-filtros select,
+#filtroCategoria,
+#filtroStock {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 36px;
+    cursor: pointer;
+    min-width: 160px;
+}
+
+/* Campo de texto */
 #filtroTexto {
-    min-width: 220px;
+    min-width: 240px;
+}
+
+/* Estados hover y focus unificados */
+.stock-filtros select:hover,
+.stock-filtros input[type="text"]:hover,
+#filtroCategoria:hover,
+#filtroStock:hover,
+#filtroTexto:hover {
+    border-color: #9ca3af;
+}
+
+.stock-filtros select:focus,
+.stock-filtros input[type="text"]:focus,
+#filtroCategoria:focus,
+#filtroStock:focus,
+#filtroTexto:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Placeholder más sutil */
+.stock-filtros input::placeholder,
+#filtroTexto::placeholder {
+    color: #9ca3af;
 }
 
 .stock-tabla-wrapper {
@@ -2009,7 +2071,8 @@ input:focus, textarea:focus, select:focus {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 0; /* El separador agrega espacio */
+    padding-bottom: 5px;
 }
 
 .stock-resumen-item {
