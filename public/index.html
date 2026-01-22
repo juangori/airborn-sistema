@@ -627,6 +627,9 @@
                             <th>Código</th>
                             <th>Descripción</th>
                             <th>Categoría</th>
+                            <th>Color</th>
+                            <th>Talle</th>
+                            <th>Cód. Barras</th>
                             <th class="num">Precio Público</th>
                             <th class="num">Costo</th>
                             <th class="num">Stock</th>
@@ -645,7 +648,7 @@
             <h3><i data-lucide="package" class="lucide-icon"></i> Importar Productos CSV</h3>
             <p class="stock-csv-text">
                 <strong>Primera vez:</strong> Cargá tu archivo con todos los productos.<br>
-                Formato: <code>codigo,descripcion,categoria,precioPublico,costo,stock</code>
+                Formato: <code>codigo,descripcion,categoria,precioPublico,costo,color,talle,codigoBarra,stock</code>
             </p>
 
             <div class="upload-area" onclick="document.getElementById('csvProductos').click()">
@@ -1129,6 +1132,16 @@
             </div>
             <div style="display: flex; gap: 10px;">
                 <div class="form-group" style="flex: 1;">
+                    <label>Color</label>
+                    <input type="text" id="npColor" placeholder="Ej: Negro">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Talle</label>
+                    <input type="text" id="npTalle" placeholder="Ej: M, L, XL">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex: 1;">
                     <label>Precio Público</label>
                     <input type="number" id="npPrecio" step="0.01" value="0" inputmode="decimal">
                 </div>
@@ -1212,6 +1225,45 @@
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
             <button onclick="cerrarModalResetPasswordSaas()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Cancelar</button>
             <button onclick="confirmarResetPasswordSaas()" style="background: #e65100; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">Resetear</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para seleccionar modo de importación CSV -->
+<div id="modalImportarCSV" class="admin-modal" style="z-index: 2000;">
+    <div class="admin-modal-content" style="max-width: 450px;">
+        <div class="admin-modal-header" style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);">
+            <h2><i data-lucide="file-spreadsheet" class="lucide-icon"></i> Importar Productos</h2>
+            <button class="admin-modal-close" onclick="cerrarModalImportarCSV()"><i data-lucide="x" class="lucide-icon-sm"></i></button>
+        </div>
+        <div class="admin-modal-body" style="padding: 20px;">
+            <p style="margin-bottom: 20px; color: #666;">¿Qué querés hacer con este archivo?</p>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button onclick="ejecutarImportacionCSV('completo')" style="display: flex; align-items: flex-start; gap: 15px; padding: 15px; background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 10px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.borderColor='#27ae60'" onmouseout="this.style.borderColor='#e9ecef'">
+                    <div style="background: #27ae60; color: white; padding: 10px; border-radius: 8px;">
+                        <i data-lucide="package-plus" class="lucide-icon"></i>
+                    </div>
+                    <div>
+                        <strong style="font-size: 1.05em; color: #333;">Importación completa</strong>
+                        <p style="margin: 5px 0 0 0; font-size: 0.85em; color: #666;">Crea productos nuevos y actualiza todos los datos de los existentes (precio, stock, color, talle, etc.)</p>
+                    </div>
+                </button>
+
+                <button onclick="ejecutarImportacionCSV('atributos')" style="display: flex; align-items: flex-start; gap: 15px; padding: 15px; background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 10px; cursor: pointer; text-align: left; transition: all 0.2s;" onmouseover="this.style.borderColor='#3498db'" onmouseout="this.style.borderColor='#e9ecef'">
+                    <div style="background: #3498db; color: white; padding: 10px; border-radius: 8px;">
+                        <i data-lucide="tags" class="lucide-icon"></i>
+                    </div>
+                    <div>
+                        <strong style="font-size: 1.05em; color: #333;">Solo actualizar atributos</strong>
+                        <p style="margin: 5px 0 0 0; font-size: 0.85em; color: #666;">Solo actualiza Color, Talle y Código de Barras en productos existentes. No toca precios ni stock.</p>
+                    </div>
+                </button>
+            </div>
+
+            <p style="margin-top: 20px; font-size: 0.8em; color: #999; text-align: center;">
+                <i data-lucide="info" class="lucide-icon-xs"></i> Formato: codigo,descripcion,categoria,precioPublico,costo,color,talle,codigoBarra,stock
+            </p>
         </div>
     </div>
 </div>

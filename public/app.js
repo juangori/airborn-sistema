@@ -2734,12 +2734,40 @@ function formatMonedaInput(monto) {
     }
 
     // ==================== IMPORTAR PRODUCTOS COMPLETOS ====================
-    async function importarProductosCSV() {
+    // Variable para guardar el archivo seleccionado temporalmente
+    let archivoCSVPendiente = null;
+
+    // Función que se llama cuando se selecciona un archivo - abre el modal
+    function importarProductosCSV() {
         const file = document.getElementById('csvProductos').files[0];
         if (!file) return;
 
+        // Guardar archivo y mostrar modal de selección
+        archivoCSVPendiente = file;
+        document.getElementById('modalImportarCSV').style.display = 'flex';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    // Cerrar modal de importación
+    function cerrarModalImportarCSV() {
+        document.getElementById('modalImportarCSV').style.display = 'none';
+        archivoCSVPendiente = null;
+        document.getElementById('csvProductos').value = '';
+    }
+
+    // Ejecutar la importación con el modo seleccionado
+    async function ejecutarImportacionCSV(modo) {
+        if (!archivoCSVPendiente) {
+            cerrarModalImportarCSV();
+            return;
+        }
+
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', archivoCSVPendiente);
+        formData.append('modo', modo);
+
+        // Cerrar modal y mostrar loading
+        document.getElementById('modalImportarCSV').style.display = 'none';
 
         try {
             const response = await fetch('/api/productos/importar', {
@@ -2750,16 +2778,17 @@ function formatMonedaInput(monto) {
             const result = await response.json();
 
             if (result.ok) {
-                showAlert('alertaProductos', `${result.importados} productos importados` + (result.omitidos > 0 ? ` (${result.omitidos} omitidos)` : ''), 'success');
+                showAlert('alertaProductos', result.mensaje, 'success');
                 cargarStockCompleto(); // Recargar la tabla
             } else {
                 showAlert('alertaProductos', `${result.error}`, 'danger');
             }
-
-            document.getElementById('csvProductos').value = '';
         } catch (error) {
             showAlert('alertaProductos', `${error.message}`, 'danger');
         }
+
+        archivoCSVPendiente = null;
+        document.getElementById('csvProductos').value = '';
     }
 
     // ==================== STOCK: BUSCAR Y EDITAR PRODUCTO ====================
@@ -3100,18 +3129,20 @@ function renderStockTabla() {
             if (stockFiltro === '6+' && stock < 6) return false;
         }
 
-        // Filtro por texto (incluye código de barras)
+        // Filtro por texto (incluye código de barras, color y talle)
         if (!texto) return true;
         return (p.descripcion || '').toLowerCase().includes(texto) ||
                (p.codigo || '').toLowerCase().includes(texto) ||
-               (p.codigoBarras || '').toLowerCase().includes(texto);
+               (p.codigoBarras || '').toLowerCase().includes(texto) ||
+               (p.color || '').toLowerCase().includes(texto) ||
+               (p.talle || '').toLowerCase().includes(texto);
     });
 
     if (filtrados.length === 0) {
         if (texto.length > 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 30px;">
+                    <td colspan="10" style="text-align: center; padding: 30px;">
                         <p style="color: #666; margin-bottom: 15px;">No se encontró "<strong>${texto}</strong>"</p>
                         <button onclick="abrirModalProducto('${texto}')" style="background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;">
                             <i data-lucide="sparkles" class="lucide-icon-xs"></i> Agregar Nuevo: ${texto.toUpperCase()}
@@ -3119,7 +3150,7 @@ function renderStockTabla() {
                     </td>
                 </tr>`;
         } else {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#9ca3af; padding:12px;">Sin resultados</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:#9ca3af; padding:12px;">Sin resultados</td></tr>`;
         }
         return;
     }
@@ -3129,9 +3160,12 @@ function renderStockTabla() {
             <td><strong>${p.codigo}</strong></td>
             <td>${p.descripcion || ''}</td>
             <td>${p.categoria || ''}</td>
+            <td>${p.color || ''}</td>
+            <td>${p.talle || ''}</td>
+            <td style="font-size: 0.85em; color: #666;">${p.codigoBarras || ''}</td>
             <td class="num">${formatMoney(p.precioPublico || 0)}</td>
             <td class="num" style="color:#888;">${formatMoney(p.costo || 0)}</td>
-            
+
             <td class="stock-editable num" onclick="editarStock(this, '${p.codigo}')" title="Click para editar" style="cursor: pointer;">
                 ${p.stock ?? 0}
             </td>
@@ -5088,6 +5122,10 @@ function abrirModalProducto(codigoSugerido = '', codigoBarrasSugerido = '') {
     // Resetear resto
     document.getElementById('npDescripcion').value = '';
     document.getElementById('npCategoria').value = '';
+    const npColor = document.getElementById('npColor');
+    const npTalle = document.getElementById('npTalle');
+    if (npColor) npColor.value = '';
+    if (npTalle) npTalle.value = '';
     document.getElementById('npPrecio').value = 0;
     document.getElementById('npCosto').value = 0;
     document.getElementById('npStock').value = 0;
@@ -5124,6 +5162,8 @@ async function guardarNuevoProducto() {
         codigoBarras: document.getElementById('npCodigoBarras')?.value.trim() || '',
         descripcion: document.getElementById('npDescripcion').value.trim(),
         categoria: document.getElementById('npCategoria').value.trim(),
+        color: document.getElementById('npColor')?.value.trim() || '',
+        talle: document.getElementById('npTalle')?.value.trim() || '',
         precio: parseFloat(document.getElementById('npPrecio').value) || 0,
         costo: parseFloat(document.getElementById('npCosto').value) || 0,
         stock: parseInt(document.getElementById('npStock').value) || 0

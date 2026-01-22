@@ -175,6 +175,8 @@ const schemas = {
     codigoBarras: Joi.string().max(50).allow('').optional(),
     descripcion: Joi.string().max(200).required(),
     categoria: Joi.string().max(50).allow('').optional(),
+    color: Joi.string().max(50).allow('').optional(),
+    talle: Joi.string().max(20).allow('').optional(),
     precio: Joi.number().min(0).default(0),
     costo: Joi.number().min(0).default(0),
     stock: Joi.number().integer().min(0).default(0)
@@ -267,14 +269,18 @@ function inicializarBdCliente(db) {
         categoria TEXT,
         precioPublico REAL,
         costo REAL,
+        color TEXT,
+        talle TEXT,
         stock INTEGER DEFAULT 0
       )
     `);
 
     // Migración: agregar columna codigoBarras si no existe (para BDs existentes)
-    db.run(`ALTER TABLE productos ADD COLUMN codigoBarras TEXT`, () => {
-      // Ignorar error si la columna ya existe
-    });
+    db.run(`ALTER TABLE productos ADD COLUMN codigoBarras TEXT`, () => {});
+
+    // Migración: agregar columnas color y talle si no existen
+    db.run(`ALTER TABLE productos ADD COLUMN color TEXT`, () => {});
+    db.run(`ALTER TABLE productos ADD COLUMN talle TEXT`, () => {});
 
     db.run(`
       CREATE TABLE IF NOT EXISTS ventas (
@@ -1217,9 +1223,13 @@ app.post('/api/stock/upload', requireAuth, upload.single('file'), (req, res) => 
 });
 
 // 6b. IMPORTAR PRODUCTOS CSV (MEJORADO Y BLINDADO)
+// Formato CSV: codigo,descripcion,categoria,precioPublico,costo,color,talle,codigoBarra,stock
+// Modos: 'completo' (default) = insertar nuevos + actualizar todo
+//        'atributos' = solo actualizar color, talle, codigoBarras en existentes
 app.post('/api/productos/importar', requireAuth, upload.single('file'), async (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
+  const modo = req.body.modo || 'completo'; // 'completo' o 'atributos'
 
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
 
@@ -1233,8 +1243,18 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), async (r
     });
   };
 
+  const dbGet = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+      db.get(sql, params, (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+  };
+
   let importados = 0;
   let actualizados = 0;
+  let omitidos = 0;
   const errores = [];
 
   try {
@@ -1249,7 +1269,7 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), async (r
     const stream = Readable.from(csvContent)
       .pipe(csv({
         mapHeaders: ({ header }) => header.trim().toLowerCase(),
-        separator: ',' 
+        separator: ','
       }));
 
     for await (const row of stream) {
@@ -1257,40 +1277,91 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), async (r
       const codigo = row.codigo || row['código'] || row.id;
       const descripcion = row.descripcion || row['descripción'] || row.producto || row.nombre || '';
       const categoria = row.categoria || row['categoría'] || row.rubro || 'General';
-      
+
       const precioRaw = row.preciopublico || row.precio || row['precio público'] || '0';
       const costoRaw = row.costo || '0';
       const stockRaw = row.stock || row.cantidad || row.existencia || '0';
+
+      // Nuevas columnas
+      const color = row.color || '';
+      const talle = row.talle || '';
+      const codigoBarras = row.codigobarra || row.codigobarras || row['código barra'] || '';
 
       // Validación mínima
       if (!codigo) continue;
 
       // 3. Limpieza de datos (Precios ARS y Stock)
-      // Usamos parseARS para que entienda "$ 43.990,00"
       const precioNum = parseARS(precioRaw);
       const costoNum = parseARS(costoRaw);
       const stockNum = parseInt(stockRaw.toString().replace(/[.,]/g, '')) || 0;
 
-      // 4. Insertar o Actualizar (Upsert)
       try {
-        await dbRun(`
-          INSERT INTO productos (codigo, descripcion, categoria, precioPublico, costo, stock)
-          VALUES (?, ?, ?, ?, ?, ?)
-          ON CONFLICT(codigo) DO UPDATE SET
-            descripcion = excluded.descripcion,
-            categoria = excluded.categoria,
-            precioPublico = excluded.precioPublico,
-            costo = excluded.costo,
-            stock = excluded.stock
-        `, [
-          codigo.toString().trim(),
-          descripcion.toString().trim(), // Aseguramos que entre la descripción
-          categoria.toString().trim(),
-          precioNum,
-          costoNum,
-          stockNum
-        ]);
-        importados++;
+        // Verificar si el producto ya existe
+        const existente = await dbGet('SELECT codigo FROM productos WHERE codigo = ?', [codigo.toString().trim()]);
+
+        if (modo === 'atributos') {
+          // MODO ATRIBUTOS: solo actualizar color, talle, codigoBarras en productos existentes
+          if (existente) {
+            await dbRun(`
+              UPDATE productos SET
+                color = ?,
+                talle = ?,
+                codigoBarras = ?
+              WHERE codigo = ?
+            `, [
+              color.toString().trim(),
+              talle.toString().trim(),
+              codigoBarras.toString().trim(),
+              codigo.toString().trim()
+            ]);
+            actualizados++;
+          } else {
+            omitidos++; // No existe, lo omitimos en modo atributos
+          }
+        } else {
+          // MODO COMPLETO: insertar nuevos + actualizar todo en existentes
+          if (existente) {
+            await dbRun(`
+              UPDATE productos SET
+                descripcion = ?,
+                categoria = ?,
+                precioPublico = ?,
+                costo = ?,
+                color = ?,
+                talle = ?,
+                codigoBarras = ?,
+                stock = ?
+              WHERE codigo = ?
+            `, [
+              descripcion.toString().trim(),
+              categoria.toString().trim(),
+              precioNum,
+              costoNum,
+              color.toString().trim(),
+              talle.toString().trim(),
+              codigoBarras.toString().trim(),
+              stockNum,
+              codigo.toString().trim()
+            ]);
+            actualizados++;
+          } else {
+            await dbRun(`
+              INSERT INTO productos (codigo, descripcion, categoria, precioPublico, costo, color, talle, codigoBarras, stock)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+              codigo.toString().trim(),
+              descripcion.toString().trim(),
+              categoria.toString().trim(),
+              precioNum,
+              costoNum,
+              color.toString().trim(),
+              talle.toString().trim(),
+              codigoBarras.toString().trim(),
+              stockNum
+            ]);
+            importados++;
+          }
+        }
       } catch (err) {
         errores.push(`Error en código ${codigo}: ${err.message}`);
       }
@@ -1298,11 +1369,23 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), async (r
 
     await dbRun("COMMIT");
 
-    crearBackup(usuario, 'Importación Productos', `Procesados: ${importados}`);
-    res.json({ 
-        ok: true, 
-        importados, 
-        mensaje: `Se procesaron ${importados} productos correctamente.`,
+    const accion = modo === 'atributos' ? 'Actualización Atributos' : 'Importación Productos';
+    crearBackup(usuario, accion, `Nuevos: ${importados}, Actualizados: ${actualizados}`);
+
+    let mensaje = '';
+    if (modo === 'atributos') {
+      mensaje = `Se actualizaron atributos de ${actualizados} productos.`;
+      if (omitidos > 0) mensaje += ` ${omitidos} códigos no encontrados (omitidos).`;
+    } else {
+      mensaje = `${importados} productos nuevos, ${actualizados} actualizados.`;
+    }
+
+    res.json({
+        ok: true,
+        importados,
+        actualizados,
+        omitidos,
+        mensaje,
         errores: errores.length > 0 ? errores : undefined
     });
 
@@ -1789,13 +1872,13 @@ app.post('/api/productos/nuevo', requireAuth, async (req, res) => {
         return res.status(400).json({ error });
     }
 
-    const { codigo, codigoBarras, descripcion, categoria, precio, costo, stock } = value;
+    const { codigo, codigoBarras, descripcion, categoria, color, talle, precio, costo, stock } = value;
 
     try {
         await dbRun(db,
-            `INSERT INTO productos (codigo, codigoBarras, descripcion, categoria, precioPublico, costo, stock)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [codigo, codigoBarras || null, descripcion, categoria || 'General', precio, costo, stock]
+            `INSERT INTO productos (codigo, codigoBarras, descripcion, categoria, color, talle, precioPublico, costo, stock)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [codigo, codigoBarras || null, descripcion, categoria || 'General', color || null, talle || null, precio, costo, stock]
         );
 
         crearBackup(req.session.usuario, 'Producto Creado', `Alta: ${codigo} (${descripcion})`);
