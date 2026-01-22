@@ -1,0 +1,13 @@
+# robots.txt para StockMate Pro
+# Permitir indexar solo la página de login
+
+User-agent: *
+Allow: /login.html
+Allow: /login
+Disallow: /index.html
+Disallow: /api/
+Disallow: /app.js
+Disallow: /styles.css
+
+# Sitemap (opcional, si lo tenés)
+# Sitemap: https://app.stockmatepro.com/sitemap.xml
