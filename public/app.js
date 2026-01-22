@@ -326,11 +326,12 @@ const BarcodeScanner = {
                 </button>
             </div>
         `;
-        // Re-inicializar iconos Lucide
-        if (typeof lucide !== 'undefined') lucide.createIcons();
         indicator.className = 'scanner-indicator scanner-crear';
         indicator.style.maxWidth = '300px';
         document.body.appendChild(indicator);
+
+        // Re-inicializar iconos Lucide DESPUÉS de agregar al DOM
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
         // Animar entrada
         setTimeout(() => indicator.classList.add('show'), 10);
