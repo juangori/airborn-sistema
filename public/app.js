@@ -3720,10 +3720,10 @@ function renderHistorico(anio, meses) {
                 <tr>
                     <td>${v.fecha}</td>
                     <td>${v.codigoArticulo}</td>
-                    <td>${v.categoria || ''}</td>
+                    <td>${v.descripcion || ''}</td>
                     <td class="num">${v.cantidad}</td>
                     <td class="num">${precioDisplay}</td>
-                    <td class="num">${v.descuento ? v.descuento + '%' : '-'}</td>
+                    <td class="num">${v.descuento ? '%' + v.descuento : '-'}</td>
                     <td class="num">${formatMoney(total)}</td>
                     <td>${v.tipoPago || '-'}</td>
                     <td style="color: ${facturaColor}; font-weight: bold;">${facturaDisplay}</td>
@@ -3837,10 +3837,10 @@ function renderTablaFiltrada() {
             <tr>
                 <td>${v.fecha}</td>
                 <td>${v.codigoArticulo}</td>
-                <td>${v.categoria || ''}</td>
+                <td>${v.descripcion || ''}</td>
                 <td class="num">${v.cantidad}</td>
                 <td class="num">${precioDisplay}</td>
-                <td class="num">${v.descuento ? v.descuento + '%' : '-'}</td>
+                <td class="num">${v.descuento ? '%' + v.descuento : '-'}</td>
                 <td class="num">${formatMoney(total)}</td>
                 <td>${v.tipoPago || '-'}</td>
                 <td style="color: ${facturaColor}; font-weight: bold;">${facturaDisplay}</td>
