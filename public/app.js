@@ -4397,7 +4397,7 @@ function exportarHistorico(formato) {
     if (formato === 'csv') {
         exportarCSV(ventas, `ventas_${fechaExport}.csv`);
     } else {
-        exportarExcel(ventas, `ventas_${fechaExport}.xlsx`);
+        exportarExcel(ventas, `ventas_${fechaExport}.xls`);
     }
 }
 
