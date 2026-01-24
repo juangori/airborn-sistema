@@ -1268,6 +1268,27 @@
     </div>
 </div>
 
+<!-- Popup de actualización disponible -->
+<div id="popupActualizacion" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 99999; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 30px; border-radius: 16px; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <div style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+            <i data-lucide="refresh-cw" style="width: 35px; height: 35px; color: white;"></i>
+        </div>
+        <h2 style="margin: 0 0 10px 0; color: #2c3e50;">Nueva versión disponible</h2>
+        <p style="color: #666; margin-bottom: 25px; line-height: 1.5;">
+            Hay una actualización del sistema. Para continuar trabajando con la última versión, actualizá la página.
+        </p>
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="margin: 0; font-size: 0.9em; color: #555;">
+                <strong>Presioná:</strong> <kbd style="background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-family: monospace;">Ctrl</kbd> + <kbd style="background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-family: monospace;">F5</kbd>
+            </p>
+        </div>
+        <button onclick="location.reload(true)" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; border: none; padding: 14px 35px; border-radius: 8px; font-size: 1.05em; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 5px 20px rgba(52,152,219,0.4)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+            <i data-lucide="refresh-cw" class="lucide-icon-sm"></i> Actualizar ahora
+        </button>
+    </div>
+</div>
+
 <!-- Service Worker Registration -->
 <script>
 if ('serviceWorker' in navigator) {

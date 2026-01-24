@@ -850,11 +850,12 @@ if (configResp.ok) {
     document.getElementById(tab).classList.add('active');
     if (ev && ev.target) ev.target.classList.add('active');
 
-    // Cargar datos cuando necesario
+    // Cargar datos cuando necesario (siempre recargar al cambiar de pestaña)
     if (tab === 'cajas') cargarVentasDelMes();
     if (tab === 'cuentas') cargarCuentas();
     if (tab === 'promedios') cargarPromedios();
     if (tab === 'stock') cargarStockCompleto();
+    if (tab === 'historico') cargarHistorico();
     if (tab === 'cambios') {
         document.getElementById('cambioFecha').valueAsDate = new Date();
         // Set default filter to current month
@@ -3511,6 +3512,40 @@ async function eliminarCuenta(cliente) {
     }
 }
 
+
+// ==================== SISTEMA DE VERSIÓN Y ACTUALIZACIONES ====================
+let versionActual = null;
+
+async function verificarVersion() {
+    try {
+        const resp = await fetch('/api/version');
+        const data = await resp.json();
+
+        if (versionActual === null) {
+            // Primera vez - guardar versión actual
+            versionActual = data.version;
+        } else if (versionActual !== data.version) {
+            // Hay una nueva versión - mostrar popup
+            mostrarPopupActualizacion();
+        }
+    } catch (err) {
+        // Silenciar errores de red
+    }
+}
+
+function mostrarPopupActualizacion() {
+    const popup = document.getElementById('popupActualizacion');
+    if (popup) {
+        popup.style.display = 'flex';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
+
+// Verificar versión cada 30 segundos
+setInterval(verificarVersion, 30000);
+
+// Verificar al cargar
+verificarVersion();
 
     // ==================== INICIALIZACIÓN ====================
 window.addEventListener('load', () => {

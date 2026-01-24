@@ -48,6 +48,10 @@ const dbGet = (db, sql, params = []) => {
 const DATOS_DIR = './datos';          // acá se guardan las BD por cliente: datos/<usuario>.db
 // Guardar backups DENTRO de la carpeta segura para que no se borren al reiniciar
 const BACKUPS_DIR = path.join(DATOS_DIR, 'backups');
+
+// ==================== VERSIÓN DEL SISTEMA ====================
+// Incrementar este número cada vez que se haga un deploy que requiera refresh
+const APP_VERSION = '1.0.0';
 const USUARIOS_DB = path.join(DATOS_DIR, 'usuarios.db');
 const CONFIG_FILE = './config.json';
 
@@ -619,6 +623,11 @@ app.get('/api/session', (req, res) => {
       });
     }
   );
+});
+
+// Versión del sistema (para detectar actualizaciones)
+app.get('/api/version', (req, res) => {
+  res.json({ version: APP_VERSION });
 });
 
 // Crear usuario (con validación Joi)
