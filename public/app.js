@@ -3814,6 +3814,7 @@ function actualizarPromedioPrenda() {
     const lblTipo = document.getElementById('lblTipoPrecio');
     const valorEl = document.getElementById('histPromedioPrenda');
     const detalleEl = document.getElementById('histPromedioPrendaDetalle');
+    const cardEl = valorEl ? valorEl.closest('.metric-card') : null;
 
     if (!switchEl || !valorEl) return;
 
@@ -3825,12 +3826,14 @@ function actualizarPromedioPrenda() {
         valorEl.textContent = formatMoney(promedioPrendaCosto);
         valorEl.style.color = '#e74c3c';
         detalleEl.textContent = 'costo promedio';
+        if (cardEl) cardEl.style.borderLeftColor = '#e74c3c';
     } else {
         lblTipo.textContent = 'Público';
         lblTipo.style.color = '#9b59b6';
         valorEl.textContent = formatMoney(promedioPrendaPublico);
         valorEl.style.color = '#9b59b6';
         detalleEl.textContent = 'precio promedio';
+        if (cardEl) cardEl.style.borderLeftColor = '#9b59b6';
     }
 }
 
