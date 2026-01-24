@@ -50,8 +50,8 @@ const DATOS_DIR = './datos';          // acá se guardan las BD por cliente: dat
 const BACKUPS_DIR = path.join(DATOS_DIR, 'backups');
 
 // ==================== VERSIÓN DEL SISTEMA ====================
-// Incrementar este número cada vez que se haga un deploy que requiera refresh
-const APP_VERSION = '1.0.0';
+// Se genera automáticamente cada vez que se inicia/reinicia el servidor
+const APP_VERSION = Date.now().toString();
 const USUARIOS_DB = path.join(DATOS_DIR, 'usuarios.db');
 const CONFIG_FILE = './config.json';
 
