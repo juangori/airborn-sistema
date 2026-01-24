@@ -1589,9 +1589,9 @@ app.get('/api/ventas/historico', requireAuth, (req, res) => {
   const placeholders = mesesArray.map(() => '?').join(',');
   const params = [anio, ...mesesArray];
 
-  // JOIN con productos para traer la descripción
+  // JOIN con productos para traer descripción, costo y precio público
   const sql = `
-    SELECT v.*, p.descripcion
+    SELECT v.*, p.descripcion, p.costo as costoProducto, p.precioPublico as precioPublicoProducto
     FROM ventas v
     LEFT JOIN productos p ON v.codigoArticulo = p.codigo
     WHERE strftime('%Y', v.fecha) = ?

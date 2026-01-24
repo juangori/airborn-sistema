@@ -3605,6 +3605,8 @@ window.addEventListener('load', () => {
 // ==================== HISTÓRICO DE VENTAS ====================
 let historicoVentas = [];
 let ventasFiltradas = [];
+let promedioPrendaPublico = 0;
+let promedioPrendaCosto = 0;
 
 function initHistorico() {
     const anioSelect = document.getElementById('historicoAnio');
@@ -3698,6 +3700,8 @@ function renderHistorico(anio, meses) {
     // 2. Calcular Métricas Generales
     let totalVentas = 0;
     let totalPrendas = 0;
+    let totalCosto = 0;
+    let totalPrecioPublico = 0;
     let facturaACant = 0;
     let facturaAMonto = 0;
     let facturaBCant = 0;
@@ -3708,7 +3712,11 @@ function renderHistorico(anio, meses) {
         const total = precioFinal * v.cantidad;
         totalVentas += total;
         totalPrendas += v.cantidad;
-        
+
+        // Sumar costo y precio público del producto (si existe)
+        totalCosto += (v.costoProducto || 0) * v.cantidad;
+        totalPrecioPublico += (v.precioPublicoProducto || v.precio || 0) * v.cantidad;
+
         // Contar facturas y sumar montos
         const tipoFactura = (v.factura || '').toUpperCase().trim();
         if (tipoFactura === 'A') {
@@ -3723,12 +3731,19 @@ function renderHistorico(anio, meses) {
     const totalTickets = historicoVentas.length;
     const ticketPromedio = totalTickets ? totalVentas / totalTickets : 0;
 
+    // Calcular promedios por prenda
+    promedioPrendaPublico = totalPrendas ? totalPrecioPublico / totalPrendas : 0;
+    promedioPrendaCosto = totalPrendas ? totalCosto / totalPrendas : 0;
+
     // 3. Renderizar Métricas en el DOM
     document.getElementById('histTotalVentas').textContent = formatMoney(totalVentas);
     document.getElementById('histTotalTickets').textContent = `${totalTickets} tickets`;
     document.getElementById('histPrendasVendidas').textContent = totalPrendas;
     document.getElementById('histTicketPromedio').textContent = formatMoney(ticketPromedio);
-    
+
+    // Promedio por prenda (según estado del switch)
+    actualizarPromedioPrenda();
+
     // Facturación A y B
     document.getElementById('histFacturaAMonto').textContent = formatMoney(facturaAMonto);
     document.getElementById('histFacturaACant').textContent = `${facturaACant} tickets`;
@@ -3786,6 +3801,36 @@ function toggleFiltrosTabla() {
         panel.style.display = 'none';
         btn.innerHTML = '<i data-lucide="filter" class="lucide-icon-sm"></i> Filtros';
         if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+}
+
+// Funciones para el switch de promedio por prenda
+function togglePromedioPrenda() {
+    actualizarPromedioPrenda();
+}
+
+function actualizarPromedioPrenda() {
+    const switchEl = document.getElementById('switchCostoPublico');
+    const lblTipo = document.getElementById('lblTipoPrecio');
+    const valorEl = document.getElementById('histPromedioPrenda');
+    const detalleEl = document.getElementById('histPromedioPrendaDetalle');
+
+    if (!switchEl || !valorEl) return;
+
+    const mostrarCosto = switchEl.checked;
+
+    if (mostrarCosto) {
+        lblTipo.textContent = 'Costo';
+        lblTipo.style.color = '#e74c3c';
+        valorEl.textContent = formatMoney(promedioPrendaCosto);
+        valorEl.style.color = '#e74c3c';
+        detalleEl.textContent = 'costo promedio';
+    } else {
+        lblTipo.textContent = 'Público';
+        lblTipo.style.color = '#9b59b6';
+        valorEl.textContent = formatMoney(promedioPrendaPublico);
+        valorEl.style.color = '#9b59b6';
+        detalleEl.textContent = 'precio promedio';
     }
 }
 

@@ -874,6 +874,17 @@
                 <div class="metric-valor" id="histPrendasVendidas">0</div>
                 <div class="metric-detalle">unidades</div>
             </div>
+            <div class="metric-card" style="border-left: 3px solid #9b59b6;">
+                <h4 style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>Promedio/prenda</span>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 0.7em; font-weight: normal; cursor: pointer;">
+                        <span id="lblTipoPrecio" style="color: #9b59b6;">Público</span>
+                        <input type="checkbox" id="switchCostoPublico" onchange="togglePromedioPrenda()" style="cursor: pointer;">
+                    </label>
+                </h4>
+                <div class="metric-valor" id="histPromedioPrenda" style="color: #9b59b6;">$ 0</div>
+                <div class="metric-detalle" id="histPromedioPrendaDetalle">por unidad</div>
+            </div>
             <div class="metric-card" style="border-left: 3px solid #3498db;">
                 <h4>Factura A</h4>
                 <div class="metric-valor" id="histFacturaAMonto" style="color: #3498db;">$ 0</div>
