@@ -206,7 +206,9 @@ const BarcodeScanner = {
 
             if (producto) {
                 this.beepSuccess();
-                this.showIndicator(true, `${producto.codigo} - ${producto.descripcion || 'Encontrado'}`);
+                const variante = [producto.color, producto.talle].filter(v => v).join(' / ') || '';
+                const infoVariante = variante ? ` (${variante})` : '';
+                this.showIndicator(true, `${producto.codigo}${infoVariante} - ${producto.descripcion || 'Encontrado'}`);
             } else {
                 this.beepError();
                 this.ofrecerCrearProducto(code);
@@ -275,8 +277,10 @@ const BarcodeScanner = {
             }
 
             this.beepSuccess();
-            const precioMostrar = producto.precioPublico ? `$${producto.precioPublico}` : 'Sin precio';
-            this.showIndicator(true, `${producto.codigo} - ${precioMostrar}`);
+            const precioMostrar = producto.precioPublico ? `$${producto.precioPublico.toLocaleString('es-AR')}` : 'Sin precio';
+            const variante = [producto.color, producto.talle].filter(v => v).join(' / ') || '';
+            const infoVariante = variante ? ` (${variante})` : '';
+            this.showIndicator(true, `${producto.codigo}${infoVariante} - ${precioMostrar}`);
         }
     },
 
@@ -293,7 +297,9 @@ const BarcodeScanner = {
 
             if (producto) {
                 this.beepSuccess();
-                this.showIndicator(true, `${producto.codigo} - Stock: ${producto.stock || 0}`);
+                const variante = [producto.color, producto.talle].filter(v => v).join(' / ') || '';
+                const infoVariante = variante ? ` (${variante})` : '';
+                this.showIndicator(true, `${producto.codigo}${infoVariante} - Stock: ${producto.stock || 0}`);
             } else {
                 this.beepError();
                 this.ofrecerCrearProducto(code);
@@ -3167,12 +3173,12 @@ function renderStockTabla() {
             <td class="num">${formatMoney(p.precioPublico || 0)}</td>
             <td class="num" style="color:#888;">${formatMoney(p.costo || 0)}</td>
 
-            <td class="stock-editable num" onclick="editarStock(this, '${p.codigo}')" title="Click para editar" style="cursor: pointer;">
+            <td class="stock-editable num" onclick="editarStock(this, ${p.id})" title="Click para editar" style="cursor: pointer;">
                 ${p.stock ?? 0}
             </td>
 
             <td style="text-align: center; width: 50px;">
-                <button onclick="eliminarProducto('${p.codigo}', '${p.descripcion}')"
+                <button onclick="eliminarProducto(${p.id}, '${(p.descripcion || '').replace(/'/g, "\\'")} - ${p.color || ''} ${p.talle || ''}')"
                         style="background: transparent; border: none; color: #e74c3c; cursor: pointer; padding: 5px;"
                         title="Eliminar producto">
                     <i data-lucide="trash-2" class="lucide-icon-sm"></i>
@@ -5121,23 +5127,23 @@ async function confirmarVentaCtaCte() {
 // ==================== EDICIÓN RÁPIDA DE STOCK (TABLA) ====================
 let stockEditando = false; // Flag para evitar conflictos
 
-function editarStock(td, codigo) {
+function editarStock(td, productoId) {
     if (stockEditando) return; // Si ya hay uno abierto, no hacemos nada
-    
+
     const valorActual = parseInt(td.innerText);
     stockEditando = true;
 
     // Reemplazar texto por input
-    td.innerHTML = `<input type="number" class="input-stock-edit" value="${valorActual}" id="inputStock_${codigo}" style="width: 80px; text-align: center; padding: 4px; border: 2px solid #27ae60; border-radius: 4px; font-weight: bold;">`;
-    
-    const input = document.getElementById(`inputStock_${codigo}`);
+    td.innerHTML = `<input type="number" class="input-stock-edit" value="${valorActual}" id="inputStock_${productoId}" style="width: 80px; text-align: center; padding: 4px; border: 2px solid #27ae60; border-radius: 4px; font-weight: bold;">`;
+
+    const input = document.getElementById(`inputStock_${productoId}`);
     input.focus();
     input.select(); // Selecciona todo el número para borrar fácil
 
     // Guardar al perder foco o dar Enter
     const guardar = async () => {
         const nuevoValor = parseInt(input.value);
-        
+
         // Si no cambió o es inválido, volvemos a mostrar el número y listo
         if (isNaN(nuevoValor) || nuevoValor === valorActual) {
             td.innerHTML = valorActual;
@@ -5149,7 +5155,7 @@ function editarStock(td, codigo) {
             const resp = await fetch('/api/productos/stock/unitario', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codigo, nuevoStock: nuevoValor })
+                body: JSON.stringify({ id: productoId, nuevoStock: nuevoValor })
             });
 
             if (resp.ok) {
@@ -5157,9 +5163,9 @@ function editarStock(td, codigo) {
                 // Efecto visual de "guardado"
                 td.style.backgroundColor = '#d4edda';
                 setTimeout(() => td.style.backgroundColor = '', 500);
-                
+
                 // Actualizar array local para que el buscador siga funcionando bien sin recargar
-                const p = productosCache.find(p => p.codigo === codigo);
+                const p = productosCache.find(p => p.id === productoId);
                 if (p) p.stock = nuevoValor;
                 
                 showToast(`Stock actualizado: ${nuevoValor}`, 'success');
@@ -5300,21 +5306,21 @@ async function guardarNuevoProducto() {
     }
 }
 
-async function eliminarProducto(codigo, descripcion) {
+async function eliminarProducto(productoId, descripcion) {
     // Confirmación nativa (Rápida y segura)
-    if (!confirm(`¿Estás SEGURO de eliminar este producto?\n\n${codigo} - ${descripcion}\n\nEsta acción no se puede deshacer.`)) {
+    if (!confirm(`¿Estás SEGURO de eliminar este producto?\n\n${descripcion}\n\nEsta acción no se puede deshacer.`)) {
         return;
     }
 
     try {
-        const resp = await fetch(`/api/productos/${encodeURIComponent(codigo)}`, {
+        const resp = await fetch(`/api/productos/${productoId}`, {
             method: 'DELETE'
         });
 
         if (resp.ok) {
             showToast('Producto eliminado', 'success');
             // Eliminamos del cache local para que desaparezca al instante sin recargar todo
-            productosCache = productosCache.filter(p => p.codigo !== codigo);
+            productosCache = productosCache.filter(p => p.id !== productoId);
             renderStockTabla(); // Redibujar tabla
             renderStockResumen(); // Actualizar contadores
         } else {

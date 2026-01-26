@@ -186,7 +186,7 @@ const schemas = {
     stock: Joi.number().integer().min(0).default(0)
   }),
   stockUpdate: Joi.object({
-    codigo: Joi.string().required(),
+    id: Joi.number().integer().required(),
     nuevoStock: Joi.number().integer().min(0).required()
   })
 };
@@ -264,27 +264,58 @@ const conexionesDb = {}; // cache de conexiones
 
 function inicializarBdCliente(db) {
   db.serialize(() => {
+    // Nueva estructura: codigo NO es unique, la combinación codigo+color+talle SÍ es única
     db.run(`
       CREATE TABLE IF NOT EXISTS productos (
         id INTEGER PRIMARY KEY,
-        codigo TEXT UNIQUE NOT NULL,
+        codigo TEXT NOT NULL,
         codigoBarras TEXT,
         descripcion TEXT,
         categoria TEXT,
         precioPublico REAL,
         costo REAL,
-        color TEXT,
-        talle TEXT,
+        color TEXT DEFAULT '',
+        talle TEXT DEFAULT '',
         stock INTEGER DEFAULT 0
       )
     `);
+
+    // Índice único para la combinación codigo+color+talle (identifica cada variante)
+    db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_producto_variante ON productos(codigo, color, talle)`, () => {});
 
     // Migración: agregar columna codigoBarras si no existe (para BDs existentes)
     db.run(`ALTER TABLE productos ADD COLUMN codigoBarras TEXT`, () => {});
 
     // Migración: agregar columnas color y talle si no existen
-    db.run(`ALTER TABLE productos ADD COLUMN color TEXT`, () => {});
-    db.run(`ALTER TABLE productos ADD COLUMN talle TEXT`, () => {});
+    db.run(`ALTER TABLE productos ADD COLUMN color TEXT DEFAULT ''`, () => {});
+    db.run(`ALTER TABLE productos ADD COLUMN talle TEXT DEFAULT ''`, () => {});
+
+    // Migración IMPORTANTE: Si la tabla vieja tiene codigo UNIQUE, recrearla
+    // Esto detecta si existe el índice viejo y recrea la tabla
+    db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='productos'", (err, row) => {
+      if (row && row.sql && row.sql.includes('codigo TEXT UNIQUE')) {
+        console.log('🔄 Migrando tabla productos a nueva estructura (variantes por color/talle)...');
+        db.serialize(() => {
+          db.run(`CREATE TABLE productos_new (
+            id INTEGER PRIMARY KEY,
+            codigo TEXT NOT NULL,
+            codigoBarras TEXT,
+            descripcion TEXT,
+            categoria TEXT,
+            precioPublico REAL,
+            costo REAL,
+            color TEXT DEFAULT '',
+            talle TEXT DEFAULT '',
+            stock INTEGER DEFAULT 0
+          )`);
+          db.run(`INSERT INTO productos_new SELECT * FROM productos`);
+          db.run(`DROP TABLE productos`);
+          db.run(`ALTER TABLE productos_new RENAME TO productos`);
+          db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_producto_variante ON productos(codigo, color, talle)`);
+          console.log('✅ Migración de productos completada');
+        });
+      }
+    });
 
     db.run(`
       CREATE TABLE IF NOT EXISTS ventas (
@@ -1305,30 +1336,33 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), async (r
       const stockNum = parseInt(stockRaw.toString().replace(/[.,]/g, '')) || 0;
 
       try {
-        // Verificar si el producto ya existe
-        const existente = await dbGet('SELECT codigo FROM productos WHERE codigo = ?', [codigo.toString().trim()]);
+        // Limpiar valores
+        const codigoClean = codigo.toString().trim();
+        const colorClean = (color || '').toString().trim();
+        const talleClean = (talle || '').toString().trim();
+        const codigoBarrasClean = (codigoBarras || '').toString().trim();
+        const descripcionClean = descripcion.toString().trim();
+        const categoriaClean = categoria.toString().trim();
+
+        // NUEVA LÓGICA: Buscar por combinación codigo+color+talle (identifica variante única)
+        const existente = await dbGet(
+          'SELECT id FROM productos WHERE codigo = ? AND color = ? AND talle = ?',
+          [codigoClean, colorClean, talleClean]
+        );
 
         if (modo === 'atributos') {
-          // MODO ATRIBUTOS: solo actualizar color, talle, codigoBarras en productos existentes
+          // MODO ATRIBUTOS: solo actualizar codigoBarras en variantes existentes
           if (existente) {
             await dbRun(`
-              UPDATE productos SET
-                color = ?,
-                talle = ?,
-                codigoBarras = ?
-              WHERE codigo = ?
-            `, [
-              color.toString().trim(),
-              talle.toString().trim(),
-              codigoBarras.toString().trim(),
-              codigo.toString().trim()
-            ]);
+              UPDATE productos SET codigoBarras = ?
+              WHERE codigo = ? AND color = ? AND talle = ?
+            `, [codigoBarrasClean, codigoClean, colorClean, talleClean]);
             actualizados++;
           } else {
-            omitidos++; // No existe, lo omitimos en modo atributos
+            omitidos++; // No existe esta variante, la omitimos
           }
         } else {
-          // MODO COMPLETO: insertar nuevos + actualizar todo en existentes
+          // MODO COMPLETO: insertar nuevas variantes + actualizar existentes
           if (existente) {
             await dbRun(`
               UPDATE productos SET
@@ -1336,21 +1370,19 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), async (r
                 categoria = ?,
                 precioPublico = ?,
                 costo = ?,
-                color = ?,
-                talle = ?,
                 codigoBarras = ?,
                 stock = ?
-              WHERE codigo = ?
+              WHERE codigo = ? AND color = ? AND talle = ?
             `, [
-              descripcion.toString().trim(),
-              categoria.toString().trim(),
+              descripcionClean,
+              categoriaClean,
               precioNum,
               costoNum,
-              color.toString().trim(),
-              talle.toString().trim(),
-              codigoBarras.toString().trim(),
+              codigoBarrasClean,
               stockNum,
-              codigo.toString().trim()
+              codigoClean,
+              colorClean,
+              talleClean
             ]);
             actualizados++;
           } else {
@@ -1358,14 +1390,14 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), async (r
               INSERT INTO productos (codigo, descripcion, categoria, precioPublico, costo, color, talle, codigoBarras, stock)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
-              codigo.toString().trim(),
-              descripcion.toString().trim(),
-              categoria.toString().trim(),
+              codigoClean,
+              descripcionClean,
+              categoriaClean,
               precioNum,
               costoNum,
-              color.toString().trim(),
-              talle.toString().trim(),
-              codigoBarras.toString().trim(),
+              colorClean,
+              talleClean,
+              codigoBarrasClean,
               stockNum
             ]);
             importados++;
@@ -1405,18 +1437,40 @@ app.post('/api/productos/importar', requireAuth, upload.single('file'), async (r
   }
 });
 
-// 7. OBTENER STOCK DE UN PRODUCTO
+// 7. OBTENER STOCK DE UN PRODUCTO (o todas sus variantes)
 app.get('/api/productos/stock/:codigo', requireAuth, (req, res) => {
   const db = req.db;
   const { codigo } = req.params;
 
+  // Primero buscar por código de barras exacto (devuelve 1 variante específica)
   db.get(
-    'SELECT codigo, codigoBarras, descripcion, stock FROM productos WHERE codigo = ? OR codigoBarras = ?',
-    [codigo, codigo],
-    (err, row) => {
+    'SELECT * FROM productos WHERE codigoBarras = ?',
+    [codigo],
+    (err, rowBarcode) => {
       if (err) return res.status(500).json({ error: err.message });
-      if (!row) return res.status(404).json({ error: 'Producto no encontrado' });
-      res.json(row);
+
+      if (rowBarcode) {
+        // Encontrado por código de barras: devolver esa variante específica
+        return res.json(rowBarcode);
+      }
+
+      // Si no encontró por código de barras, buscar todas las variantes del código
+      db.all(
+        'SELECT * FROM productos WHERE codigo = ? ORDER BY color, talle',
+        [codigo],
+        (err2, rows) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+          if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+          }
+          // Devolver todas las variantes (array) o una sola si hay 1
+          if (rows.length === 1) {
+            res.json(rows[0]);
+          } else {
+            res.json({ variantes: rows, codigo: codigo, descripcion: rows[0].descripcion });
+          }
+        }
+      );
     }
   );
 });
@@ -1910,10 +1964,10 @@ app.put('/api/productos/stock/unitario', requireAuth, async (req, res) => {
         return res.status(400).json({ error });
     }
 
-    const { codigo, nuevoStock } = value;
+    const { id, nuevoStock } = value;
 
     try {
-        await dbRun(db, "UPDATE productos SET stock = ? WHERE codigo = ?", [nuevoStock, codigo]);
+        await dbRun(db, "UPDATE productos SET stock = ? WHERE id = ?", [nuevoStock, id]);
         res.json({ ok: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -1921,12 +1975,15 @@ app.put('/api/productos/stock/unitario', requireAuth, async (req, res) => {
 });
 
 // BORRAR PRODUCTO EN LA TABLA
-app.delete('/api/productos/:codigo', requireAuth, async (req, res) => {
+app.delete('/api/productos/:id', requireAuth, async (req, res) => {
     const db = req.db;
-    const { codigo } = req.params;
+    const { id } = req.params;
     try {
-        await dbRun(db, "DELETE FROM productos WHERE codigo = ?", [codigo]);
-        crearBackup(req.session.usuario, 'Producto Eliminado', `Código: ${codigo}`);
+        // Obtener info del producto antes de eliminar (para el log)
+        const producto = await dbGet(db, "SELECT codigo, descripcion, color, talle FROM productos WHERE id = ?", [id]);
+        await dbRun(db, "DELETE FROM productos WHERE id = ?", [id]);
+        const infoProducto = producto ? `${producto.codigo} - ${producto.descripcion} (${producto.color || ''} ${producto.talle || ''})` : `ID: ${id}`;
+        crearBackup(req.session.usuario, 'Producto Eliminado', infoProducto);
         res.json({ ok: true, mensaje: 'Producto eliminado' });
     } catch (e) {
         res.status(500).json({ error: e.message });
