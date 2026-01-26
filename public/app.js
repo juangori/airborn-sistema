@@ -1448,25 +1448,29 @@ function mostrarListaResultados(productos, contenedor) {
             ${muestra.map(p => {
                 // Preparamos el objeto para pasarlo al onclick (escapando comillas)
                 const pString = JSON.stringify(p).replace(/"/g, '&quot;');
-                
+
                 // Lógica visual del stock
                 const stock = Number(p.stock) || 0;
                 let claseStock = 'stock-ok'; // Verde
                 if (stock <= 0) claseStock = 'stock-cero'; // Rojo
                 else if (stock <= 5) claseStock = 'stock-bajo'; // Amarillo
 
+                // Color y talle
+                const variante = [p.color, p.talle].filter(v => v).join(' / ');
+                const infoVariante = variante ? `<span style="color: #888; font-size: 0.85em;"> (${variante})</span>` : '';
+
                 return `
                 <div class="resultado-item-card" onclick="mostrarProductoDetalle(${pString}, document.getElementById('busquedaResultado'))">
-                    
+
                     <div class="res-codigo">${p.codigo}</div>
-                    
-                    <div class="res-desc">${p.descripcion || 'Sin descripción'}</div>
-                    
+
+                    <div class="res-desc">${p.descripcion || 'Sin descripción'}${infoVariante}</div>
+
                     <div class="res-right">
                         <div class="res-precio">${formatMoney(p.precioPublico)}</div>
                         <span class="res-stock ${claseStock}">Stock: ${stock}</span>
                     </div>
-                    
+
                 </div>
                 `;
             }).join('')}
@@ -1480,11 +1484,13 @@ function mostrarProductoDetalle(producto, contenedor) {
     const precio = Number(producto.precioPublico) || 0;
     const costo  = Number(producto.costo) || 0;
     const stock  = Number(producto.stock);
+    const variante = [producto.color, producto.talle].filter(v => v).join(' / ');
+    const tituloVariante = variante ? `<span style="color: #888; font-size: 0.8em; font-weight: normal;"> (${variante})</span>` : '';
 
     contenedor.innerHTML = `
         <div class="producto-resultado">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">${producto.descripcion}</h3>
+                <h3 style="margin: 0;">${producto.descripcion}${tituloVariante}</h3>
                 <button onclick="document.getElementById('busquedaResultado').innerHTML=''; document.getElementById('busquedaInput').value=''; document.getElementById('busquedaInput').focus();"
                         style="background: none; border: none; cursor: pointer; color: #999;"><i data-lucide="x" class="lucide-icon"></i></button>
             </div>
@@ -1497,6 +1503,8 @@ function mostrarProductoDetalle(producto, contenedor) {
                     <label>Categoría</label>
                     <div class="valor">${producto.categoria || '-'}</div>
                 </div>
+                ${producto.color ? `<div class="producto-item"><label>Color</label><div class="valor">${producto.color}</div></div>` : ''}
+                ${producto.talle ? `<div class="producto-item"><label>Talle</label><div class="valor">${producto.talle}</div></div>` : ''}
                 <div class="producto-item">
                     <label>Precio Público</label>
                     <div class="valor">${formatMoney(precio)}</div>
@@ -1570,17 +1578,20 @@ function initEventosFormulario(form) {
                 if (data.multiple) {
                     resultadoDiv.innerHTML = `
                         <div class="resultados-lista" style="max-height: 250px;">
-                            ${data.productos.map(p => `
+                            ${data.productos.map(p => {
+                                const variante = [p.color, p.talle].filter(v => v).join(' / ');
+                                const infoVariante = variante ? `<span style="color: #888; font-size: 0.85em;"> (${variante})</span>` : '';
+                                return `
                                 <div class="resultado-item" onclick="seleccionarProductoEnForm(this, ${JSON.stringify(p).replace(/"/g, '&quot;')})">
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <div><strong>${p.codigo}</strong> - ${p.descripcion}</div>
+                                        <div><strong>${p.codigo}</strong> - ${p.descripcion}${infoVariante}</div>
                                         <div style="text-align: right;">
                                             <span style="font-weight: bold; color: var(--primary);">${formatMoney(p.precioPublico || 0)}</span>
                                             <span style="font-size: 0.85em; color: ${(p.stock || 0) <= 0 ? '#d9534f' : '#5cb85c'}; margin-left: 10px;">Stock: ${p.stock || 0}</span>
                                         </div>
                                     </div>
-                                </div>
-                            `).join('')}
+                                </div>`;
+                            }).join('')}
                         </div>
                     `;
                 } else {
@@ -1649,10 +1660,12 @@ function seleccionarProductoEnForm(elemento, producto) {
 function mostrarProductoEnForm(form, producto, contenedor) {
     const precio = Number(producto.precioPublico) || 0;
     const stock = Number(producto.stock);
+    const variante = [producto.color, producto.talle].filter(v => v).join(' / ');
+    const tituloVariante = variante ? `<span style="color: #888; font-size: 0.8em; font-weight: normal;"> (${variante})</span>` : '';
 
     contenedor.innerHTML = `
         <div class="producto-resultado">
-            <h3>${producto.descripcion}</h3>
+            <h3>${producto.descripcion}${tituloVariante}</h3>
             <div class="producto-grid">
                 <div class="producto-item">
                     <label>Código</label>
@@ -2839,11 +2852,14 @@ document.getElementById('stockBusquedaCodigo')?.addEventListener('keyup', async 
             resultado.style.display = 'block';
             resultado.innerHTML = `
                 <div class="resultados-lista" style="max-height: 250px;">
-                    ${data.productos.map(p => `
+                    ${data.productos.map(p => {
+                        const variante = [p.color, p.talle].filter(v => v).join(' / ');
+                        const infoVariante = variante ? `<span style="color: #888; font-size: 0.85em;"> (${variante})</span>` : '';
+                        return `
                         <div class="resultado-item" onclick="seleccionarProductoStock(${JSON.stringify(p).replace(/"/g, '&quot;')})">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div>
-                                    <strong>${p.codigo}</strong> - ${p.descripcion}
+                                    <strong>${p.codigo}</strong> - ${p.descripcion}${infoVariante}
                                 </div>
                                 <div style="text-align: right;">
                                     <span style="font-weight: bold; color: var(--primary);">${formatMoney(p.precioPublico || 0)}</span>
@@ -2851,7 +2867,7 @@ document.getElementById('stockBusquedaCodigo')?.addEventListener('keyup', async 
                                 </div>
                             </div>
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
             `;
             editor.style.display = 'none';
@@ -2876,13 +2892,15 @@ function seleccionarProductoStock(producto) {
 function mostrarEditorStock(producto) {
     const resultado = document.getElementById('stockBusquedaResultado');
     const editor = document.getElementById('stockEditor');
-    
+
     productoStockActual = producto;
     resultado.style.display = 'none';
     resultado.innerHTML = '';
 
-    // Llenar editor
-    document.getElementById('stockProductoTitulo').textContent = producto.descripcion || '';
+    // Llenar editor - incluir color/talle en el título
+    const variante = [producto.color, producto.talle].filter(v => v).join(' / ');
+    const tituloCompleto = variante ? `${producto.descripcion || ''} (${variante})` : (producto.descripcion || '');
+    document.getElementById('stockProductoTitulo').textContent = tituloCompleto;
     document.getElementById('stockCodigo').textContent = producto.codigo || '';
     document.getElementById('stockCategoria').textContent = producto.categoria || '';
     document.getElementById('stockPrecioPublico').value = producto.precioPublico || 0;
@@ -3056,34 +3074,43 @@ function renderStockResumen() {
     const cont = document.getElementById('stockResumen');
     if (!totalEl || !cont) return;
 
-    let totalPrendas = 0;
+    let totalStock = 0;
     const porCategoria = {};
 
     productosCache.forEach(p => {
         const stock = Number(p.stock) || 0;
-        totalPrendas += stock;
+        totalStock += stock;
         const cat = p.categoria || 'Sin categoría';
-        porCategoria[cat] = (porCategoria[cat] || 0) + stock;
+        if (!porCategoria[cat]) {
+            porCategoria[cat] = { articulos: 0, stock: 0 };
+        }
+        porCategoria[cat].articulos++;
+        porCategoria[cat].stock += stock;
     });
 
-    // Box superior derecho: PRENDAS TOTALES: X (Y artículos)
+    // Box superior derecho: muestra artículos y stock total si hay
+    const stockInfo = totalStock > 0 ? ` | Stock: ${totalStock}` : '';
     totalEl.innerHTML = `
         <span class="stock-resumen-total-label">PRENDAS TOTALES -</span>
-        <span class="stock-resumen-total-value">${totalPrendas}</span>
-        <span style="font-size:0.78em; opacity:0.9;">(${productosCache.length} artículos)</span>
+        <span class="stock-resumen-total-value">${productosCache.length}</span>
+        <span style="font-size:0.78em; opacity:0.9;">(artículos${stockInfo})</span>
     `;
 
-    // Tarjetas clickeables por categoría
+    // Tarjetas clickeables por categoría - muestra cantidad de artículos
     let html = '';
-    Object.entries(porCategoria).forEach(([cat, stock]) => {
-        const safeCat = cat.replace(/"/g, '&quot;');
-        html += `
-            <div class="stock-resumen-item" onclick="filtrarPorCategoria('${safeCat}')">
-                <h4>${cat}</h4>
-                <div class="valor">${stock}</div>
-            </div>
-        `;
-    });
+    Object.entries(porCategoria)
+        .sort((a, b) => b[1].articulos - a[1].articulos) // Ordenar por cantidad
+        .forEach(([cat, data]) => {
+            const safeCat = cat.replace(/"/g, '&quot;');
+            const stockLabel = data.stock > 0 ? `<div style="font-size:0.7em; color:#888;">Stock: ${data.stock}</div>` : '';
+            html += `
+                <div class="stock-resumen-item" onclick="filtrarPorCategoria('${safeCat}')">
+                    <h4>${cat}</h4>
+                    <div class="valor">${data.articulos}</div>
+                    ${stockLabel}
+                </div>
+            `;
+        });
 
     cont.innerHTML = html;
 }
