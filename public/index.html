@@ -875,16 +875,14 @@
                 <div class="metric-detalle">unidades</div>
             </div>
             <div class="metric-card" style="border-left: 3px solid #9b59b6;">
-                <h4 style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                    <span>Promedio/prenda</span>
-                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.65em; font-weight: normal;">
-                        <span id="lblTipoPrecio" style="color: #9b59b6; min-width: 45px; text-align: right;">Público</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="switchCostoPublico" onchange="togglePromedioPrenda()">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </h4>
+                <h4>Promedio/prenda</h4>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="switchCostoPublico" onchange="togglePromedioPrenda()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span id="lblTipoPrecio" style="color: #9b59b6; font-size: 0.75em; font-weight: 600;">Público</span>
+                </div>
                 <div class="metric-valor" id="histPromedioPrenda" style="color: #9b59b6;">$ 0</div>
                 <div class="metric-detalle" id="histPromedioPrendaDetalle">precio promedio</div>
             </div>
