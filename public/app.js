@@ -22,6 +22,9 @@ const BarcodeScanner = {
     // Modo continuo para ventas rápidas
     modoContinuo: false,
 
+    // Modo carga de stock (escanear = sumar 1) - activo por defecto
+    modoCargaStock: true,
+
     // Audio context para sonidos
     audioCtx: null,
 
@@ -285,6 +288,13 @@ const BarcodeScanner = {
     },
 
     procesarEnStock(code) {
+        // Modo carga de stock: sumar 1 automáticamente
+        if (this.modoCargaStock) {
+            this.incrementarStockPorCodigoBarras(code);
+            return;
+        }
+
+        // Modo normal: buscar y mostrar
         const input = document.getElementById('stockBusquedaCodigo');
         if (input) {
             input.value = code;
@@ -305,6 +315,99 @@ const BarcodeScanner = {
                 this.ofrecerCrearProducto(code);
             }
         }
+    },
+
+    // Incrementar stock automáticamente por código de barras
+    async incrementarStockPorCodigoBarras(codigoBarras) {
+        try {
+            const response = await fetch('/api/productos/stock/incrementar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigoBarras, cantidad: 1 })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                this.beepError();
+                if (response.status === 404) {
+                    this.ofrecerCrearProducto(codigoBarras);
+                } else {
+                    this.showIndicatorStock(false, 'Error: ' + (data.error || 'desconocido'));
+                }
+                return;
+            }
+
+            // Éxito - actualizar cache local
+            const productoCache = productosCache.find(p => p.codigoBarras === codigoBarras);
+            if (productoCache) {
+                productoCache.stock = data.producto.stockNuevo;
+            }
+
+            // Refrescar tabla de stock si está visible
+            if (typeof renderStockTabla === 'function') {
+                renderStockTabla();
+            }
+            if (typeof renderStockResumen === 'function') {
+                renderStockResumen();
+            }
+
+            this.beepSuccess();
+
+            // Mostrar indicador especial de stock
+            const variante = data.producto.variante ? ` (${data.producto.variante})` : '';
+            this.showIndicatorStock(true, `+1 ${data.producto.codigo}${variante}`, data.producto.stockNuevo);
+
+        } catch (error) {
+            this.beepError();
+            this.showIndicatorStock(false, 'Error de conexión');
+        }
+    },
+
+    // Indicador especial para carga de stock (más compacto y rápido)
+    showIndicatorStock(success, message, nuevoStock = null) {
+        const existing = document.getElementById('scannerIndicator');
+        if (existing) existing.remove();
+
+        const indicator = document.createElement('div');
+        indicator.id = 'scannerIndicator';
+        indicator.innerHTML = `
+            <div class="stock-indicator-content">
+                <span class="stock-indicator-icon">${success ? '<i data-lucide="plus-circle" class="lucide-icon"></i>' : '<i data-lucide="x-circle" class="lucide-icon"></i>'}</span>
+                <span class="stock-indicator-message">${message}</span>
+                ${nuevoStock !== null ? `<span class="stock-indicator-total">Stock: ${nuevoStock}</span>` : ''}
+            </div>
+        `;
+        indicator.className = `scanner-indicator scanner-stock ${success ? 'success' : 'error'}`;
+        document.body.appendChild(indicator);
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        setTimeout(() => indicator.classList.add('show'), 10);
+
+        // Desaparece más rápido (1.5 segundos)
+        setTimeout(() => {
+            indicator.classList.remove('show');
+            setTimeout(() => indicator.remove(), 300);
+        }, 1500);
+    },
+
+    // Toggle modo carga de stock
+    toggleModoCargaStock() {
+        this.modoCargaStock = !this.modoCargaStock;
+        const toggle = document.getElementById('toggleCargaStock');
+        const label = document.getElementById('labelCargaStock');
+
+        if (toggle) toggle.checked = this.modoCargaStock;
+        if (label) label.textContent = this.modoCargaStock ? 'Carga Rápida ON' : 'Carga Rápida OFF';
+
+        // Mostrar feedback
+        showToast(
+            this.modoCargaStock
+                ? 'Modo carga rápida activado: escanear = +1 stock'
+                : 'Modo carga rápida desactivado',
+            this.modoCargaStock ? 'success' : 'info'
+        );
     },
 
     // Ofrecer crear producto nuevo cuando no se encuentra

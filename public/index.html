@@ -498,6 +498,21 @@
         <!-- BOX OSCURO: búsqueda + edición -->
         <div class="stock-box-dark">
 
+            <!-- Toggle Carga Rápida de Stock -->
+            <div class="carga-rapida-toggle">
+                <div class="carga-rapida-info">
+                    <i data-lucide="scan-barcode" class="lucide-icon"></i>
+                    <div>
+                        <span class="carga-rapida-title">Carga Rápida con Escáner</span>
+                        <span class="carga-rapida-desc">Escanear = +1 al stock automáticamente</span>
+                    </div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggleCargaStock" onchange="BarcodeScanner.toggleModoCargaStock()" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
             <!-- Búsqueda por código -->
             <div class="form-group">
                 <label>Buscar por código de artículo</label>

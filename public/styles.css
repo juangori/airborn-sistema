@@ -4563,3 +4563,91 @@ flex-direction: column;
 .btn-crear-articulo:hover {
     background: #219a52;
 }
+
+/* ==================== CARGA RÁPIDA DE STOCK ==================== */
+.carga-rapida-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
+    border: 1px solid #2563eb;
+    border-radius: 10px;
+    padding: 12px 18px;
+    margin-bottom: 20px;
+}
+
+.carga-rapida-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #e5e7eb;
+}
+
+.carga-rapida-info i {
+    color: #60a5fa;
+    width: 24px;
+    height: 24px;
+}
+
+.carga-rapida-title {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95em;
+    color: #f9fafb;
+}
+
+.carga-rapida-desc {
+    display: block;
+    font-size: 0.8em;
+    color: #9ca3af;
+}
+
+/* Indicador de stock - scanner */
+.scanner-indicator.scanner-stock {
+    padding: 12px 20px;
+    min-width: 200px;
+}
+
+.scanner-indicator.scanner-stock.success {
+    border-left-color: #10b981;
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.scanner-indicator.scanner-stock.error {
+    border-left-color: #ef4444;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.stock-indicator-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stock-indicator-icon {
+    display: flex;
+    align-items: center;
+}
+
+.scanner-indicator.scanner-stock.success .stock-indicator-icon {
+    color: #10b981;
+}
+
+.scanner-indicator.scanner-stock.error .stock-indicator-icon {
+    color: #ef4444;
+}
+
+.stock-indicator-message {
+    font-weight: 700;
+    font-size: 1em;
+    color: #1f2937;
+}
+
+.stock-indicator-total {
+    background: #10b981;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+}

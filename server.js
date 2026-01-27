@@ -2009,6 +2009,51 @@ app.put('/api/productos/stock/unitario', requireAuth, async (req, res) => {
     }
 });
 
+// 3. INCREMENTAR STOCK POR CÓDIGO DE BARRAS (CARGA RÁPIDA CON ESCÁNER)
+app.post('/api/productos/stock/incrementar', requireAuth, async (req, res) => {
+    const db = req.db;
+    const { codigoBarras, cantidad = 1 } = req.body;
+
+    if (!codigoBarras) {
+        return res.status(400).json({ error: 'Código de barras requerido' });
+    }
+
+    try {
+        // Buscar producto por código de barras
+        const producto = await dbGet(db,
+            "SELECT id, codigo, descripcion, color, talle, stock FROM productos WHERE codigoBarras = ?",
+            [codigoBarras]
+        );
+
+        if (!producto) {
+            return res.status(404).json({ error: 'Producto no encontrado', codigoBarras });
+        }
+
+        const nuevoStock = (producto.stock || 0) + cantidad;
+
+        // Actualizar stock
+        await dbRun(db, "UPDATE productos SET stock = ? WHERE id = ?", [nuevoStock, producto.id]);
+
+        // Info de variante para el mensaje
+        const variante = [producto.color, producto.talle].filter(v => v).join(' / ');
+
+        res.json({
+            ok: true,
+            producto: {
+                id: producto.id,
+                codigo: producto.codigo,
+                descripcion: producto.descripcion,
+                variante: variante || null,
+                stockAnterior: producto.stock || 0,
+                stockNuevo: nuevoStock,
+                cantidadSumada: cantidad
+            }
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // BORRAR PRODUCTO EN LA TABLA
 app.delete('/api/productos/:id', requireAuth, async (req, res) => {
     const db = req.db;
