@@ -3679,7 +3679,7 @@ flex-direction: column;
 /* Colores de stock (igual que antes) */
 .stock-ok { background: #d4edda; color: #155724; }
 .stock-bajo { background: #fff3cd; color: #856404; }
-.stock-cero { background: #f8d7da; color: #721c24; }
+.stock-cero { background: none; color: #721c24; }
 
 /* Tabla Comparativa de Periodo */
 .tabla-comp-periodo {
