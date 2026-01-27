@@ -1170,24 +1170,59 @@ app.put('/api/ventas/:id/comentario', requireAuth, async (req, res) => {
   }
 });
 
-// 5. ACTUALIZAR PRODUCTO
-app.put('/api/productos/:codigo', requireAuth, (req, res) => {
+// 5. ACTUALIZAR PRODUCTO (precios en todas las variantes, stock solo en la específica)
+app.put('/api/productos/:codigo', requireAuth, async (req, res) => {
   const db = req.db;
   const usuario = req.session.usuario;
 
   const { codigo } = req.params;
-  const { precioPublico, costo, stockFinal } = req.body;
+  const { precioPublico, costo, stockFinal, productoId } = req.body;
 
-  db.run(
-    'UPDATE productos SET precioPublico = ?, costo = ?, stock = ? WHERE codigo = ?',
-    [precioPublico, costo, stockFinal, codigo],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      if (this.changes === 0) return res.status(404).json({ error: 'Producto no encontrado' });
-      crearBackup(usuario, 'Producto modificado', `Código: ${codigo}, Stock: ${stockFinal}, Precio: $${precioPublico}`);
-      res.json({ ok: true });
+  try {
+    // 1. Actualizar PRECIOS en todas las variantes del mismo código
+    await new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE productos SET precioPublico = ?, costo = ? WHERE codigo = ?',
+        [precioPublico, costo, codigo],
+        function(err) {
+          if (err) reject(err);
+          else resolve(this.changes);
+        }
+      );
+    });
+
+    // 2. Actualizar STOCK solo en la variante específica (si se envió el ID)
+    let stockUpdated = false;
+    if (productoId && stockFinal !== undefined) {
+      await new Promise((resolve, reject) => {
+        db.run(
+          'UPDATE productos SET stock = ? WHERE id = ?',
+          [stockFinal, productoId],
+          function(err) {
+            if (err) reject(err);
+            else {
+              stockUpdated = this.changes > 0;
+              resolve();
+            }
+          }
+        );
+      });
     }
-  );
+
+    // Contar cuántas variantes se actualizaron
+    const variantes = await new Promise((resolve, reject) => {
+      db.get('SELECT COUNT(*) as total FROM productos WHERE codigo = ?', [codigo], (err, row) => {
+        if (err) reject(err);
+        else resolve(row?.total || 0);
+      });
+    });
+
+    crearBackup(usuario, 'Producto modificado', `Código: ${codigo}, Precio: $${precioPublico}, Costo: $${costo}${stockUpdated ? `, Stock variante: ${stockFinal}` : ''} (${variantes} variantes)`);
+    res.json({ ok: true, variantesActualizadas: variantes });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 6. UPLOAD DE CSV STOCK (corrige bug: memoryStorage -> buffer)

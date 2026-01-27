@@ -3006,6 +3006,7 @@ async function guardarStockYPrecios(event) {
         mensaje.textContent = '';
 
         const codigo = productoStockActual.codigo;
+        const productoId = productoStockActual.id; // ID específico de esta variante
         const precioPublico = parseFloat(document.getElementById('stockPrecioPublico').value) || 0;
         const costo = parseFloat(document.getElementById('stockCosto').value) || 0;
         const stockActual = Number(productoStockActual.stock) || 0;
@@ -3021,7 +3022,7 @@ async function guardarStockYPrecios(event) {
         const response = await fetch(`/api/productos/${encodeURIComponent(codigo)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ precioPublico, costo, stockFinal })
+            body: JSON.stringify({ precioPublico, costo, stockFinal, productoId })
         });
 
         if (!response.ok) {
@@ -3035,6 +3036,8 @@ async function guardarStockYPrecios(event) {
             return;
         }
 
+        const result = await response.json();
+
         productoStockActual.precioPublico = precioPublico;
         productoStockActual.costo = costo;
         productoStockActual.stock = stockFinal;
@@ -3044,7 +3047,12 @@ async function guardarStockYPrecios(event) {
         document.getElementById('stockFinal').textContent = stockFinal;
 
         mensaje.style.display = 'none';
-        showToast('Cambios guardados correctamente', 'success');
+
+        // Mensaje informativo sobre variantes actualizadas
+        const variantesMsg = result.variantesActualizadas > 1
+            ? ` (precios actualizados en ${result.variantesActualizadas} variantes)`
+            : '';
+        showToast('Cambios guardados' + variantesMsg, 'success');
 
     } catch (error) {
         const mensaje = document.getElementById('stockEditorMensaje');
