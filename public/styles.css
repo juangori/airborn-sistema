@@ -4061,3 +4061,505 @@ flex-direction: column;
 .toggle-switch input:checked + .toggle-slider:before {
     transform: translateX(18px);
 }
+
+/* ==================== BUSCAR PRECIOS - DARK MODE ==================== */
+.busqueda-box-dark {
+    background: linear-gradient(135deg, #111827 0%, #1f2933 100%);
+    border-radius: 12px;
+    padding: 22px 22px 26px;
+    margin-bottom: 30px;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35);
+}
+
+.busqueda-box-title {
+    color: #f9fafb;
+    font-size: 1.2em;
+    margin: 0 0 18px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.busqueda-box-title i {
+    color: #60a5fa;
+}
+
+.busqueda-box-dark .form-group label {
+    color: #e5e7eb;
+}
+
+.busqueda-box-dark .input-search input {
+    background: #111827;
+    border: 1px solid #374151;
+    color: #f9fafb;
+    padding: 14px 18px;
+    font-size: 1.05em;
+    border-radius: 8px;
+}
+
+.busqueda-box-dark .input-search input::placeholder {
+    color: #9ca3af;
+}
+
+.busqueda-box-dark .input-search input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+    outline: none;
+}
+
+.busqueda-box-dark .input-search .search-icon {
+    color: #9ca3af;
+}
+
+/* Resultados dentro del box oscuro */
+.busqueda-box-dark .producto-resultado {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid #374151;
+    border-radius: 10px;
+    padding: 18px;
+    margin-top: 15px;
+}
+
+.busqueda-box-dark .producto-resultado h3 {
+    color: #60a5fa;
+    margin: 0 0 12px 0;
+}
+
+.busqueda-box-dark .producto-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.busqueda-box-dark .producto-item {
+    background: #020617;
+    border: 1px solid #4b5563;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.busqueda-box-dark .producto-item label {
+    color: #9ca3af;
+    font-size: 0.75em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.busqueda-box-dark .producto-item .valor {
+    color: #e5e7eb;
+    font-weight: 600;
+}
+
+/* Lista de resultados múltiples en dark */
+.busqueda-box-dark .resultados-busqueda-grid {
+    margin-top: 15px;
+}
+
+.busqueda-box-dark .resultado-item-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid #374151;
+    color: #e5e7eb;
+    transition: all 0.2s;
+}
+
+.busqueda-box-dark .resultado-item-card:hover {
+    background: rgba(30, 41, 59, 0.95);
+    border-color: #6366f1;
+}
+
+.busqueda-box-dark .resultado-item-card .res-codigo {
+    color: #60a5fa;
+}
+
+.busqueda-box-dark .resultado-item-card .res-desc {
+    color: #f9fafb;
+}
+
+.busqueda-box-dark .resultado-item-card .res-precio {
+    color: #34d399;
+}
+
+/* Alertas dentro del dark box */
+.busqueda-box-dark .alert {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid #374151;
+    color: #e5e7eb;
+}
+
+/* Variante badges */
+.variante-badges {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.variante-badge {
+    background: #f0f4f8;
+    border: 1px solid #e1e8ef;
+    border-radius: 6px;
+    padding: 4px 12px;
+}
+
+.variante-badge .variante-label {
+    font-size: 0.7em;
+    color: #666;
+    text-transform: uppercase;
+    display: block;
+}
+
+.variante-badge .variante-valor {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* Variante badges en dark mode */
+.busqueda-box-dark .variante-badge {
+    background: #1e3a5f;
+    border: 1px solid #2563eb;
+}
+
+.busqueda-box-dark .variante-badge .variante-label {
+    color: #9ca3af;
+}
+
+.busqueda-box-dark .variante-badge .variante-valor {
+    color: #93c5fd;
+}
+
+/* Header del resultado */
+.producto-resultado-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.producto-resultado-header h3 {
+    margin: 0;
+    font-size: 1.4em;
+}
+
+.btn-cerrar-resultado {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    padding: 5px;
+}
+
+.btn-cerrar-resultado:hover {
+    color: #666;
+}
+
+.busqueda-box-dark .btn-cerrar-resultado {
+    color: #6b7280;
+}
+
+.busqueda-box-dark .btn-cerrar-resultado:hover {
+    color: #9ca3af;
+}
+
+/* Valores especiales */
+.producto-item .valor.precio {
+    color: #27ae60;
+    font-weight: 700;
+}
+
+.producto-item .valor.costo {
+    color: #999;
+}
+
+.producto-item .valor.stock-ok {
+    color: #5cb85c;
+}
+
+.producto-item .valor.stock-bajo {
+    color: #f0ad4e;
+}
+
+.producto-item .valor.stock-cero {
+    color: #d9534f;
+}
+
+.busqueda-box-dark .producto-item .valor.precio {
+    color: #34d399;
+}
+
+.busqueda-box-dark .producto-item .valor.costo {
+    color: #6b7280;
+}
+
+/* ==================== BADGES DE VARIANTE EN RESULTADOS ==================== */
+/* Badge inline para color en listas de resultados */
+.badge-color {
+    background: #e8f4f8;
+    color: #2980b9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    margin-left: 5px;
+}
+
+/* Badge inline para talle en listas de resultados */
+.badge-talle {
+    background: #fef5e7;
+    color: #d68910;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    margin-left: 3px;
+}
+
+/* Dark mode variants */
+.busqueda-box-dark .badge-color,
+.venta-box-dark .badge-color {
+    background: #1e3a5f;
+    color: #60a5fa;
+}
+
+.busqueda-box-dark .badge-talle,
+.venta-box-dark .badge-talle {
+    background: #3d2e1e;
+    color: #fbbf24;
+}
+
+/* Estilos para info de resultados */
+.resultados-info {
+    margin-bottom: 10px;
+    color: #9ca3af;
+    font-size: 0.9em;
+}
+
+.busqueda-box-dark .resultados-info {
+    color: #9ca3af;
+}
+
+/* Estilos para items en resultado de lista */
+.resultado-item-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.resultado-item-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.resultado-item-left strong {
+    color: #2c3e50;
+}
+
+.resultado-item-separator {
+    margin: 0 6px;
+    color: #555;
+}
+
+.resultado-item-desc {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.resultado-item-right {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.resultado-item-precio {
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.resultado-item-stock {
+    font-size: 0.85em;
+    margin-left: 10px;
+}
+
+.resultado-item-stock.stock-ok {
+    color: #5cb85c;
+}
+
+.resultado-item-stock.stock-cero {
+    color: #d9534f;
+}
+
+/* Dark mode para resultado-item */
+.busqueda-box-dark .resultado-item-left strong {
+    color: #60a5fa;
+}
+
+.busqueda-box-dark .resultado-item-separator {
+    color: #6b7280;
+}
+
+.busqueda-box-dark .resultado-item-desc {
+    color: #f9fafb;
+}
+
+.busqueda-box-dark .resultado-item-precio {
+    color: #34d399;
+}
+
+/* Estilos para variante-badges más compactos en ventas */
+.variante-badges-compact {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.variante-badge-color {
+    background: #e8f4f8;
+    border: 1px solid #d4e8ef;
+    border-radius: 5px;
+    padding: 3px 10px;
+}
+
+.variante-badge-color .variante-label {
+    font-size: 0.65em;
+    color: #666;
+    text-transform: uppercase;
+    display: block;
+}
+
+.variante-badge-color .variante-valor {
+    font-weight: 600;
+    color: #2980b9;
+    font-size: 0.9em;
+}
+
+.variante-badge-talle {
+    background: #fef5e7;
+    border: 1px solid #f5e6cc;
+    border-radius: 5px;
+    padding: 3px 10px;
+}
+
+.variante-badge-talle .variante-label {
+    font-size: 0.65em;
+    color: #666;
+    text-transform: uppercase;
+    display: block;
+}
+
+.variante-badge-talle .variante-valor {
+    font-weight: 600;
+    color: #d68910;
+    font-size: 0.9em;
+}
+
+/* Dark mode para badges compactos */
+.venta-box-dark .variante-badge-color {
+    background: #1e3a5f;
+    border-color: #2563eb;
+}
+
+.venta-box-dark .variante-badge-color .variante-label {
+    color: #9ca3af;
+}
+
+.venta-box-dark .variante-badge-color .variante-valor {
+    color: #60a5fa;
+}
+
+.venta-box-dark .variante-badge-talle {
+    background: #3d2e1e;
+    border-color: #d97706;
+}
+
+.venta-box-dark .variante-badge-talle .variante-label {
+    color: #9ca3af;
+}
+
+.venta-box-dark .variante-badge-talle .variante-valor {
+    color: #fbbf24;
+}
+
+/* Header de producto en resultados de ventas */
+.producto-resultado-info {
+    margin-bottom: 12px;
+}
+
+.producto-resultado-info h3 {
+    margin: 0;
+    color: #1a5276;
+    font-size: 1.2em;
+}
+
+.venta-box-dark .producto-resultado-info h3 {
+    color: #60a5fa;
+}
+
+/* Stock colors */
+.valor.stock-ok {
+    color: #5cb85c;
+}
+
+.valor.stock-bajo {
+    color: #f0ad4e;
+}
+
+.valor.stock-cero {
+    color: #d9534f;
+}
+
+/* Valor con botón de acción */
+.valor-con-accion {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Botón agregar compacto */
+.btn-agregar-compact {
+    margin: 0;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+/* Dark mode para valores de stock */
+.venta-box-dark .valor.stock-ok {
+    color: #34d399;
+}
+
+.venta-box-dark .valor.stock-bajo {
+    color: #fbbf24;
+}
+
+.venta-box-dark .valor.stock-cero {
+    color: #f87171;
+}
+
+/* res-desc font weight */
+.res-desc {
+    font-weight: 500;
+}
+
+/* Resultado no encontrado */
+.resultado-no-encontrado {
+    padding: 10px;
+    text-align: center;
+}
+
+.resultado-no-encontrado .texto-error {
+    color: #e74c3c;
+    margin-bottom: 10px;
+}
+
+.btn-crear-articulo {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-crear-articulo:hover {
+    background: #219a52;
+}

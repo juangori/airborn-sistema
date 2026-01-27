@@ -1441,7 +1441,7 @@ function mostrarListaResultados(productos, contenedor) {
     const muestra = productos.slice(0, 50);
 
     const html = `
-        <div style="margin-bottom: 10px; color: #666; font-size: 0.9em;">
+        <div class="resultados-info">
             Encontrados <strong>${productos.length}</strong> resultados:
         </div>
         <div class="resultados-busqueda-grid">
@@ -1455,23 +1455,19 @@ function mostrarListaResultados(productos, contenedor) {
                 if (stock <= 0) claseStock = 'stock-cero'; // Rojo
                 else if (stock <= 5) claseStock = 'stock-bajo'; // Amarillo
 
-                // Badges de color y talle
+                // Badges de color y talle usando clases CSS
                 let badges = '';
-                if (p.color) badges += `<span style="background:#e8f4f8; color:#2980b9; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:5px;">${p.color}</span>`;
-                if (p.talle) badges += `<span style="background:#fef5e7; color:#d68910; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:3px;">${p.talle}</span>`;
+                if (p.color) badges += `<span class="badge-color">${p.color}</span>`;
+                if (p.talle) badges += `<span class="badge-talle">${p.talle}</span>`;
 
                 return `
                 <div class="resultado-item-card" onclick="mostrarProductoDetalle(${pString}, document.getElementById('busquedaResultado'))">
-
                     <div class="res-codigo">${p.codigo}</div>
-
-                    <div class="res-desc" style="font-weight: 500;">${p.descripcion || 'Sin descripción'}${badges}</div>
-
+                    <div class="res-desc">${p.descripcion || 'Sin descripción'}${badges}</div>
                     <div class="res-right">
                         <div class="res-precio">${formatMoney(p.precioPublico)}</div>
                         <span class="res-stock ${claseStock}">Stock: ${stock}</span>
                     </div>
-
                 </div>
                 `;
             }).join('')}
@@ -1486,18 +1482,23 @@ function mostrarProductoDetalle(producto, contenedor) {
     const costo  = Number(producto.costo) || 0;
     const stock  = Number(producto.stock);
 
+    // Determinar clase de stock
+    let stockClass = 'stock-ok';
+    if (stock <= 0) stockClass = 'stock-cero';
+    else if (stock <= 5) stockClass = 'stock-bajo';
+
     // Variante con boxes estilizados
     let varianteHtml = '';
     if (producto.color || producto.talle) {
         varianteHtml = `
-            <div style="display: flex; gap: 10px; margin-top: 8px;">
-                ${producto.color ? `<div style="background: #f0f4f8; border: 1px solid #e1e8ef; border-radius: 6px; padding: 4px 12px;">
-                    <span style="font-size: 0.7em; color: #666; text-transform: uppercase; display: block;">Color</span>
-                    <span style="font-weight: 600; color: #2c3e50;">${producto.color}</span>
+            <div class="variante-badges">
+                ${producto.color ? `<div class="variante-badge">
+                    <span class="variante-label">Color</span>
+                    <span class="variante-valor">${producto.color}</span>
                 </div>` : ''}
-                ${producto.talle ? `<div style="background: #f0f4f8; border: 1px solid #e1e8ef; border-radius: 6px; padding: 4px 12px;">
-                    <span style="font-size: 0.7em; color: #666; text-transform: uppercase; display: block;">Talle</span>
-                    <span style="font-weight: 600; color: #2c3e50;">${producto.talle}</span>
+                ${producto.talle ? `<div class="variante-badge">
+                    <span class="variante-label">Talle</span>
+                    <span class="variante-valor">${producto.talle}</span>
                 </div>` : ''}
             </div>
         `;
@@ -1505,13 +1506,14 @@ function mostrarProductoDetalle(producto, contenedor) {
 
     contenedor.innerHTML = `
         <div class="producto-resultado">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+            <div class="producto-resultado-header">
                 <div>
-                    <h3 style="margin: 0; font-size: 1.4em; color: #1a5276;">${producto.descripcion}</h3>
+                    <h3>${producto.descripcion}</h3>
                     ${varianteHtml}
                 </div>
-                <button onclick="document.getElementById('busquedaResultado').innerHTML=''; document.getElementById('busquedaInput').value=''; document.getElementById('busquedaInput').focus();"
-                        style="background: none; border: none; cursor: pointer; color: #999;"><i data-lucide="x" class="lucide-icon"></i></button>
+                <button class="btn-cerrar-resultado" onclick="document.getElementById('busquedaResultado').innerHTML=''; document.getElementById('busquedaInput').value=''; document.getElementById('busquedaInput').focus();">
+                    <i data-lucide="x" class="lucide-icon"></i>
+                </button>
             </div>
             <div class="producto-grid">
                 <div class="producto-item">
@@ -1524,15 +1526,15 @@ function mostrarProductoDetalle(producto, contenedor) {
                 </div>
                 <div class="producto-item">
                     <label>Precio Público</label>
-                    <div class="valor">${formatMoney(precio)}</div>
+                    <div class="valor precio">${formatMoney(precio)}</div>
                 </div>
                 <div class="producto-item">
                     <label>Costo</label>
-                    <div style="color: #999; font-size: 1.1em;">${formatMoney(costo)}</div>
+                    <div class="valor costo">${formatMoney(costo)}</div>
                 </div>
                 <div class="producto-item">
                     <label>Stock</label>
-                    <div class="valor" style="color: ${stock <= 0 ? '#d9534f' : stock <= 5 ? '#f0ad4e' : '#5cb85c'}">${stock}</div>
+                    <div class="valor ${stockClass}">${stock}</div>
                 </div>
             </div>
         </div>
@@ -1578,7 +1580,7 @@ function initEventosFormulario(form) {
             const busqueda = e.target.value.trim();
 
             if (busqueda.length < 2) {
-                resultadoDiv.innerHTML = busqueda.length === 1 ? '<div style="color:#999; padding:10px;">Escribí al menos 2 caracteres...</div>' : '';
+                resultadoDiv.innerHTML = busqueda.length === 1 ? '<div class="resultados-info" style="padding:10px;">Escribí al menos 2 caracteres...</div>' : '';
                 return;
             }
 
@@ -1596,17 +1598,18 @@ function initEventosFormulario(form) {
                     resultadoDiv.innerHTML = `
                         <div class="resultados-lista" style="max-height: 250px;">
                             ${data.productos.map(p => {
-                                // Badges de color/talle
+                                // Badges de color/talle usando clases CSS
                                 let badges = '';
-                                if (p.color) badges += `<span style="background:#e8f4f8; color:#2980b9; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:5px;">${p.color}</span>`;
-                                if (p.talle) badges += `<span style="background:#fef5e7; color:#d68910; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:3px;">${p.talle}</span>`;
+                                if (p.color) badges += `<span class="badge-color">${p.color}</span>`;
+                                if (p.talle) badges += `<span class="badge-talle">${p.talle}</span>`;
+                                const stockClass = (p.stock || 0) <= 0 ? 'stock-cero' : 'stock-ok';
                                 return `
                                 <div class="resultado-item" onclick="seleccionarProductoEnForm(this, ${JSON.stringify(p).replace(/"/g, '&quot;')})">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <div style="display: flex; align-items: center; flex-wrap: wrap;"><strong>${p.codigo}</strong><span style="margin: 0 6px; color: #555;">-</span><span style="font-weight: 500; color: #2c3e50;">${p.descripcion}</span>${badges}</div>
-                                        <div style="text-align: right;">
-                                            <span style="font-weight: bold; color: var(--primary);">${formatMoney(p.precioPublico || 0)}</span>
-                                            <span style="font-size: 0.85em; color: ${(p.stock || 0) <= 0 ? '#d9534f' : '#5cb85c'}; margin-left: 10px;">Stock: ${p.stock || 0}</span>
+                                    <div class="resultado-item-content">
+                                        <div class="resultado-item-left"><strong>${p.codigo}</strong><span class="resultado-item-separator">-</span><span class="resultado-item-desc">${p.descripcion}</span>${badges}</div>
+                                        <div class="resultado-item-right">
+                                            <span class="resultado-item-precio">${formatMoney(p.precioPublico || 0)}</span>
+                                            <span class="resultado-item-stock ${stockClass}">Stock: ${p.stock || 0}</span>
                                         </div>
                                     </div>
                                 </div>`;
@@ -1680,33 +1683,38 @@ function mostrarProductoEnForm(form, producto, contenedor) {
     const precio = Number(producto.precioPublico) || 0;
     const stock = Number(producto.stock);
 
-    // Badges de variante
+    // Determinar clase de stock
+    let stockClass = 'stock-ok';
+    if (stock <= 0) stockClass = 'stock-cero';
+    else if (stock <= 5) stockClass = 'stock-bajo';
+
+    // Badges de variante usando clases CSS
     let badgesHtml = '';
     if (producto.color || producto.talle) {
-        badgesHtml = `<div style="display: flex; gap: 8px; margin-top: 6px;">
-            ${producto.color ? `<div style="background: #e8f4f8; border: 1px solid #d4e8ef; border-radius: 5px; padding: 3px 10px;">
-                <span style="font-size: 0.65em; color: #666; text-transform: uppercase; display: block;">Color</span>
-                <span style="font-weight: 600; color: #2980b9; font-size: 0.9em;">${producto.color}</span>
+        badgesHtml = `<div class="variante-badges-compact">
+            ${producto.color ? `<div class="variante-badge-color">
+                <span class="variante-label">Color</span>
+                <span class="variante-valor">${producto.color}</span>
             </div>` : ''}
-            ${producto.talle ? `<div style="background: #fef5e7; border: 1px solid #f5e6cc; border-radius: 5px; padding: 3px 10px;">
-                <span style="font-size: 0.65em; color: #666; text-transform: uppercase; display: block;">Talle</span>
-                <span style="font-weight: 600; color: #d68910; font-size: 0.9em;">${producto.talle}</span>
+            ${producto.talle ? `<div class="variante-badge-talle">
+                <span class="variante-label">Talle</span>
+                <span class="variante-valor">${producto.talle}</span>
             </div>` : ''}
         </div>`;
     }
 
     contenedor.innerHTML = `
         <div class="producto-resultado">
-            <div style="margin-bottom: 12px;">
-                <h3 style="margin: 0; color: #1a5276; font-size: 1.2em;">${producto.descripcion}</h3>
+            <div class="producto-resultado-info">
+                <h3>${producto.descripcion}</h3>
                 ${badgesHtml}
             </div>
             <div class="producto-grid">
                 <div class="producto-item">
                     <label>Código</label>
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="valor-con-accion">
                         <div class="valor">${producto.codigo}</div>
-                        <button class="btn-agregar-venta" onclick="agregarProductoAlForm(this, ${JSON.stringify(producto).replace(/"/g, '&quot;')})" style="margin: 0; padding: 6px 12px; font-size: 13px;">✓ Agregar</button>
+                        <button class="btn-agregar-venta btn-agregar-compact" onclick="agregarProductoAlForm(this, ${JSON.stringify(producto).replace(/"/g, '&quot;')})">✓ Agregar</button>
                     </div>
                 </div>
                 <div class="producto-item">
@@ -1715,11 +1723,11 @@ function mostrarProductoEnForm(form, producto, contenedor) {
                 </div>
                 <div class="producto-item">
                     <label>Precio Público</label>
-                    <div class="valor">${formatMoney(precio)}</div>
+                    <div class="valor precio">${formatMoney(precio)}</div>
                 </div>
                 <div class="producto-item">
                     <label>Stock</label>
-                    <div class="valor" style="color: ${stock <= 0 ? '#d9534f' : stock <= 5 ? '#f0ad4e' : '#5cb85c'}">${stock}</div>
+                    <div class="valor ${stockClass}">${stock}</div>
                 </div>
             </div>
         </div>
@@ -2856,7 +2864,7 @@ document.getElementById('stockBusquedaCodigo')?.addEventListener('keyup', async 
 
     if (busqueda.length < 2) {
         resultado.style.display = busqueda.length === 1 ? 'block' : 'none';
-        resultado.innerHTML = busqueda.length === 1 ? '<span style="color:#999;">Escribí al menos 2 caracteres...</span>' : '';
+        resultado.innerHTML = busqueda.length === 1 ? '<span class="resultados-info">Escribí al menos 2 caracteres...</span>' : '';
         editor.style.display = 'none';
         productoStockActual = null;
         return;
@@ -2868,9 +2876,9 @@ document.getElementById('stockBusquedaCodigo')?.addEventListener('keyup', async 
             resultado.style.display = 'block';
             // En lugar de solo texto, ponemos el BOTÓN
             resultado.innerHTML = `
-                <div style="padding: 10px; text-align: center;">
-                    <p style="color: #e74c3c; margin-bottom: 10px;"><i data-lucide="x-circle" class="lucide-icon-xs"></i> No se encontró el producto "${busqueda}"</p>
-                    <button onclick="abrirModalProducto('${busqueda}')" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 5px;">
+                <div class="resultado-no-encontrado">
+                    <p class="texto-error"><i data-lucide="x-circle" class="lucide-icon-xs"></i> No se encontró el producto "${busqueda}"</p>
+                    <button onclick="abrirModalProducto('${busqueda}')" class="btn-crear-articulo">
                         <i data-lucide="sparkles" class="lucide-icon-xs"></i> Crear Artículo: ${busqueda.toUpperCase()}
                     </button>
                 </div>
@@ -2881,29 +2889,30 @@ document.getElementById('stockBusquedaCodigo')?.addEventListener('keyup', async 
         }
 
         const data = await response.json();
-        
+
         // Si hay múltiples resultados
         if (data.multiple) {
             resultado.style.display = 'block';
             resultado.innerHTML = `
                 <div class="resultados-lista" style="max-height: 250px;">
                     ${data.productos.map(p => {
-                        // Badges de color/talle
+                        // Badges de color/talle usando clases CSS
                         let badges = '';
-                        if (p.color) badges += `<span style="background:#e8f4f8; color:#2980b9; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:5px;">${p.color}</span>`;
-                        if (p.talle) badges += `<span style="background:#fef5e7; color:#d68910; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:3px;">${p.talle}</span>`;
+                        if (p.color) badges += `<span class="badge-color">${p.color}</span>`;
+                        if (p.talle) badges += `<span class="badge-talle">${p.talle}</span>`;
+                        const stockClass = (p.stock || 0) <= 0 ? 'stock-cero' : 'stock-ok';
                         return `
                         <div class="resultado-item" onclick="seleccionarProductoStock(${JSON.stringify(p).replace(/"/g, '&quot;')})">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                            <div class="resultado-item-content">
+                                <div class="resultado-item-left">
                                     <strong>${p.codigo}</strong>
-                                    <span style="margin: 0 6px; color: #555;">-</span>
-                                    <span style="font-weight: 500; color: #2c3e50;">${p.descripcion}</span>
+                                    <span class="resultado-item-separator">-</span>
+                                    <span class="resultado-item-desc">${p.descripcion}</span>
                                     ${badges}
                                 </div>
-                                <div style="text-align: right; white-space: nowrap;">
-                                    <span style="font-weight: bold; color: var(--primary);">${formatMoney(p.precioPublico || 0)}</span>
-                                    <span style="font-size: 0.85em; color: ${(p.stock || 0) <= 0 ? '#d9534f' : '#5cb85c'}; margin-left: 10px;">Stock: ${p.stock || 0}</span>
+                                <div class="resultado-item-right">
+                                    <span class="resultado-item-precio">${formatMoney(p.precioPublico || 0)}</span>
+                                    <span class="resultado-item-stock ${stockClass}">Stock: ${p.stock || 0}</span>
                                 </div>
                             </div>
                         </div>
