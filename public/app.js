@@ -1455,16 +1455,17 @@ function mostrarListaResultados(productos, contenedor) {
                 if (stock <= 0) claseStock = 'stock-cero'; // Rojo
                 else if (stock <= 5) claseStock = 'stock-bajo'; // Amarillo
 
-                // Color y talle
-                const variante = [p.color, p.talle].filter(v => v).join(' / ');
-                const infoVariante = variante ? `<span style="color: #888; font-size: 0.85em;"> (${variante})</span>` : '';
+                // Badges de color y talle
+                let badges = '';
+                if (p.color) badges += `<span style="background:#e8f4f8; color:#2980b9; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:5px;">${p.color}</span>`;
+                if (p.talle) badges += `<span style="background:#fef5e7; color:#d68910; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:3px;">${p.talle}</span>`;
 
                 return `
                 <div class="resultado-item-card" onclick="mostrarProductoDetalle(${pString}, document.getElementById('busquedaResultado'))">
 
                     <div class="res-codigo">${p.codigo}</div>
 
-                    <div class="res-desc">${p.descripcion || 'Sin descripción'}${infoVariante}</div>
+                    <div class="res-desc" style="font-weight: 500;">${p.descripcion || 'Sin descripción'}${badges}</div>
 
                     <div class="res-right">
                         <div class="res-precio">${formatMoney(p.precioPublico)}</div>
@@ -1484,13 +1485,31 @@ function mostrarProductoDetalle(producto, contenedor) {
     const precio = Number(producto.precioPublico) || 0;
     const costo  = Number(producto.costo) || 0;
     const stock  = Number(producto.stock);
-    const variante = [producto.color, producto.talle].filter(v => v).join(' / ');
-    const tituloVariante = variante ? `<span style="color: #888; font-size: 0.8em; font-weight: normal;"> (${variante})</span>` : '';
+
+    // Variante con boxes estilizados
+    let varianteHtml = '';
+    if (producto.color || producto.talle) {
+        varianteHtml = `
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                ${producto.color ? `<div style="background: #f0f4f8; border: 1px solid #e1e8ef; border-radius: 6px; padding: 4px 12px;">
+                    <span style="font-size: 0.7em; color: #666; text-transform: uppercase; display: block;">Color</span>
+                    <span style="font-weight: 600; color: #2c3e50;">${producto.color}</span>
+                </div>` : ''}
+                ${producto.talle ? `<div style="background: #f0f4f8; border: 1px solid #e1e8ef; border-radius: 6px; padding: 4px 12px;">
+                    <span style="font-size: 0.7em; color: #666; text-transform: uppercase; display: block;">Talle</span>
+                    <span style="font-weight: 600; color: #2c3e50;">${producto.talle}</span>
+                </div>` : ''}
+            </div>
+        `;
+    }
 
     contenedor.innerHTML = `
         <div class="producto-resultado">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">${producto.descripcion}${tituloVariante}</h3>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.4em; color: #1a5276;">${producto.descripcion}</h3>
+                    ${varianteHtml}
+                </div>
                 <button onclick="document.getElementById('busquedaResultado').innerHTML=''; document.getElementById('busquedaInput').value=''; document.getElementById('busquedaInput').focus();"
                         style="background: none; border: none; cursor: pointer; color: #999;"><i data-lucide="x" class="lucide-icon"></i></button>
             </div>
@@ -1503,8 +1522,6 @@ function mostrarProductoDetalle(producto, contenedor) {
                     <label>Categoría</label>
                     <div class="valor">${producto.categoria || '-'}</div>
                 </div>
-                ${producto.color ? `<div class="producto-item"><label>Color</label><div class="valor">${producto.color}</div></div>` : ''}
-                ${producto.talle ? `<div class="producto-item"><label>Talle</label><div class="valor">${producto.talle}</div></div>` : ''}
                 <div class="producto-item">
                     <label>Precio Público</label>
                     <div class="valor">${formatMoney(precio)}</div>
@@ -1579,12 +1596,14 @@ function initEventosFormulario(form) {
                     resultadoDiv.innerHTML = `
                         <div class="resultados-lista" style="max-height: 250px;">
                             ${data.productos.map(p => {
-                                const variante = [p.color, p.talle].filter(v => v).join(' / ');
-                                const infoVariante = variante ? `<span style="color: #888; font-size: 0.85em;"> (${variante})</span>` : '';
+                                // Badges de color/talle
+                                let badges = '';
+                                if (p.color) badges += `<span style="background:#e8f4f8; color:#2980b9; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:5px;">${p.color}</span>`;
+                                if (p.talle) badges += `<span style="background:#fef5e7; color:#d68910; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:3px;">${p.talle}</span>`;
                                 return `
                                 <div class="resultado-item" onclick="seleccionarProductoEnForm(this, ${JSON.stringify(p).replace(/"/g, '&quot;')})">
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <div><strong>${p.codigo}</strong> - ${p.descripcion}${infoVariante}</div>
+                                        <div style="display: flex; align-items: center; flex-wrap: wrap;"><strong>${p.codigo}</strong><span style="margin: 0 6px; color: #555;">-</span><span style="font-weight: 500; color: #2c3e50;">${p.descripcion}</span>${badges}</div>
                                         <div style="text-align: right;">
                                             <span style="font-weight: bold; color: var(--primary);">${formatMoney(p.precioPublico || 0)}</span>
                                             <span style="font-size: 0.85em; color: ${(p.stock || 0) <= 0 ? '#d9534f' : '#5cb85c'}; margin-left: 10px;">Stock: ${p.stock || 0}</span>
@@ -1660,12 +1679,28 @@ function seleccionarProductoEnForm(elemento, producto) {
 function mostrarProductoEnForm(form, producto, contenedor) {
     const precio = Number(producto.precioPublico) || 0;
     const stock = Number(producto.stock);
-    const variante = [producto.color, producto.talle].filter(v => v).join(' / ');
-    const tituloVariante = variante ? `<span style="color: #888; font-size: 0.8em; font-weight: normal;"> (${variante})</span>` : '';
+
+    // Badges de variante
+    let badgesHtml = '';
+    if (producto.color || producto.talle) {
+        badgesHtml = `<div style="display: flex; gap: 8px; margin-top: 6px;">
+            ${producto.color ? `<div style="background: #e8f4f8; border: 1px solid #d4e8ef; border-radius: 5px; padding: 3px 10px;">
+                <span style="font-size: 0.65em; color: #666; text-transform: uppercase; display: block;">Color</span>
+                <span style="font-weight: 600; color: #2980b9; font-size: 0.9em;">${producto.color}</span>
+            </div>` : ''}
+            ${producto.talle ? `<div style="background: #fef5e7; border: 1px solid #f5e6cc; border-radius: 5px; padding: 3px 10px;">
+                <span style="font-size: 0.65em; color: #666; text-transform: uppercase; display: block;">Talle</span>
+                <span style="font-weight: 600; color: #d68910; font-size: 0.9em;">${producto.talle}</span>
+            </div>` : ''}
+        </div>`;
+    }
 
     contenedor.innerHTML = `
         <div class="producto-resultado">
-            <h3>${producto.descripcion}${tituloVariante}</h3>
+            <div style="margin-bottom: 12px;">
+                <h3 style="margin: 0; color: #1a5276; font-size: 1.2em;">${producto.descripcion}</h3>
+                ${badgesHtml}
+            </div>
             <div class="producto-grid">
                 <div class="producto-item">
                     <label>Código</label>
@@ -2853,15 +2888,20 @@ document.getElementById('stockBusquedaCodigo')?.addEventListener('keyup', async 
             resultado.innerHTML = `
                 <div class="resultados-lista" style="max-height: 250px;">
                     ${data.productos.map(p => {
-                        const variante = [p.color, p.talle].filter(v => v).join(' / ');
-                        const infoVariante = variante ? `<span style="color: #888; font-size: 0.85em;"> (${variante})</span>` : '';
+                        // Badges de color/talle
+                        let badges = '';
+                        if (p.color) badges += `<span style="background:#e8f4f8; color:#2980b9; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:5px;">${p.color}</span>`;
+                        if (p.talle) badges += `<span style="background:#fef5e7; color:#d68910; padding:2px 6px; border-radius:4px; font-size:0.75em; margin-left:3px;">${p.talle}</span>`;
                         return `
                         <div class="resultado-item" onclick="seleccionarProductoStock(${JSON.stringify(p).replace(/"/g, '&quot;')})">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong>${p.codigo}</strong> - ${p.descripcion}${infoVariante}
+                                <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                                    <strong>${p.codigo}</strong>
+                                    <span style="margin: 0 6px; color: #555;">-</span>
+                                    <span style="font-weight: 500; color: #2c3e50;">${p.descripcion}</span>
+                                    ${badges}
                                 </div>
-                                <div style="text-align: right;">
+                                <div style="text-align: right; white-space: nowrap;">
                                     <span style="font-weight: bold; color: var(--primary);">${formatMoney(p.precioPublico || 0)}</span>
                                     <span style="font-size: 0.85em; color: ${(p.stock || 0) <= 0 ? '#d9534f' : '#5cb85c'}; margin-left: 10px;">Stock: ${p.stock || 0}</span>
                                 </div>
@@ -2897,10 +2937,26 @@ function mostrarEditorStock(producto) {
     resultado.style.display = 'none';
     resultado.innerHTML = '';
 
-    // Llenar editor - incluir color/talle en el título
-    const variante = [producto.color, producto.talle].filter(v => v).join(' / ');
-    const tituloCompleto = variante ? `${producto.descripcion || ''} (${variante})` : (producto.descripcion || '');
-    document.getElementById('stockProductoTitulo').textContent = tituloCompleto;
+    // Título del producto (solo nombre, más destacado)
+    document.getElementById('stockProductoTitulo').textContent = producto.descripcion || '';
+
+    // Badges de Color y Talle
+    const badgesContainer = document.getElementById('stockVarianteBadges');
+    let badgesHtml = '';
+    if (producto.color) {
+        badgesHtml += `<div style="background: #f0f4f8; border: 1px solid #e1e8ef; border-radius: 6px; padding: 4px 12px;">
+            <span style="font-size: 0.7em; color: #666; text-transform: uppercase; display: block;">Color</span>
+            <span style="font-weight: 600; color: #2c3e50;">${producto.color}</span>
+        </div>`;
+    }
+    if (producto.talle) {
+        badgesHtml += `<div style="background: #f0f4f8; border: 1px solid #e1e8ef; border-radius: 6px; padding: 4px 12px;">
+            <span style="font-size: 0.7em; color: #666; text-transform: uppercase; display: block;">Talle</span>
+            <span style="font-weight: 600; color: #2c3e50;">${producto.talle}</span>
+        </div>`;
+    }
+    badgesContainer.innerHTML = badgesHtml;
+
     document.getElementById('stockCodigo').textContent = producto.codigo || '';
     document.getElementById('stockCategoria').textContent = producto.categoria || '';
     document.getElementById('stockPrecioPublico').value = producto.precioPublico || 0;
@@ -3074,43 +3130,34 @@ function renderStockResumen() {
     const cont = document.getElementById('stockResumen');
     if (!totalEl || !cont) return;
 
-    let totalStock = 0;
+    let totalPrendas = 0;
     const porCategoria = {};
 
     productosCache.forEach(p => {
         const stock = Number(p.stock) || 0;
-        totalStock += stock;
+        totalPrendas += stock;
         const cat = p.categoria || 'Sin categoría';
-        if (!porCategoria[cat]) {
-            porCategoria[cat] = { articulos: 0, stock: 0 };
-        }
-        porCategoria[cat].articulos++;
-        porCategoria[cat].stock += stock;
+        porCategoria[cat] = (porCategoria[cat] || 0) + stock;
     });
 
-    // Box superior derecho: muestra artículos y stock total si hay
-    const stockInfo = totalStock > 0 ? ` | Stock: ${totalStock}` : '';
+    // Box superior derecho: PRENDAS TOTALES: X (Y artículos)
     totalEl.innerHTML = `
         <span class="stock-resumen-total-label">PRENDAS TOTALES -</span>
-        <span class="stock-resumen-total-value">${productosCache.length}</span>
-        <span style="font-size:0.78em; opacity:0.9;">(artículos${stockInfo})</span>
+        <span class="stock-resumen-total-value">${totalPrendas}</span>
+        <span style="font-size:0.78em; opacity:0.9;">(${productosCache.length} artículos)</span>
     `;
 
-    // Tarjetas clickeables por categoría - muestra cantidad de artículos
+    // Tarjetas clickeables por categoría
     let html = '';
-    Object.entries(porCategoria)
-        .sort((a, b) => b[1].articulos - a[1].articulos) // Ordenar por cantidad
-        .forEach(([cat, data]) => {
-            const safeCat = cat.replace(/"/g, '&quot;');
-            const stockLabel = data.stock > 0 ? `<div style="font-size:0.7em; color:#888;">Stock: ${data.stock}</div>` : '';
-            html += `
-                <div class="stock-resumen-item" onclick="filtrarPorCategoria('${safeCat}')">
-                    <h4>${cat}</h4>
-                    <div class="valor">${data.articulos}</div>
-                    ${stockLabel}
-                </div>
-            `;
-        });
+    Object.entries(porCategoria).forEach(([cat, stock]) => {
+        const safeCat = cat.replace(/"/g, '&quot;');
+        html += `
+            <div class="stock-resumen-item" onclick="filtrarPorCategoria('${safeCat}')">
+                <h4>${cat}</h4>
+                <div class="valor">${stock}</div>
+            </div>
+        `;
+    });
 
     cont.innerHTML = html;
 }
