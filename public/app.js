@@ -3264,7 +3264,7 @@ function renderStockResumen() {
     totalEl.innerHTML = `
         <span class="stock-resumen-total-label">PRENDAS TOTALES -</span>
         <span class="stock-resumen-total-value">${totalPrendas}</span>
-        <span style="font-size:0.78em; opacity:0.9;">(${productosCache.length} artículos)</span>
+        <span style="font-size:0.78em; opacity:0.9;">(${productosCache.length} artículos únicos)</span>
     `;
 
     // Tarjetas clickeables por categoría
