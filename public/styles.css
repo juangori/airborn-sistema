@@ -4567,39 +4567,33 @@ flex-direction: column;
 /* ==================== CARGA RÁPIDA DE STOCK ==================== */
 .carga-rapida-toggle {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    background: linear-gradient(135deg, #1e3a5f 0%, #0f2744 100%);
-    border: 1px solid #2563eb;
-    border-radius: 10px;
-    padding: 12px 18px;
-    margin-bottom: 20px;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .carga-rapida-info {
     display: flex;
     align-items: center;
-    gap: 12px;
-    color: #e5e7eb;
+    gap: 8px;
+    color: #9ca3af;
 }
 
 .carga-rapida-info i {
     color: #60a5fa;
-    width: 24px;
-    height: 24px;
+    width: 16px;
+    height: 16px;
 }
 
 .carga-rapida-title {
-    display: block;
-    font-weight: 600;
-    font-size: 0.95em;
-    color: #f9fafb;
+    font-weight: 500;
+    font-size: 0.85em;
+    color: #9ca3af;
 }
 
 .carga-rapida-desc {
-    display: block;
-    font-size: 0.8em;
-    color: #9ca3af;
+    display: none;
 }
 
 /* Indicador de stock - scanner */
